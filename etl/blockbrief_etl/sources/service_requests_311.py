@@ -20,6 +20,8 @@ COLUMNS = ["Creation Date", "Status", "First 3 Chars of Postal Code", "Intersect
 
 
 DEPENDS_ON = ["intersections"]
+# Stored on the file's `sources` row so the brief can state the period without a full scan.
+PERIOD_COLUMNS = {"service_requests_311": "created_at"}
 
 
 def _norm(street):

@@ -85,4 +85,9 @@ def transform(files):
         geom = clean.point_ewkt(df["LONGITUDE"], df["LATITUDE"])
         out["geom"] = geom.where(geom.notna(), clean.city_xy_to_ewkt(df["X"], df["Y"]))
         frames.append(out)
-    return {"rentsafe_evaluations": pd.concat(frames, ignore_index=True)}
+    out = pd.concat(frames, ignore_index=True)
+    # Mark each building's most recent evaluation (used to compare buildings city-wide).
+    order = pd.to_datetime(out["evaluation_date"]).sort_values(ascending=False, na_position="last").index
+    latest = out.loc[order].dropna(subset=["rsn"]).drop_duplicates("rsn").index
+    out["is_latest"] = out.index.isin(latest)
+    return {"rentsafe_evaluations": out}

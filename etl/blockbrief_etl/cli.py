@@ -115,7 +115,7 @@ def cmd_load(args):
                 tables = mod.enrich(conn, tables)
             for table, df in tables.items():
                 t = time.time()
-                n = db.replace_table(conn, table, df)
+                n = db.replace_table(conn, table, df, getattr(mod, "PERIOD_COLUMNS", {}).get(table))
                 print(f"    loaded {n:,} rows into {table} in {time.time() - t:.1f}s")
             if mod.FOLDER == "building_permits":
                 total, located = conn.execute(

@@ -106,6 +106,27 @@ def city_xy_to_ewkt(x: pd.Series, y: pd.Series) -> pd.Series:
     return point_ewkt(lon, lat)
 
 
+_POINT_EWKT = r"^SRID=4326;POINT\((-?[\d.]+) (-?[\d.]+)\)$"
+
+
+def spatial_order(geom: pd.Series) -> pd.Series:
+    """Sort key that puts nearby points next to each other (a Z-order / Morton curve).
+
+    Rows are written in this order so a radius query reads a few disk pages instead of one
+    page per row; that is what makes cold queries fast. Non-point rows sort last.
+    """
+    xy = geom.astype("string").str.extract(_POINT_EWKT).astype(float)
+    ok = xy.notna().all(axis=1)
+    min_lon, min_lat, max_lon, max_lat = TORONTO_BBOX
+    x = ((xy[0] - min_lon) / (max_lon - min_lon) * 65535).clip(0, 65535).fillna(0).to_numpy(np.int64)
+    y = ((xy[1] - min_lat) / (max_lat - min_lat) * 65535).clip(0, 65535).fillna(0).to_numpy(np.int64)
+    key = np.zeros(len(geom), dtype=np.int64)
+    for bit in range(16):
+        key |= ((x >> bit) & 1) << (2 * bit)
+        key |= ((y >> bit) & 1) << (2 * bit + 1)
+    return pd.Series(key, index=geom.index).where(ok, np.iinfo(np.int64).max)
+
+
 def multipolygon_ewkt(geom) -> str:
     if isinstance(geom, Polygon):
         geom = MultiPolygon([geom])

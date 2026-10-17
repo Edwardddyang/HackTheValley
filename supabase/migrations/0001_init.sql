@@ -19,6 +19,8 @@ create table if not exists sources (
     dataset    text not null,          -- table name the file was loaded into
     file_name  text not null,
     loaded_at  timestamptz not null default now(),
+    period_from date,                      -- earliest/latest record date in the file, for
+    period_to   date,                      -- datasets with one (set by the loader)
     unique (dataset, file_name)
 );
 
@@ -61,6 +63,7 @@ create table if not exists rentsafe_evaluations (
     result_text      text,                   -- pre-2023 only (RESULTS_OF_SCORE)
     areas_evaluated  smallint,
     item_scores      jsonb,
+    is_latest        boolean not null default false,  -- this building's most recent evaluation
     geom             geometry(Point, 4326),
     primary key (source_id, source_row_id)
 );
