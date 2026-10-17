@@ -5,12 +5,13 @@ import type { Extras } from "@/lib/extras";
 import { OFFENCE_LABELS, compactMoney, date, metres, money, num, titleCase } from "@/lib/format";
 
 import { ChecklistPanel, SummaryPanel, SummaryProvider } from "./AiSummary";
-import { BuildingSection } from "./BuildingSection";
+import { BuildingSection, RENTSAFE_CITY_MEDIAN } from "./BuildingSection";
 import { Cite } from "./Cite";
 import { LimitsPanel } from "./LimitsPanel";
 import { ListingCard } from "./ListingCard";
 import { MapPanel } from "./MapPanel";
-import { BarList, CompareBar, Empty, Note, Pill, Section, Stat } from "./ui";
+import { scoreLevel } from "./ScoreRuler";
+import { BarList, CompareBar, Empty, Note, Pill, Section, Stat, StatusLegend, StatusTag, rate } from "./ui";
 
 export type ListingHints = { rent: number | null; beds: number | null };
 
@@ -146,9 +147,19 @@ function NearbyBuildingsSection({ brief }: { brief: Brief }) {
   // Leave out this building itself (it is the section above).
   const self = brief.building.in_rentsafe ? brief.building.rsn : null;
   const list = brief.rentsafe_nearby.buildings.filter((b) => b.rsn !== self);
+  // Bar colour rates each 2023+ score against the city median, like the building's own badge.
+  const scoreColor = (b: (typeof list)[number]) =>
+    b.score == null || b.scoring === "pre-2023"
+      ? "var(--ink-2)"
+      : { "at-or-above": "var(--moss)", below: "var(--amber)", "well-below": "var(--brick)" }[scoreLevel(b.score, RENTSAFE_CITY_MEDIAN)];
   return (
     <Section id="nearby-buildings" title="Evaluated buildings nearby"
       subtitle={`${num(list.length)} RentSafeTO building${list.length === 1 ? "" : "s"} within ${metres(brief.address.radius_m)}, nearest first. On the map, each dark circle shows its score.`}>
+      {list.length > 0 && (
+        <div className="mb-4">
+          <StatusLegend good={`At or above the city median of ${RENTSAFE_CITY_MEDIAN}`} fair="Up to 10 points below" poor="More than 10 below" />
+        </div>
+      )}
       {list.length === 0 ? (
         <Empty>No RentSafeTO-evaluated buildings in this radius.</Empty>
       ) : (
@@ -172,7 +183,7 @@ function NearbyBuildingsSection({ brief }: { brief: Brief }) {
                   <div className="flex items-center gap-2">
                     <span className="num w-7 text-ink">{num(b.score)}</span>
                     <div className="h-1.5 flex-1 rounded-full bg-surface-2" aria-hidden="true">
-                      <div className="h-1.5 rounded-full bg-ink-2" style={{ width: `${b.score ?? 0}%` }} />
+                      <div className="h-1.5 rounded-full" style={{ width: `${b.score ?? 0}%`, background: scoreColor(b) }} />
                     </div>
                   </div>
                   {b.scoring === "pre-2023" ? <div className="text-xs text-ink-2">pre-2023 scoring</div> : null}
@@ -316,46 +327,57 @@ function CrimeSection({ brief }: { brief: Brief }) {
       {c.offences.length === 0 ? (
         <Empty>No crime data for this neighbourhood.</Empty>
       ) : (
-        <ul className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-          {c.offences.map((o) => {
-            const max = Math.max(o.rate_per_100k, o.city_rate_per_100k ?? 0) * 1.15;
-            const change = o.previous_year_rate != null ? o.rate_per_100k - o.previous_year_rate : null;
-            return (
-              <li key={o.offence} className="text-[15px]">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-ink">
-                    {OFFENCE_LABELS[o.offence] ?? o.offence}
-                    <Cite cite={o.cite} />
-                  </span>
-                  <span className="num shrink-0 text-ink">
-                    {num(o.rate_per_100k)}
-                    <span className="ml-1.5 text-sm text-ink-2">Toronto {num(o.city_rate_per_100k)}</span>
-                  </span>
-                </div>
-                <CompareBar value={o.rate_per_100k} compare={o.city_rate_per_100k} max={max}
-                  valueLabel={`${hood}: ${num(o.rate_per_100k)}`} compareLabel={`Toronto: ${num(o.city_rate_per_100k)}`} />
-                <div className="mt-1 text-sm text-ink-2">
-                  {num(o.count)} incident{o.count === 1 ? "" : "s"}
-                  {change != null ? `, rate ${change === 0 ? "same as" : `${change > 0 ? "up" : "down"} ${num(Math.abs(Math.round(change * 10) / 10))} from`} ${c.year - 1}` : ""}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        <>
+          <div className="mb-4">
+            <StatusLegend good="More than 10% below the city rate" fair="Within 10%" poor="More than 10% above" />
+          </div>
+          <ul className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+            {c.offences.map((o) => {
+              const max = Math.max(o.rate_per_100k, o.city_rate_per_100k ?? 0) * 1.15;
+              const change = o.previous_year_rate != null ? o.rate_per_100k - o.previous_year_rate : null;
+              const status = rate(o.rate_per_100k, o.city_rate_per_100k, 0.1);
+              return (
+                <li key={o.offence} className="text-[15px]">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-ink">
+                      {OFFENCE_LABELS[o.offence] ?? o.offence}
+                      <Cite cite={o.cite} />
+                    </span>
+                    <span className="num shrink-0 text-ink">
+                      {num(o.rate_per_100k)}
+                      <span className="ml-1.5 text-sm text-ink-2">Toronto {num(o.city_rate_per_100k)}</span>
+                    </span>
+                  </div>
+                  <CompareBar value={o.rate_per_100k} compare={o.city_rate_per_100k} max={max} status={status}
+                    valueLabel={`${hood}: ${num(o.rate_per_100k)}`} compareLabel={`Toronto: ${num(o.city_rate_per_100k)}`} />
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-ink-2">
+                    {status && <StatusTag status={status} label={{ good: "Below the city rate", fair: "Near the city rate", poor: "Above the city rate" }[status]} />}
+                    <span>
+                      {num(o.count)} incident{o.count === 1 ? "" : "s"}
+                      {change != null ? `, rate ${change === 0 ? "same as" : `${change > 0 ? "up" : "down"} ${num(Math.abs(Math.round(change * 10) / 10))} from`} ${c.year - 1}` : ""}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
       <Note>{c.note}</Note>
     </Section>
   );
 }
 
-const CENSUS_ROWS: { key: string; label: string; kind: "percent" | "money" | "number" }[] = [
-  { key: "median_rent_monthly", label: "Median monthly shelter cost, renters", kind: "money" },
+// `rated` marks the rows where lower is clearly better for a renter (cost, cost burden, disrepair);
+// the rest (who rents, built form, income, commute mode) have no good or bad direction and stay grey.
+const CENSUS_ROWS: { key: string; label: string; kind: "percent" | "money" | "number"; rated?: boolean }[] = [
+  { key: "median_rent_monthly", label: "Median monthly shelter cost, renters", kind: "money", rated: true },
   { key: "renter_households", label: "Households that rent", kind: "percent" },
-  { key: "pct_tenants_30pct_on_shelter", label: "Renters spending 30%+ of income on housing", kind: "percent" },
+  { key: "pct_tenants_30pct_on_shelter", label: "Renters spending 30%+ of income on housing", kind: "percent", rated: true },
   { key: "pct_tenants_subsidized", label: "Renters in subsidized housing", kind: "percent" },
   { key: "median_household_income", label: "Median household income (2020)", kind: "money" },
   { key: "apartments_5plus_storeys", label: "Homes in buildings of 5+ storeys", kind: "percent" },
-  { key: "dwellings_major_repairs", label: "Homes needing major repairs", kind: "percent" },
+  { key: "dwellings_major_repairs", label: "Homes needing major repairs", kind: "percent", rated: true },
   { key: "commute_transit", label: "Commute by transit", kind: "percent" },
   { key: "commute_walk", label: "Commute on foot", kind: "percent" },
   { key: "commute_bicycle", label: "Commute by bicycle", kind: "percent" },
@@ -368,6 +390,9 @@ function CensusSection({ brief }: { brief: Brief }) {
   return (
     <Section id="census" title={`${hood} at a glance`}
       subtitle={<>2021 Census{pop ? <>, population {num(pop)}<Cite cite={values.population?.cite} /></> : null}. Bar: {hood}; tick: median of Toronto&apos;s 158 neighbourhoods.</>}>
+      <div className="mb-4">
+        <StatusLegend good="More than 10% below the neighbourhood median" fair="Within 10%" poor="More than 10% above" />
+      </div>
       <ul className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
         {CENSUS_ROWS.filter((r) => values[r.key]).map((r) => {
           const v = values[r.key];
@@ -376,6 +401,7 @@ function CensusSection({ brief }: { brief: Brief }) {
           const fmt = (n: number | null | undefined) =>
             n == null ? "—" : r.kind === "money" ? money(n) : r.kind === "percent" ? `${num(Math.round(n * 10) / 10)}%` : num(n);
           const max = r.kind === "percent" ? 100 : Math.max(shown ?? 0, median ?? 0) * 1.25;
+          const status = r.rated ? rate(shown, median, 0.1) : null;
           return (
             <li key={r.key} className="text-[15px]">
               <div className="flex items-baseline justify-between gap-2">
@@ -388,8 +414,13 @@ function CensusSection({ brief }: { brief: Brief }) {
                   <span className="ml-1.5 text-sm text-ink-2">median {fmt(median)}</span>
                 </span>
               </div>
-              <CompareBar value={shown ?? null} compare={median} max={max}
+              <CompareBar value={shown ?? null} compare={median} max={max} status={status}
                 valueLabel={`${hood}: ${fmt(shown)}`} compareLabel={`Neighbourhood median: ${fmt(median)}`} />
+              {status && (
+                <div className="mt-1">
+                  <StatusTag status={status} label={{ good: "Below the median", fair: "Near the median", poor: "Above the median" }[status]} />
+                </div>
+              )}
             </li>
           );
         })}

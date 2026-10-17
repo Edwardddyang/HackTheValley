@@ -74,14 +74,55 @@ export function BarList({ items, color, max }: {
   );
 }
 
-/** This place's value as a bar, with a tick at the comparison value (city or median). The numbers are written beside it. */
-export function CompareBar({ value, compare, max, valueLabel, compareLabel }: {
-  value: number | null; compare: number | null; max: number; valueLabel: string; compareLabel: string;
+// Status rating for comparison bars, ported from Edward's integrate/real-data-frontend but on the
+// theme tokens (moss/amber/brick), so it holds up in dark mode. A status colour never carries
+// meaning alone: StatusTag pairs it with a shape and words, and each rated panel shows a legend.
+export type Status = "good" | "fair" | "poor";
+const STATUS_COLOR: Record<Status, string> = { good: "var(--moss)", fair: "var(--amber)", poor: "var(--brick)" };
+const STATUS_ICON: Record<Status, string> = { good: "●", fair: "◆", poor: "▲" };
+
+/**
+ * Rates a value against a reference (city rate or neighbourhood median).
+ * "higher-worse": more than `tolerance` (relative) below the reference is good, within it fair,
+ * above it poor. Returns null when there's nothing to compare, so the bar stays neutral.
+ */
+export function rate(value: number | null | undefined, reference: number | null | undefined, tolerance: number): Status | null {
+  if (value == null || reference == null || !Number.isFinite(value) || !Number.isFinite(reference)) return null;
+  if (reference <= 0) return value <= 0 ? "good" : "poor";
+  const ratio = value / reference;
+  if (ratio < 1 - tolerance) return "good";
+  return ratio <= 1 + tolerance ? "fair" : "poor";
+}
+
+/** Coloured dot/diamond/triangle plus words, so the rating reads without colour. */
+export function StatusTag({ status, label }: { status: Status | null; label: string }) {
+  if (!status) return null;
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-ink-2">
+      <span aria-hidden="true" style={{ color: STATUS_COLOR[status] }}>{STATUS_ICON[status]}</span>{label}
+    </span>
+  );
+}
+
+export function StatusLegend({ good, fair, poor }: { good: string; fair: string; poor: string }) {
+  return (
+    <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-2">
+      <StatusTag status="good" label={good} /><StatusTag status="fair" label={fair} /><StatusTag status="poor" label={poor} />
+    </p>
+  );
+}
+
+/** This place's value as a bar, with a tick at the comparison value (city or median). The numbers are written beside it.
+ *  A rated bar takes its status colour; an unrated one stays neutral, so colour always means the rating. */
+export function CompareBar({ value, compare, max, valueLabel, compareLabel, status = null }: {
+  value: number | null; compare: number | null; max: number; valueLabel: string; compareLabel: string; status?: Status | null;
 }) {
   const pct = (n: number) => `${Math.min(100, Math.max(0, (100 * n) / (max || 1)))}%`;
   return (
     <div className="relative mt-1.5 h-1.5 rounded-full bg-surface-2" title={`${valueLabel}; ${compareLabel}`} aria-hidden="true">
-      {value != null ? <div className="h-1.5 rounded-full bg-accent" style={{ width: pct(value) }} /> : null}
+      {value != null ? (
+        <div className="h-1.5 rounded-full" style={{ width: pct(value), background: status ? STATUS_COLOR[status] : "var(--ink-3)" }} />
+      ) : null}
       {compare != null ? (
         <div className="absolute -top-1 h-3.5 w-0.5 rounded-full bg-ink" style={{ left: `calc(${pct(compare)} - 1px)` }} />
       ) : null}
