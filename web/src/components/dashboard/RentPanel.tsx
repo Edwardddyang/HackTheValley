@@ -4,6 +4,7 @@ import { BEDROOM_NOUN, bedroomsKey, bedroomsLabel, money } from "@/lib/format";
 import type { ListingHints } from "@/lib/listing-params";
 
 import { DashboardPanel, SourceNote, Unavailable } from "./DashboardPanel";
+import { RentEntry } from "./RentEntry";
 
 // Layout from feature/frontend's RentBenchmarksPanel (Satwik); data and comparison rule from integrate/best-of-both's
 // ListingCard (Ariaz). A new lease is compared with the rent of units that were vacant at survey time, the closest
@@ -18,7 +19,9 @@ const UNIT_TYPES = [
   { key: "three_plus", label: "3+ bedrooms" },
 ] as const;
 
-export default function RentPanel({ benchmark, listing }: { benchmark: Benchmark | null; listing: ListingHints }) {
+export default function RentPanel({ benchmark, listing, addressPointId, radius }: {
+  benchmark: Benchmark | null; listing: ListingHints; addressPointId: number; radius: number;
+}) {
   const { rent, beds } = listing;
   const key = beds == null ? null : bedroomsKey(beds);
   return (
@@ -62,7 +65,8 @@ export default function RentPanel({ benchmark, listing }: { benchmark: Benchmark
               </table>
             </div>
           </div>
-          <Comparison benchmark={benchmark} rent={rent} beds={beds} />
+          <Comparison benchmark={benchmark} rent={rent} beds={beds}
+            entry={<RentEntry addressPointId={addressPointId} radius={radius} />} />
         </div>
       )}
       {benchmark && (
@@ -96,7 +100,9 @@ function ListingSummary({ rent, beds }: { rent: number | null; beds: number | nu
   );
 }
 
-function Comparison({ benchmark, rent, beds }: { benchmark: Benchmark; rent: number | null; beds: number | null }) {
+function Comparison({ benchmark, rent, beds, entry }: {
+  benchmark: Benchmark; rent: number | null; beds: number | null; entry: React.ReactNode;
+}) {
   const key = beds == null ? null : bedroomsKey(beds);
   const row = key ? benchmark.by_bedrooms[key] : null;
   const vacant = row?.vacant_units ?? null;
@@ -113,9 +119,15 @@ function Comparison({ benchmark, rent, beds }: { benchmark: Benchmark; rent: num
     <div className="rounded-xl border border-slate-200 p-4 text-sm leading-6 text-slate-600">
       <h3 className="font-semibold text-[#142D4E]">Asking-rent comparison</h3>
       {rent == null && beds == null ? (
-        <p className="mt-2">Paste the rental ad on the home page and the asking rent is compared with these figures here.</p>
+        <>
+          <p className="mt-2">Enter the asking rent to see how it compares.</p>
+          {entry}
+        </>
       ) : rent == null || key == null ? (
-        <p className="mt-2">The listing didn&apos;t give {rent == null ? "a rent" : "a bedroom count"}, so it can&apos;t be compared with CMHC&apos;s area rents.</p>
+        <>
+          <p className="mt-2">The listing didn&apos;t give {rent == null ? "a rent" : "a bedroom count"}. Enter it to compare.</p>
+          {entry}
+        </>
       ) : compareTo == null ? (
         <p className="mt-2">CMHC doesn&apos;t publish a rent for {noun} apartments in {area}.</p>
       ) : (
@@ -136,6 +148,12 @@ function Comparison({ benchmark, rent, beds }: { benchmark: Benchmark; rent: num
           <Cite cite={benchmark.cite} />{" "}
           This listing asks <strong className="tabular-nums">{diffText}</strong> {vacant != null ? "the vacant-unit average" : "the all-units average"}.
         </p>
+      )}
+      {rent != null && key != null && (
+        <details className="mt-4 border-t border-slate-100 pt-3">
+          <summary className="cursor-pointer text-sm font-medium text-teal-800 focus-visible:outline-2 focus-visible:outline-teal-700">Compare a different rent</summary>
+          {entry}
+        </details>
       )}
     </div>
   );

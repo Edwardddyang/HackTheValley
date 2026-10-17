@@ -52,7 +52,7 @@ export default function InspectionPanel({ brief, stats }: { brief: Brief; stats:
           {e.lowest_items.map((item) => (
             <li key={item.item} className="flex items-center justify-between gap-4 py-3 text-sm">
               <span className="text-slate-700">{titleCase(item.item)}</span>
-              <span className="shrink-0 font-semibold tabular-nums text-[#142D4E]">{item.score} / {e.item_scale_max}</span>
+              <ItemScore score={item.score} max={e.item_scale_max} />
             </li>
           ))}
         </ul>
@@ -76,5 +76,21 @@ export default function InspectionPanel({ brief, stats }: { brief: Brief; stats:
       )}
       <SourceNote cite={e.cite} />
     </DashboardPanel>
+  );
+}
+
+/** One square per grade step, filled up to the item's grade: the worst grade brick, full marks moss, between amber. */
+function ItemScore({ score, max }: { score: number; max: number }) {
+  const color = score <= 1 ? "#a1302b" : score >= max ? "#2f6b45" : "#8f4b00";
+  return (
+    <span className="flex shrink-0 items-center gap-2 text-sm text-slate-600">
+      <span aria-hidden="true" className="flex gap-0.5">
+        {Array.from({ length: max }, (_, i) => (
+          <span key={i} className="h-3 w-3 rounded-[2px] border"
+            style={{ borderColor: color, backgroundColor: i < score ? color : "transparent" }} />
+        ))}
+      </span>
+      <span className="font-semibold tabular-nums text-[#142D4E]">{score} of {max}</span>
+    </span>
   );
 }

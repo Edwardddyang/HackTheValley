@@ -15,14 +15,14 @@ body {
   color: #142d4e;
 }
 
-/* Citation tag: the tooltip opens on hover and on keyboard focus. */
+/* Citation tag: the tooltip opens on hover and on keyboard focus; the tag links to the dataset's page. */
 .cite {
   position: relative;
   display: inline-flex;
   vertical-align: super;
   margin-left: 0.25em;
 }
-.cite > button {
+.cite > .cite-tag {
   font-size: 0.625rem;
   font-weight: 500;
   line-height: 1;
@@ -32,10 +32,11 @@ body {
   border: 1px solid #cbd5e1;
   color: #475569;
   background: #ffffff;
-  cursor: help;
+  text-decoration: none;
+  cursor: pointer;
 }
-.cite > button:hover,
-.cite > button:focus-visible {
+.cite > .cite-tag:hover,
+.cite > .cite-tag:focus-visible {
   color: #115e59;
   border-color: #0f766e;
   background: #f0fdfa;

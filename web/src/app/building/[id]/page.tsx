@@ -22,6 +22,7 @@ import { ReviewsSection } from "@/components/reviews/ReviewsSection";
 import AddressSearch from "@/components/search/AddressSearch";
 import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { DEFAULT_RADIUS_M } from "@/lib/brief";
+import { DATASETS } from "@/lib/datasets";
 import { suggestedQuestions } from "@/lib/ai/ask-core";
 import { bedroomsLabel, metres, money, num } from "@/lib/format";
 import { buildingHref, hasListing, listingQuery, parseListingHints } from "@/lib/listing-params";
@@ -133,7 +134,8 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
             </Grid>
           ) }] : []),
           { id: "rent", label: "Rent", badge: listing.rent != null ? "Your listing" : null, content: (
-            <Grid><RentPanel benchmark={extras?.rent_benchmark ?? null} listing={listing} /></Grid>
+            <Grid><RentPanel benchmark={extras?.rent_benchmark ?? null} listing={listing}
+              addressPointId={brief.address.address_point_id} radius={radius} /></Grid>
           ) },
           // Ordered by how much each tab bears on the decision: the area's cost and safety, then disruption
           // nearby, then other buildings to compare, then the noisiest signal (311).
@@ -160,10 +162,26 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
             <Grid><ReviewsSection /></Grid>
           ) },
           { id: "about", label: "About the data", content: (
-            <section className="rounded-2xl border border-slate-200 bg-slate-100 p-6" aria-labelledby="limitations-title">
-              <h2 id="limitations-title" className="text-xl font-semibold">Sources and limitations</h2>
-              <ul className="mt-4 max-w-4xl list-disc space-y-2 pl-5 text-sm leading-6 text-slate-600">{LIMITATIONS.map((l) => <li key={l}>{l}</li>)}</ul>
-            </section>
+            <div className="space-y-5">
+              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/30" aria-labelledby="datasets-title">
+                <h2 id="datasets-title" className="text-xl font-semibold">Datasets</h2>
+                <ul className="mt-4 grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
+                  {DATASETS.map((d) => (
+                    <li key={d.key}>
+                      <a href={d.url} target="_blank" rel="noopener noreferrer"
+                        className="font-medium text-teal-800 underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-teal-700">
+                        {d.name}<span aria-hidden> ↗</span><span className="sr-only"> (opens in a new tab)</span>
+                      </a>
+                      <p className="text-xs text-slate-500">{d.publisher}</p>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+              <section className="rounded-2xl border border-slate-200 bg-slate-100 p-6" aria-labelledby="limitations-title">
+                <h2 id="limitations-title" className="text-xl font-semibold">Limitations</h2>
+                <ul className="mt-4 max-w-4xl list-disc space-y-2 pl-5 text-sm leading-6 text-slate-600">{LIMITATIONS.map((l) => <li key={l}>{l}</li>)}</ul>
+              </section>
+            </div>
           ) },
         ]} />
         </SummaryProvider>

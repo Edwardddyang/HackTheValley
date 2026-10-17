@@ -1,13 +1,14 @@
 import type { Brief } from "@/lib/brief";
 import { compactMoney, date } from "@/lib/format";
 
-import { DashboardPanel, ItemList, SourceNote, Unavailable } from "./DashboardPanel";
+import { DashboardPanel, ItemList, SourceNote } from "./DashboardPanel";
 
+/** Renders nothing when the address has no permits; an empty card would only take up room in the tab. */
 export default function AddressPermitsPanel({ brief }: { brief: Brief }) {
   const p = brief.permits_at_address;
+  if (p.items.length === 0) return null;
   return (
     <DashboardPanel wide id="address-permits" title="Permits at this address" subtitle={p.note}>
-      {p.items.length === 0 ? <Unavailable>No permits on record for this exact address.</Unavailable> : (
         <ItemList items={p.items.map((i) => (
             <li key={i.permit_num + i.type + i.status} className="rounded-xl border border-slate-200 p-4 text-sm">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -19,7 +20,6 @@ export default function AddressPermitsPanel({ brief }: { brief: Brief }) {
               <SourceNote cite={i.cite} />
             </li>
           ))} />
-      )}
     </DashboardPanel>
   );
 }

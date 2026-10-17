@@ -24,6 +24,7 @@ export default function BuildingSummaryPanel({ brief, extras }: { brief: Brief; 
             ["Storeys", <span key="s" className="text-2xl font-semibold tabular-nums text-[#142D4E]">{num(b.storeys)}</span>],
             ["Units", <span key="u" className="text-2xl font-semibold tabular-nums text-[#142D4E]">{num(b.units)}</span>],
           ]} />
+          <div className="mt-5"><Facts items={[["Owner type", ownerType(b.property_type)]]} /></div>
           <h3 className="mt-6 text-sm font-semibold text-[#142D4E]">From the building&apos;s City registration</h3>
           {reg ? <Registration reg={reg} asOfYear={asOfYear} /> : (
             <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -78,6 +79,14 @@ function Registration({ reg, asOfYear }: { reg: Reg; asOfYear: number | null }) 
       )}
     </>
   );
+}
+
+function ownerType(t: string | null) {
+  if (!t) return "Not reported";
+  const u = t.toUpperCase();
+  if (u === "TCHC") return "Toronto Community Housing";
+  if (u === "SOCIAL HOUSING") return "Social housing";
+  return sentenceCase(t);
 }
 
 const isNone = (s: string | null) => s != null && /^(none|no)$/i.test(s.trim());
