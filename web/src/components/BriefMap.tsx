@@ -20,7 +20,7 @@ type LayerKey = "rentsafe" | "permits" | "devapps" | "sr311";
 // Fixed palette slots; the map tiles are always light, so these are the light-mode steps
 // (each 4.5:1+ against the white letter it carries). Buildings use ink + a score label rather
 // than a fourth hue, and permits/applications carry a letter, so hue is never the only signal.
-const COLORS = { sr311: "#2468b8", devapps: "#b84a17", permits: "#137a55", building: "#17263a", ring: "#ffffff" };
+const COLORS = { sr311: "#2468b8", devapps: "#b84a17", permits: "#137a55", building: "#142d4e", ring: "#ffffff" };
 const LETTER = { permits: "P", devapps: "A" } as const;
 
 type Picked = { lon: number; lat: number; layer: LayerKey; props: Record<string, unknown> };

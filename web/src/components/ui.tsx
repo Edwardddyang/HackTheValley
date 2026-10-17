@@ -88,7 +88,7 @@ const STATUS_ICON: Record<Status, string> = { good: "●", fair: "◆", poor: "�
  */
 export function rate(value: number | null | undefined, reference: number | null | undefined, tolerance: number): Status | null {
   if (value == null || reference == null || !Number.isFinite(value) || !Number.isFinite(reference)) return null;
-  if (reference <= 0) return value <= 0 ? "good" : "poor";
+  if (reference <= 0) return value > 0 ? "poor" : "fair"; // equal-to-zero is "near", not "below"
   const ratio = value / reference;
   if (ratio < 1 - tolerance) return "good";
   return ratio <= 1 + tolerance ? "fair" : "poor";

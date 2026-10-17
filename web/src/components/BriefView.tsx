@@ -150,11 +150,15 @@ function NearbyBuildingsSection({ brief }: { brief: Brief }) {
   // Leave out this building itself (it is the section above).
   const self = brief.building.in_rentsafe ? brief.building.rsn : null;
   const list = brief.rentsafe_nearby.buildings.filter((b) => b.rsn !== self);
-  // Bar colour rates each 2023+ score against the city median, like the building's own badge.
-  const scoreColor = (b: (typeof list)[number]) =>
-    b.score == null || b.scoring === "pre-2023"
-      ? "var(--ink-2)"
-      : { "at-or-above": "var(--moss)", below: "var(--amber)", "well-below": "var(--brick)" }[scoreLevel(b.score, RENTSAFE_CITY_MEDIAN)];
+  // Each 2023+ score is rated against the city median like the building's own badge; the rating
+  // shows as the bar colour plus the legend's shape, so colour is never the only signal.
+  const SCORE_STATUS = {
+    "at-or-above": { color: "var(--moss)", icon: "●" },
+    below: { color: "var(--amber)", icon: "◆" },
+    "well-below": { color: "var(--brick)", icon: "▲" },
+  } as const;
+  const scoreStatus = (b: (typeof list)[number]) =>
+    b.score == null || b.scoring === "pre-2023" ? null : SCORE_STATUS[scoreLevel(b.score, RENTSAFE_CITY_MEDIAN)];
   return (
     <Section id="nearby-buildings" title="Evaluated buildings nearby"
       subtitle={`${num(list.length)} RentSafeTO building${list.length === 1 ? "" : "s"} within ${metres(brief.address.radius_m)}, nearest first. On the map, each dark circle shows its score.`}>
@@ -176,24 +180,28 @@ function NearbyBuildingsSection({ brief }: { brief: Brief }) {
             </tr>
           </thead>
           <tbody>
-            {list.slice(0, 8).map((b) => (
-              <tr key={b.rsn} className="border-t border-hairline">
-                <th scope="row" className="py-2 pr-3 text-left font-normal text-ink">
-                  {titleCase(b.address)}
-                  <Cite cite={b.cite} />
-                </th>
-                <td className="w-2/5 py-2 pr-3">
-                  <div className="flex items-center gap-2">
-                    <span className="num w-7 text-ink">{num(b.score)}</span>
-                    <div className="h-1.5 flex-1 rounded-full bg-surface-2" aria-hidden="true">
-                      <div className="h-1.5 rounded-full" style={{ width: `${b.score ?? 0}%`, background: scoreColor(b) }} />
+            {list.slice(0, 8).map((b) => {
+              const st = scoreStatus(b);
+              return (
+                <tr key={b.rsn} className="border-t border-hairline">
+                  <th scope="row" className="py-2 pr-3 text-left font-normal text-ink">
+                    {titleCase(b.address)}
+                    <Cite cite={b.cite} />
+                  </th>
+                  <td className="w-2/5 py-2 pr-3">
+                    <div className="flex items-center gap-2">
+                      {st && <span aria-hidden="true" className="shrink-0 text-xs" style={{ color: st.color }}>{st.icon}</span>}
+                      <span className="num w-7 text-ink">{num(b.score)}</span>
+                      <div className="h-1.5 flex-1 rounded-full bg-surface-2" aria-hidden="true">
+                        <div className="h-1.5 rounded-full" style={{ width: `${b.score ?? 0}%`, background: st?.color ?? "var(--ink-2)" }} />
+                      </div>
                     </div>
-                  </div>
-                  {b.scoring === "pre-2023" ? <div className="text-xs text-ink-2">pre-2023 scoring</div> : null}
-                </td>
-                <td className="num py-2 text-right text-ink-2">{metres(b.distance_m)}</td>
-              </tr>
-            ))}
+                    {b.scoring === "pre-2023" ? <div className="text-xs text-ink-2">pre-2023 scoring</div> : null}
+                  </td>
+                  <td className="num py-2 text-right text-ink-2">{metres(b.distance_m)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}
@@ -393,9 +401,11 @@ function CensusSection({ brief }: { brief: Brief }) {
   return (
     <Section id="census" title={`${hood} at a glance`}
       subtitle={<>2021 Census{pop ? <>, population {num(pop)}<Cite cite={values.population?.cite} /></> : null}. Bar: {hood}; tick: median of Toronto&apos;s 158 neighbourhoods.</>}>
-      <div className="mb-4">
-        <StatusLegend good="More than 10% below the neighbourhood median" fair="Within 10%" poor="More than 10% above" />
-      </div>
+      {CENSUS_ROWS.some((r) => r.rated && values[r.key]) && (
+        <div className="mb-4">
+          <StatusLegend good="More than a tenth below the neighbourhood median" fair="Within a tenth of it" poor="More than a tenth above" />
+        </div>
+      )}
       <ul className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
         {CENSUS_ROWS.filter((r) => values[r.key]).map((r) => {
           const v = values[r.key];
