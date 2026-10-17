@@ -63,7 +63,7 @@ export const SHADES: Record<ShadeMetric, ShadeSpec> = {
       : `RentSafeTO: ${h.rentsafe_n ? `only ${h.rentsafe_n} evaluated building${h.rentsafe_n === 1 ? "" : "s"}` : "no evaluated buildings"}, too few for a median`),
   },
   transit: {
-    option: "commuting by transit (2021)", deep: "#0369a1",
+    option: "transit commuting (2021)", deep: "#0369a1",
     low: pct, high: (v) => `${pct(v)} of commuters`, source: "2021 Census, taken during the pandemic",
     line: (h) => `${pct(h.transit)} of commuters take transit (2021 Census, during the pandemic)`,
   },
