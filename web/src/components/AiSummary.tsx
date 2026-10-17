@@ -8,7 +8,7 @@ import { date } from "@/lib/format";
 import { Cite } from "./Cite";
 import { Section } from "./ui";
 
-// The plain-language summary and the viewing checklist both come from one POST /api/summary.
+// The What-to-flag bullets and the viewing checklist both come from one POST /api/summary.
 // The server rebuilds the brief itself and only restates facts in it; every line carries its cites.
 
 type Failure = "unavailable" | "rate_limited" | "failed";
@@ -25,9 +25,11 @@ function useSummary() {
   return ctx;
 }
 
-/** Fetches the summary once per address and radius. Key it by address so a new address starts fresh. */
-export function SummaryProvider({ addressPointId, radius, children }: { addressPointId: number; radius: number; children: ReactNode }) {
-  const body: SummaryRequest = { address_point_id: addressPointId, radius_m: radius };
+/** Fetches the flags once per address, radius and listing. Key it by address so a new address starts fresh. */
+export function SummaryProvider({ addressPointId, radius, rent = null, beds = null, children }: {
+  addressPointId: number; radius: number; rent?: number | null; beds?: number | null; children: ReactNode;
+}) {
+  const body: SummaryRequest = { address_point_id: addressPointId, radius_m: radius, rent, beds };
   const requestKey = JSON.stringify(body);
   const [state, setState] = useState<State>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
@@ -45,6 +47,8 @@ export function SummaryProvider({ addressPointId, radius, children }: { addressP
     })
       .then(async (res) => {
         const json = (await res.json().catch(() => null)) as Summary | ApiError | null;
+        // Aborted by the cleanup while the body was read: the next run owns the state; this isn't a failure.
+        if (controller.signal.aborted) return;
         loaded.current = `${requestKey}#${attempt}`;
         if (res.ok && json && "sentences" in json) {
           setState({ status: "ready", summary: json });
@@ -72,26 +76,32 @@ function failureFor(status: number): Failure {
   return "failed";
 }
 
-/** The plain-language summary at the top of the brief. */
+/** The What-to-flag panel at the top of the brief: at most 3 standout deviations, worst first. */
 export function SummaryPanel() {
   const { state, retry } = useSummary();
   return (
     <section id="summary" aria-labelledby="summary-h" className="rounded-2xl border border-accent/25 bg-accent-tint p-5 shadow-sm sm:p-6">
-      <h2 id="summary-h" className="text-xl font-semibold tracking-tight text-ink">In plain language</h2>
+      <h2 id="summary-h" className="text-xl font-semibold tracking-tight text-ink">What to flag</h2>
+      <p className="mt-0.5 text-sm text-ink-2">The records&apos; standout deviations for this address, worst first.</p>
       <p className="sr-only" role="status">
-        {state.status === "loading" ? "Writing the summary." : state.status === "ready" ? "The summary is ready." : ""}
+        {state.status === "loading" ? "Picking what to flag." : state.status === "ready" ? "The flags are ready." : ""}
       </p>
       <div aria-busy={state.status === "loading"} className="mt-2">
-        {state.status === "loading" && <Skeleton lines={4} label="Writing a summary from the records on this page…" />}
+        {state.status === "loading" && <Skeleton lines={3} label="Flagging what stands out in the records…" />}
         {state.status === "error" && <Failed what="summary" failure={state.failure} onRetry={retry} />}
         {state.status === "ready" &&
           (state.summary.sentences.length === 0 ? (
-            <p className="text-[15px] text-ink-2">The summary came back empty. The records below still apply.</p>
+            <>
+              <p className="max-w-[68ch] text-[1.0625rem] text-ink">
+                No red flags in the records for this address. The sections below show how much the records cover.
+              </p>
+              <Provenance summary={state.summary} />
+            </>
           ) : (
             <>
               <ul className="flex max-w-[68ch] flex-col gap-2.5 text-[1.0625rem] leading-relaxed text-ink">
                 {state.summary.sentences.map((s, i) => (
-                  <li key={i}><Line line={s} /></li>
+                  <li key={i} className="border-l-2 border-brick pl-3"><Line line={s} /></li>
                 ))}
               </ul>
               <Provenance summary={state.summary} />
@@ -214,7 +224,7 @@ function Skeleton({ lines, label }: { lines: number; label: string }) {
 }
 
 function Failed({ what, failure, onRetry }: { what: "summary" | "questions"; failure: Failure; onRetry: () => void }) {
-  const subject = what === "summary" ? "The plain-language summary" : "The viewing questions";
+  const subject = what === "summary" ? "The What-to-flag panel" : "The viewing questions";
   const text =
     failure === "unavailable"
       ? `${subject} ${what === "summary" ? "is" : "are"} written by AI, which isn't set up on this server. Everything else on this page comes straight from the records.`

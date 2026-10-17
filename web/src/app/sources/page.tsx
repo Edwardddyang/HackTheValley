@@ -91,8 +91,9 @@ export default function SourcesPage() {
               <h2 id="ai-h" className="plate border-b-2 border-ink pb-2 text-[2rem] font-bold text-ink">How the AI parts work</h2>
               <ul className="mt-4 flex max-w-[64ch] list-disc flex-col gap-2 pl-5 text-base text-ink marker:text-ink-2">
                 <li>
-                  Google Gemini writes the plain-language summary and the viewing questions. The server builds the brief
-                  itself and Gemini only sees those records, the same ones shown on the page.
+                  Google Gemini writes the What-to-flag bullets, the viewing questions, the ad check and the answers to
+                  your questions. The server builds the brief itself and Gemini only sees those records, the same ones
+                  shown on the page.
                 </li>
                 <li>Every line must cite the records it&apos;s based on. Hover or focus a source tag to see the dataset, file and row.</li>
                 <li>When Gemini isn&apos;t available, a fixed template restates the key facts instead, and the brief says so.</li>

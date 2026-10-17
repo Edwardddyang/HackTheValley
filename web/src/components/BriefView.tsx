@@ -1,9 +1,15 @@
 import Link from "next/link";
 
+import type { Claim } from "@/lib/ai-types";
+import { encodeClaimsParam } from "@/lib/ai/ad-check-core";
 import type { AddressMatch, Brief } from "@/lib/brief";
 import type { Extras } from "@/lib/extras";
 import { OFFENCE_LABELS, compactMoney, date, metres, money, num, titleCase } from "@/lib/format";
 
+import { suggestedQuestions } from "@/lib/ai/ask-core";
+
+import { AdCheckSection } from "./AdCheckSection";
+import { AskSection } from "./AskSection";
 import { ChecklistPanel, SummaryPanel, SummaryProvider } from "./AiSummary";
 import { BuildingSection, RENTSAFE_CITY_MEDIAN } from "./BuildingSection";
 import { Cite } from "./Cite";
@@ -13,9 +19,17 @@ import { MapPanel } from "./MapPanel";
 import { ReviewsSection } from "./Reviews";
 import { scoreLevel } from "./ScoreRuler";
 import { ShowOnMap } from "./ShowOnMap";
+import { Term } from "./Term";
 import { BarList, CompareBar, Empty, Note, Pill, Section, Stat, StatusLegend, StatusTag, rate } from "./ui";
 
-export type ListingHints = { rent: number | null; beds: number | null };
+export type ListingHints = { rent: number | null; beds: number | null; claims: Claim[] };
+
+/** The query-string tail that carries a pasted listing's rent, bedrooms and claims between pages. */
+export function listingHintsQuery(listing: ListingHints): string {
+  const claims = encodeClaimsParam(listing.claims);
+  return `${listing.rent != null ? `&rent=${listing.rent}` : ""}${listing.beds != null ? `&beds=${listing.beds}` : ""}${
+    claims ? `&claims=${encodeURIComponent(claims)}` : ""}`;
+}
 
 export function BriefView({ brief, extras, alternatives, radius, listing, fixture = false }: {
   brief: Brief; extras: Extras | null; alternatives: AddressMatch[]; radius: number;
@@ -28,7 +42,9 @@ export function BriefView({ brief, extras, alternatives, radius, listing, fixtur
 
   const nav: [string, string][] = [
     ...(hasListing ? [["listing", "Your listing"] as [string, string]] : []),
-    ["summary", "In plain language"],
+    ...(listing.claims.length ? [["adcheck", "Ad check"] as [string, string]] : []),
+    ["summary", "What to flag"],
+    ["ask", "Ask the records"],
     ["building", "Building"],
     ["checklist", "Viewing questions"],
     ["nearby-buildings", "Nearby buildings"],
@@ -42,7 +58,8 @@ export function BriefView({ brief, extras, alternatives, radius, listing, fixtur
   ];
 
   return (
-    <SummaryProvider key={`${brief.address.address_point_id}-${radius}`} addressPointId={brief.address.address_point_id} radius={brief.address.radius_m}>
+    <SummaryProvider key={`${brief.address.address_point_id}-${radius}`} addressPointId={brief.address.address_point_id}
+      radius={brief.address.radius_m} rent={listing.rent} beds={listing.beds}>
       <div className="grid gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="min-w-0 lg:col-start-2">
           {fixture && <FixtureBanner />}
@@ -57,7 +74,13 @@ export function BriefView({ brief, extras, alternatives, radius, listing, fixtur
 
         <div className="min-w-0 space-y-5 lg:col-start-2">
           {hasListing && <ListingCard rent={listing.rent} beds={listing.beds} benchmark={extras?.rent_benchmark ?? null} />}
+          {listing.claims.length > 0 && (
+            <AdCheckSection addressPointId={brief.address.address_point_id} radius={brief.address.radius_m}
+              rent={listing.rent} beds={listing.beds} claims={listing.claims} />
+          )}
           <SummaryPanel />
+          <AskSection addressPointId={brief.address.address_point_id} radius={brief.address.radius_m}
+            rent={listing.rent} beds={listing.beds} suggestions={suggestedQuestions(brief, extras)} />
           <BuildingSection brief={brief} extras={extras} asOfYear={asOfYear} />
           <ChecklistPanel address={brief.address.address} />
           <NearbyBuildingsSection brief={brief} />
@@ -74,8 +97,8 @@ export function BriefView({ brief, extras, alternatives, radius, listing, fixtur
             The map&apos;s essentials (subway, groceries, pharmacies, hospitals) come from OpenStreetMap (ODbL)
             {/* The flyover only exists when a Maps key was set at build time (see Flyover.tsx). */}
             {process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ? ", and the flyover shows Google Photorealistic 3D Tiles" : ""}.
-            Hover or focus a source tag to see the dataset, file and row. Only the plain-language summary and the
-            viewing questions are written by AI, and they cite the same records.
+            Hover or focus a source tag to see the dataset, file and row. Only the What-to-flag bullets, the viewing
+            questions, the ad check and the answers to your questions are written by AI, and they cite the same records.
           </p>
         </div>
       </div>
@@ -96,7 +119,7 @@ function Header({ brief, alternatives, radius, nav, listing }: {
   brief: Brief; alternatives: AddressMatch[]; radius: number; nav: [string, string][]; listing: ListingHints;
 }) {
   const { address, area } = brief;
-  const keep = `${listing.rent != null ? `&rent=${listing.rent}` : ""}${listing.beds != null ? `&beds=${listing.beds}` : ""}`;
+  const keep = listingHintsQuery(listing);
   return (
     <div>
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Before-you-sign brief</p>
@@ -312,7 +335,11 @@ function RequestsSection({ brief }: { brief: Brief }) {
     types.map((t) => ({ label: t.type, count: t.count, note: t.still_open ? `${num(t.still_open)} still open` : undefined, cite: t.cite }));
   return (
     <Section id="requests" title="311 requests in the area"
-      subtitle={<>Requests to the City from {date(s.period.from)} to {date(s.period.to)}. 311 records only a postal area or the nearest intersection, never the address, so these counts describe the area around the building, <strong className="font-semibold text-ink">not the building itself</strong>.</>}>
+      subtitle={<><Term label="311 service requests">311 is Toronto&apos;s non-emergency city line: residents call or go
+        online about things like noise, garbage, pests or property standards, and each report becomes a service request
+        in the City&apos;s open data.</Term> from {date(s.period.from)} to {date(s.period.to)}. 311 records only a postal
+        area or the nearest intersection, never the address, so these counts describe the area around the building,{" "}
+        <strong className="font-semibold text-ink">not the building itself</strong>.</>}>
       <div className="grid gap-8 md:grid-cols-2">
         <div>
           <Stat value={num(s.nearby.count)} label={`reported at street intersections within ${metres(brief.address.radius_m)}`} />

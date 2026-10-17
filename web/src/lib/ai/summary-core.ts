@@ -1,16 +1,17 @@
-// Pure logic for the AI summary (POST /api/summary): the evidence Gemini sees, the checks its answer must pass, and
-// the template used without it. Every evidence item has a short id ("f3") that maps to the Cite of the row(s) it
-// came from; the model cites ids and the server turns them back into Cite objects.
+// Pure logic for the What-to-flag panel (POST /api/summary): the evidence Gemini sees, the checks its answer must
+// pass, and the template used without it. Every evidence item has a short id ("f3") that maps to the Cite of the
+// row(s) it came from; the model cites ids and the server turns them back into Cite objects.
 // Type-only imports, so `node --test src/lib/ai/` runs this file directly.
 import type { Summary, SummaryLine } from "../ai-types";
 import type { Brief, Cite } from "../brief";
 import type { Extras } from "../extras";
 
 export const TEMPLATE_MODEL = "template";
-export const MAX_SENTENCES = 7;
+/** The panel shows at most this many flags, worst first; zero flags is a valid, honest answer. */
+export const MAX_FLAGS = 3;
 export const MAX_QUESTIONS = 6;
-/** Fewer grounded sentences than this and the template is used instead. */
-export const MIN_SENTENCES = 2;
+/** An asking rent this many percent or more above CMHC's vacant-unit average is a price flag (shared with the ad check). */
+export const MIN_PRICE_GAP_PCT = 5;
 const MAX_IDS_PER_LINE = 4;
 const MAX_SENTENCE_CHARS = 350;
 const MAX_QUESTION_CHARS = 250;
@@ -208,11 +209,15 @@ export function buildEvidence(brief: Brief, extras: Extras | null): EvidenceSet 
       score: e.score,
       score_out_of: SCORE_OUT_OF,
       percent_of_toronto_buildings_scoring_lower: e.percent_of_buildings_scoring_lower,
+      // Models love to invert "0.9% score lower" into "99.1%"; computing it here keeps that phrasing grounded.
+      percent_of_toronto_buildings_scoring_equal_or_higher: e.percent_of_buildings_scoring_lower != null
+        ? Math.round((100 - e.percent_of_buildings_scoring_lower) * 10) / 10
+        : null,
       item_grades: `1 (worst) to ${e.item_scale_max} (best)`,
       lowest_graded_items: lowest.map((i) => `${sentenceCase(i.item)}: ${i.score} of ${e.item_scale_max}`),
     });
     if (e.percent_of_buildings_scoring_lower != null) {
-      notes.push("percent_of_toronto_buildings_scoring_lower compares with the latest evaluation of every RentSafeTO building in Toronto (2023+ scoring).");
+      notes.push("percent_of_toronto_buildings_scoring_lower and percent_of_toronto_buildings_scoring_equal_or_higher compare with the latest evaluation of every RentSafeTO building in Toronto (2023+ scoring).");
     }
     if (lowest.length) notes.push(`lowest_graded_items lists at most ${lowest.length} items; other items may have the same grade.`);
 
@@ -447,6 +452,16 @@ function collect(value: unknown, numbers: number[], strings: string[]): void {
 const same = (a: number, b: number) => Math.abs(a - b) < 1e-9;
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
+// Spelled-out numbers ("forty complaints") are grounded like digits. "one" and "no" are left out on purpose: they are
+// ordinary words ("one of the", "no air conditioning") far more often than quantities.
+const WORD_NUMBERS: Readonly<Record<string, number>> = {
+  zero: 0, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+  eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18,
+  nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90,
+  hundred: 100, thousand: 1_000, million: 1_000_000, billion: 1_000_000_000, dozen: 12,
+};
+const NUMBER_WORD_RE = new RegExp(String.raw`\b(?:${Object.keys(WORD_NUMBERS).join("|")})\b`, "gi");
+
 /** True when `n` is in `allowed`, exactly, rounded or truncated (88.1 -> 88 but not 89; 193.5 -> 193 or 194). */
 export function isNumberGrounded(n: number, allowed: readonly number[]): boolean {
   return allowed.some((e) => same(e, n) || same(round1(e), n) || same(Math.round(e), n) || same(Math.floor(e), n));
@@ -502,6 +517,15 @@ const CRIME_RE =
 const AT_BUILDING_RE =
   /(?<!\b(?:not|than|never)\s+)\b(?:at|in|inside|from|for|about|against|on|regarding)\s+(?:this|the|your)\s+(?:building|address|property|unit|apartment)\b(?!['’]s)/i;
 const BUILDING_REF_RE = /\b(?:this|the|your)\s+(?:building|address|property|unit|apartment)\b(?!['’]s)/i;
+// The same without the possessive exemption: "this building's assault rate" still pins area data on the building.
+const BUILDING_ANY_REF_RE = /\b(?:this|the|your)\s+(?:building|address|property|unit|apartment)\b/i;
+// "not this building", "rather than the address": the line keeps area data off the building on purpose.
+const NEGATED_ATTRIBUTION_RE =
+  /\b(?:not|never|rather than|instead of)\s+(?:at\s+|about\s+|in\s+)?(?:this|the|your)\s+(?:building|address|property|unit|apartment)/i;
+const RENT_CONTROL_RE = /rent[ -]?control|rent[ -]?increase guideline/i;
+const RENT_CONTROL_HEDGE_RE = /\blikely\b|\bunclear\b|confirm with the landlord|ask the landlord/i;
+const SIGNING_ADVICE_RE =
+  /\b(?:you\s+)?should(?:n['’]?t|\s+not)?\s+sign\b|\bdon['’]?t\s+sign\b|\bdo\s+not\s+sign\b|\bwalk\s+away\b/i;
 const RESOLUTION_RE = /\b(?:resol(?:ved|ves?|ving|ution)|closed|closing|response times?|turnaround)\b/i;
 const CITATION_IN_TEXT_RE = /\s*[[(]\s*(?:evidence\s*:?\s*)?f\d{1,3}(?:\s*[,;]\s*f\d{1,3})*\s*[\])]/gi;
 
@@ -513,7 +537,8 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-function cleanText(raw: string): string {
+/** Strips inline citations, bullets and stray whitespace from a model-written line (shared with the ad check). */
+export function cleanText(raw: string): string {
   return raw
     .replace(CITATION_IN_TEXT_RE, "")
     .replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "")
@@ -522,7 +547,8 @@ function cleanText(raw: string): string {
     .trim();
 }
 
-function validIds(raw: unknown, ctx: GroundingContext): string[] {
+/** The evidence ids in `raw` that exist in the context, deduplicated and capped (shared with the ad check). */
+export function validIds(raw: unknown, ctx: GroundingContext): string[] {
   if (!Array.isArray(raw)) return [];
   const out: string[] = [];
   for (const v of raw) {
@@ -543,15 +569,30 @@ export function checkLine(text: string, ids: readonly string[], ctx: GroundingCo
   for (const n of extractNumbers(text)) {
     if (!isNumberGrounded(n, allowed)) return `number ${n} is not in the cited evidence`;
   }
+  const citedText = ids.map((id) => ctx.item_text.get(id) ?? "").join("\n");
+  for (const m of text.matchAll(NUMBER_WORD_RE)) {
+    const word = m[0].toLowerCase();
+    if (isNumberGrounded(WORD_NUMBERS[word], allowed)) continue;
+    // A cited item that spells the number out itself ("three-storey addition" in a permit description) grounds it.
+    if (new RegExp(String.raw`\b${word}\b`).test(citedText)) continue;
+    return `number word "${word}" is not in the cited evidence`;
+  }
 
   const topics = ids.map((id) => ctx.topics.get(id));
   const about311 = topics.includes("sr311") || /\b311\b/.test(text);
   if (about311 && AT_BUILDING_RE.test(text)) return "attributes area 311 requests to the building";
+  // "This building has 328 311 requests" needs no preposition to pin area requests on the building.
+  if (about311 && BUILDING_REF_RE.test(text) && !NEGATED_ATTRIBUTION_RE.test(text)) {
+    return "attributes area 311 requests to the building";
+  }
   if (about311 && RESOLUTION_RE.test(text)) return "mentions 311 resolution, which the data doesn't have";
 
   if (CRIME_RE.test(text)) {
     if (!topics.includes("crime")) return "claims crime without a crime record";
-    if (BUILDING_REF_RE.test(text)) return "attributes neighbourhood crime to the building";
+    if (BUILDING_ANY_REF_RE.test(text)) return "attributes neighbourhood crime to the building";
+  }
+  if (topics.includes("census") && BUILDING_ANY_REF_RE.test(text)) {
+    return "attributes neighbourhood census data to the building";
   }
 
   for (const term of CONDITION_TERMS) {
@@ -559,8 +600,15 @@ export function checkLine(text: string, ids: readonly string[], ctx: GroundingCo
     const support = ids.filter((id) => term.re.test(ctx.item_text.get(id) ?? ""));
     if (support.length === 0) return `claims ${term.label} without a record`;
     const onBuilding = support.some((id) => BUILDING_TOPICS.has(ctx.topics.get(id) as Topic));
+    // Keeps the possessive exemption: "the building's City registration" is a legitimate building record.
     if (!onBuilding && BUILDING_REF_RE.test(text)) return `attributes ${term.label} to the building without a building record`;
   }
+
+  // Rent control is an estimate from the year built; questions may ask about it, statements must hedge.
+  if (!text.includes("?") && RENT_CONTROL_RE.test(text) && !RENT_CONTROL_HEDGE_RE.test(text)) {
+    return "states rent control as certain";
+  }
+  if (SIGNING_ADVICE_RE.test(text)) return "gives advice on signing";
   return null;
 }
 
@@ -594,7 +642,7 @@ export function validateSummaryOutput(raw: unknown, ctx: GroundingContext): Chec
   }
 
   return {
-    sentences: take(obj.sentences, "text", MAX_SENTENCE_CHARS, MAX_SENTENCES),
+    sentences: take(obj.flags ?? obj.sentences, "text", MAX_SENTENCE_CHARS, MAX_FLAGS),
     checklist: take(obj.checklist, "question", MAX_QUESTION_CHARS, MAX_QUESTIONS),
     rejected,
   };
@@ -633,17 +681,18 @@ export function toSummary(
 // Prompt and response schema ------------------------------------------------------------------------------------
 
 export function summarySystemInstruction(radiusM: number): string {
-  return `You write the summary at the top of RentReceipts, a tool for Toronto renters looking up an address.
-You receive EVIDENCE as JSON: "items", each with an "id" (like "f3"), what it is "about", and "facts" from City of Toronto open data, the Toronto Police Service and CMHC, plus "notes" that explain the data.
+  return `You pick what to flag about one Toronto address for the "What to flag" panel at the top of RentReceipts, a tool for renters checking a building before they sign.
+You receive EVIDENCE as JSON: "items", each with an "id" (like "f3"), what it is "about", and "facts" from City of Toronto open data, the Toronto Police Service and CMHC, plus "notes" that explain the data. You may also receive LISTING: the asking rent and bedrooms the renter gave, with the difference from the cited CMHC average already computed.
 
 Write two things:
-1. "sentences": 4 to 7 short, plain-language sentences (under 30 words each) for a renter deciding whether to sign a lease here. Cover what matters most for living there, in this order when the facts exist: the building's RentSafeTO evaluation and its lowest-graded items, heating and cooling, rent-control status, area rents, construction and development nearby, then 311 requests, crime and census figures for the area.
+1. "flags": 0 to 3 short bullets (under 25 words each) naming the standout deviations in the records, the most serious first. A flag is something a renter would want explained before signing: a low or falling RentSafeTO score and its worst-graded items, no cooling on file, an asking rent well above the CMHC vacant-unit average (about ${MIN_PRICE_GAP_PCT}% or more), major construction or a development application close by, offence rates well above Toronto's. Rank, don't summarize: leave out everything ordinary for Toronto, and return an empty list when nothing stands out - never pad to 3. Write each flag tight and comparative - the thing, its number, and what it compares to, side by side ("Assault rate in the neighbourhood: N per 100,000 vs Toronto's M") - never lead-ins like "In the X neighbourhood, the 2025 rate was".
 2. "checklist": 3 to 6 questions the renter can ask the landlord at the viewing, grounded in the lowest-graded items and the other facts.
 
 Rules:
-- Use only the facts in EVIDENCE. No outside knowledge, guesses or assumptions.
-- Every sentence and question lists in "evidence_ids" the id of each item it relies on, copied exactly. At least one.
-- Copy numbers exactly as they appear in the facts of the items you cite. Don't calculate, convert or invent numbers.
+- Use only the facts in EVIDENCE and LISTING. No outside knowledge, guesses or assumptions.
+- A number alone says nothing: pair it with its comparison from the same facts (the city median, Toronto's rate, the CMHC average, the previous score). Write dates short ("Oct 2025", not "on 2025-10-02"), and don't narrate sources ("according to the 2021 Census", "reported by Toronto Police") - the citations already carry that.
+- Every flag and question lists in "evidence_ids" the id of each item it relies on, copied exactly. At least one.
+- Copy numbers exactly as they appear in the facts of the items you cite or in LISTING. Don't calculate, convert or invent numbers.
 - 311 requests are located only to an intersection or a postal area, never to a building, and the data has no closing dates: say "within ${radiusM} m" or "in Ward N", never "at this building", and never say how quickly requests were resolved.
 - Crime rates and census figures describe the whole neighbourhood: name the neighbourhood, and never present them as facts about this building.
 - Never say the building has pests, mould, leaks, bed bugs or any other condition unless an item about this building says so. Describe evaluation results as the item name and its grade (1 = worst, 3 = best).
@@ -653,8 +702,26 @@ Rules:
 - Leave out facts that are missing; don't write about what the data lacks.`;
 }
 
-export function summaryUserPrompt(evidence: Evidence): string {
-  return `EVIDENCE:\n${JSON.stringify(evidence)}`;
+/**
+ * The listing's rent against the CMHC average, as the server computed it (shape-compatible with ad-check-core's
+ * RentComparison, defined here structurally so the pure modules stay one-directional).
+ */
+export type ListingContext = {
+  rent: number; kind: "vacant_units" | "all_units"; noun: string; average: number; diff: number; pct: number;
+} | null;
+
+/** The LISTING section of a prompt (shared with ask-the-records), or "" without a listing. */
+export function listingPromptPart(listing: ListingContext): string {
+  return listing
+    ? `\n\nLISTING (what the renter told us, with the difference from the cited CMHC average already computed):\n${JSON.stringify({
+        asking_rent: listing.rent, bedroom_type: listing.noun, average_kind: listing.kind,
+        average_monthly_rent: listing.average, asks_minus_average: listing.diff, percent_difference: listing.pct,
+      })}`
+    : "";
+}
+
+export function summaryUserPrompt(evidence: Evidence, listing: ListingContext = null): string {
+  return `EVIDENCE:\n${JSON.stringify(evidence)}${listingPromptPart(listing)}`;
 }
 
 /** JSON schema for Gemini's structured output; the enum limits citations to the evidence ids. */
@@ -668,10 +735,10 @@ export function summaryResponseSchema(ids: readonly string[]) {
   return {
     type: "object",
     properties: {
-      sentences: {
+      flags: {
         type: "array",
-        minItems: MIN_SENTENCES,
-        maxItems: MAX_SENTENCES,
+        minItems: 0,
+        maxItems: MAX_FLAGS,
         items: {
           type: "object",
           properties: { text: { type: "string" }, evidence_ids: evidenceIds },
@@ -689,18 +756,14 @@ export function summaryResponseSchema(ids: readonly string[]) {
         },
       },
     },
-    required: ["sentences", "checklist"],
+    required: ["flags", "checklist"],
   };
 }
 
-// Template: the summary without AI. Used when Gemini is missing, fails or its answer doesn't survive the checks. ----
+// Template: the flags without AI. Used when Gemini is missing, fails or its answer doesn't survive the checks. ----
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const numberFmt = new Intl.NumberFormat("en-CA", { maximumFractionDigits: 1 });
-const num = (n: number) => numberFmt.format(n);
 const money = (n: number) => `$${new Intl.NumberFormat("en-CA", { maximumFractionDigits: 0 }).format(n)}`;
-const plural = (n: number, one: string, many = `${one}s`) => `${num(n)} ${n === 1 ? one : many}`;
-const article = (word: string) => (/^[aeiou]/i.test(word) ? `an ${word}` : `a ${word}`);
 
 /** "2025-10-02" -> "Oct 2, 2025" (the format of web/src/lib/format.ts, without depending on the ICU version). */
 export function dateLabel(iso: string): string {
@@ -714,178 +777,90 @@ export function monthLabel(iso: string): string {
   return m ? `${MONTHS[Number(m[2]) - 1]} ${m[1]}` : iso;
 }
 
-function listJoin(parts: string[]): string {
-  if (parts.length <= 1) return parts.join("");
-  return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
-}
-
-/** The template's lines, still as evidence ids (so tests can run them through the same checks as Gemini's). */
-export function templateLines(brief: Brief, extras: Extras | null, set: EvidenceSet = buildEvidence(brief, extras)) {
+/**
+ * The template's flags and checklist, still as evidence ids (so tests can run them through the same checks as
+ * Gemini's). Flags are deterministic worry-first candidates cut at MAX_FLAGS; an empty list is the honest answer
+ * when nothing in the records stands out.
+ */
+export function templateLines(
+  brief: Brief,
+  extras: Extras | null,
+  set: EvidenceSet = buildEvidence(brief, extras),
+  listing: ListingContext = null,
+) {
   const { refs } = set;
-  const r = brief.address.radius_m;
-  const address = brief.address.address;
-  const sentences: CheckedLine[] = [];
   const checklist: CheckedLine[] = [];
   const say = (list: CheckedLine[], text: string, ids: (string | null | undefined)[]) => {
     const clean = ids.filter((id): id is string => Boolean(id));
     if (clean.length) list.push({ text, ids: clean });
   };
 
-  // Sentences, most important first; the list is cut at MAX_SENTENCES.
+  // Flags: each standout deviation becomes a candidate; lower priority = bigger worry, shown first.
+  const candidates: { priority: number; line: CheckedLine }[] = [];
+  const flag = (priority: number, text: string, ids: (string | null | undefined)[]) => {
+    const clean = ids.filter((id): id is string => Boolean(id));
+    if (clean.length) candidates.push({ priority, line: { text, ids: clean } });
+  };
+
   const b = brief.building;
   const e = b.in_rentsafe ? b.latest_evaluation : null;
   const lowest = [...(e?.lowest_items ?? [])].sort((x, y) => x.score - y.score);
-  if (b.in_rentsafe && e) {
-    if (e.score != null) {
-      let text = `${address} scored ${e.score}/${SCORE_OUT_OF} on its latest RentSafeTO evaluation${e.date ? ` (${dateLabel(e.date)})` : ""}`;
-      const prev = refs.previous;
-      if (prev) {
-        text += prev.score === e.score
-          ? `, the same as in ${monthLabel(prev.date)}`
-          : `, ${prev.score > e.score ? "down" : "up"} from ${prev.score} in ${monthLabel(prev.date)}`;
-      }
-      if (e.percent_of_buildings_scoring_lower != null) {
-        text += `; ${num(e.percent_of_buildings_scoring_lower)}% of evaluated Toronto buildings score lower`;
-      }
-      say(sentences, `${text}.`, [refs.latest, prev?.id]);
-    }
-    if (lowest.length) {
-      const min = lowest[0].score;
-      const names = listJoin(lowest.filter((i) => i.score === min).slice(0, 3).map((i) => i.item.toLowerCase()));
-      say(sentences, min === 1
-        ? `Items graded 1 of ${e.item_scale_max}, the lowest grade, include ${names}.`
-        : `Its lowest-graded items were ${names} (${min} of ${e.item_scale_max}).`, [refs.latest]);
-    }
-    if (b.year_built != null) {
-      const rc = rentControl(b.year_built);
-      say(sentences, rc === "likely_covered"
-        ? `Built in ${b.year_built}, the building is likely covered by Ontario's rent-increase guideline; confirm with the landlord.`
-        : rc === "likely_exempt"
-          ? `Built in ${b.year_built}, the building is likely exempt from Ontario's rent-increase guideline (units first occupied after ${RENT_CONTROL_CUTOFF} generally are); confirm with the landlord.`
-          : `Built in ${b.year_built}, the building's rent-control status is unclear; ask the landlord when the unit was first occupied.`,
-      [refs.latest]);
-    }
-  } else {
-    say(sentences, `${address} has no RentSafeTO evaluation; RentSafeTO only covers apartment buildings with 3+ storeys and 10+ units.`, [refs.address]);
+
+  const pctLower = e?.percent_of_buildings_scoring_lower ?? null;
+  if (e && e.score != null && pctLower != null && pctLower < 50) {
+    const prev = refs.previous;
+    const drop = prev && prev.score > e.score ? `, down from ${prev.score} in ${monthLabel(prev.date)}` : "";
+    flag(pctLower < 10 ? 10 : 20,
+      `Scored ${e.score}/100 on its latest RentSafeTO evaluation${e.date ? ` (${dateLabel(e.date)})` : ""}${drop}; only ${pctLower}% of evaluated Toronto buildings score lower.`,
+      [refs.latest, prev && prev.score > e.score ? prev.id : null]);
+  }
+
+  // The nearer of the closest open development application and the closest major permit: big change close by.
+  const near = refs.dev_nearest;
+  const notable = refs.nearest_notable;
+  const nearDist = near ? Math.round(near.app.distance_m) : Infinity;
+  const notableDist = notable ? Math.round(notable.permit.distance_m) : Infinity;
+  if (near && nearDist <= notableDist && nearDist <= 300) {
+    flag(nearDist <= 150 ? 15 : 25,
+      `${near.label} ${near.app.status.toLowerCase()} ${nearDist} m away${near.app.address ? ` at ${titleCase(near.app.address)}` : ""}.`,
+      [near.id]);
+  } else if (notable && notableDist <= 300) {
+    flag(notableDist <= 150 ? 15 : 25,
+      `Major construction ${notableDist} m away${notable.permit.address ? ` at ${titleCase(notable.permit.address)}` : ""} (${notable.permit.type.toLowerCase()}, ${notable.permit.status.toLowerCase()}).`,
+      [notable.id]);
+  }
+
+  // Only a clear gap over the vacant-unit average flags; the all-units average includes long-time tenants, so a new
+  // lease can't fairly be judged against it.
+  if (listing && refs.rent && listing.kind === "vacant_units" && listing.diff > 0 && listing.pct >= MIN_PRICE_GAP_PCT) {
+    flag(18,
+      `Asks ${money(listing.rent)} a month — ${money(listing.diff)} (${listing.pct}%) above CMHC's vacant-unit average for ${listing.noun} rentals in the area.`,
+      [refs.rent]);
   }
 
   const reg = extras?.registration;
-  if (reg && refs.registration) {
-    const parts: string[] = [];
-    if (reg.heating_type) {
-      const status = lower(reg.heating_equipment_status);
-      const year = reg.heating_equipment_year;
-      const equipment = status === "original" && year ? ` (original equipment, ${year})`
-        : status && year ? ` (equipment ${status} in ${year})`
-          : year ? ` (equipment from ${year})` : status ? ` (equipment ${status})` : "";
-      parts.push(`${lower(reg.heating_type)} heating${equipment}`);
-    }
-    const room = reg.has_cooling_room;
-    if (isNone(reg.air_conditioning_type)) {
-      parts.push(room === true ? "no air conditioning, but a cooling room"
-        : room === false ? "no air conditioning or cooling room" : "no air conditioning");
-    } else if (reg.air_conditioning_type) {
-      parts.push(`air conditioning (${lower(reg.air_conditioning_type)})${room ? " and a cooling room" : ""}`);
-    }
-    if (parts.length) say(sentences, `The City's registration for the building lists ${listJoin(parts)}.`, [refs.registration]);
+  if (reg && refs.registration && isNone(reg.air_conditioning_type) && reg.has_cooling_room !== true) {
+    flag(30,
+      `No air conditioning${reg.has_cooling_room === false ? " and no cooling room" : ""} on the building's City registration.`,
+      [refs.registration]);
   }
 
-  const rb = extras?.rent_benchmark;
-  if (rb && refs.rent) {
-    // "Former City of Toronto (Zones 1-4)" -> "the former City of Toronto".
-    const area = rb.area.replace(/\s*\(Zones? [^)]*\)/i, "").replace(/^Former /, "the former ");
-    const rents = (kind: "vacant_units" | "all_units") =>
-      ([["studio", "a studio"], ["one", "one bedroom"], ["two", "two bedrooms"], ["three_plus", "three or more bedrooms"]] as const)
-        .flatMap(([k, label]) => {
-          const v = rb.by_bedrooms[k]?.[kind];
-          return v != null ? [`${money(v)} for ${label}`] : [];
-        });
-    const vacant = rents("vacant_units");
-    const all = rents("all_units");
-    if (vacant.length) {
-      say(sentences, `In CMHC's ${rb.survey_year} survey, vacant purpose-built rentals in ${area} averaged ${listJoin(vacant)} a month, the closest public figure to a new lease.`, [refs.rent]);
-    } else if (all.length) {
-      say(sentences, `In CMHC's ${rb.survey_year} survey, purpose-built rentals in ${area} averaged ${listJoin(all)} a month across all units, including long-time tenants.`, [refs.rent]);
-    }
+  if (b.in_rentsafe && rentControl(b.year_built) === "likely_exempt") {
+    flag(22, `Likely exempt from Ontario's rent-increase guideline (built in ${b.year_built}); confirm with the landlord.`, [refs.latest]);
   }
 
-  const c = brief.construction_nearby;
-  const notable = refs.nearest_notable;
-  const notableText = notable
-    ? `${article(notable.permit.type.toLowerCase())} permit${notable.permit.address ? ` at ${titleCase(notable.permit.address)}` : ""}, ${Math.round(notable.permit.distance_m)} m away (${notable.permit.status}${notable.permit.issued_date ? `, issued ${notable.permit.issued_date.slice(0, 4)}` : ""})`
-    : null;
-  if (refs.construction) {
-    say(sentences, `Within ${r} m the City lists ${plural(c.active_permit_count, "active building permit")}${notableText ? `; the nearest major project is ${notableText}` : ""}.`,
-      [refs.construction, notable?.id]);
-  } else if (notable && notableText) {
-    say(sentences, `The nearest major building project is ${notableText}.`, [notable.id]);
+  const crimeFacts = refs.crime ? set.evidence.items.find((i) => i.id === refs.crime)?.facts : undefined;
+  const comparedTypes = crimeFacts?.offence_types_compared;
+  const aboveTypes = crimeFacts?.offence_types_above_toronto_rate;
+  const hood = brief.area.neighbourhood?.name;
+  if (refs.crime && hood && typeof comparedTypes === "number" && typeof aboveTypes === "number"
+    && comparedTypes > 0 && aboveTypes * 2 > comparedTypes) {
+    flag(40, `${aboveTypes} of ${comparedTypes} offence types in ${hood} had ${brief.crime.year} rates above Toronto's.`, [refs.crime]);
   }
 
-  const dev = refs.dev_counts;
-  const near = refs.dev_nearest;
-  if (dev || near) {
-    const counts = dev
-      ? `Within ${r} m, ${plural(dev.in_review, "development application")} ${dev.in_review === 1 ? "is" : "are"} in review and ${num(dev.approved)} approved`
-      : "";
-    const where = near
-      ? `${near.app.address ? `at ${titleCase(near.app.address)}, ` : ""}${Math.round(near.app.distance_m)} m away (${near.label}, ${near.app.status})`
-      : "";
-    say(sentences, counts && where ? `${counts}; the nearest open one is ${where}.`
-      : counts ? `${counts}.` : `The nearest open development application is ${where}.`, [dev?.id, near?.id]);
-  }
+  const sentences = candidates.sort((x, y) => x.priority - y.priority).slice(0, MAX_FLAGS).map((c) => c.line);
 
-  const s = brief.service_requests_311;
-  if (refs.sr311_nearby || refs.sr311_ward) {
-    const parts: string[] = [];
-    if (refs.sr311_nearby) parts.push(`${plural(s.nearby.count, "request")} at intersections within ${r} m`);
-    if (refs.sr311_ward) parts.push(`${num(s.ward.count)} across Ward ${s.ward.ward_number}`);
-    const period = s.period.from && s.period.to ? ` from ${dateLabel(s.period.from)} to ${dateLabel(s.period.to)}` : "";
-    say(sentences, `311 logged ${listJoin(parts)}${period}; requests are located only to an intersection or postal area, so they describe the area, not this building.`,
-      [refs.sr311_nearby, refs.sr311_ward]);
-  }
-
-  const hood = brief.area.neighbourhood?.name ?? "the neighbourhood";
-  if (refs.crime) {
-    const cr = brief.crime;
-    const compared = cr.offences.filter((o) => o.city_rate_per_100k != null && JSON.stringify(o.cite) === JSON.stringify(set.cites.get(refs.crime!)));
-    const above = compared
-      .filter((o) => o.rate_per_100k > (o.city_rate_per_100k as number))
-      .sort((x, y) => y.rate_per_100k / (y.city_rate_per_100k as number) - x.rate_per_100k / (x.city_rate_per_100k as number));
-    if (compared.length) {
-      const top = above[0];
-      say(sentences, top
-        ? `In ${hood} in ${cr.year}, ${above.length} of ${compared.length} offence types reported by Toronto Police had rates above Toronto's, including ${(OFFENCE_LABELS[top.offence] ?? top.offence).toLowerCase()} (${num(top.rate_per_100k)} vs ${num(top.city_rate_per_100k as number)} per 100,000 people).`
-        : `In ${hood} in ${cr.year}, every offence type reported by Toronto Police had a rate at or below Toronto's.`,
-      [refs.crime]);
-    }
-  }
-
-  const values = brief.census.values ?? {};
-  {
-    const parts: string[] = [];
-    const ids: string[] = [];
-    const renters = values.renter_households;
-    if (renters && refs.census.renter_households && (renters.percent ?? renters.value) != null) {
-      parts.push(`${num((renters.percent ?? renters.value) as number)}% of households rent${renters.toronto_neighbourhood_median != null ? ` (Toronto neighbourhood median ${num(renters.toronto_neighbourhood_median)}%)` : ""}`);
-      ids.push(refs.census.renter_households);
-    }
-    const rent = values.median_rent_monthly;
-    if (rent && refs.census.median_rent_monthly && rent.value != null) {
-      parts.push(`renters' median shelter cost was ${money(rent.value)} a month${rent.toronto_neighbourhood_median != null ? ` (median ${money(rent.toronto_neighbourhood_median)})` : ""}`);
-      ids.push(refs.census.median_rent_monthly);
-    }
-    if (parts.length) say(sentences, `In the 2021 Census for ${hood}, ${listJoin(parts)}.`, ids);
-  }
-
-  const rn = refs.rentsafe_nearby;
-  if (rn) {
-    say(sentences, rn.higher != null && rn.lower != null
-      ? `Of ${plural(rn.buildings, "other evaluated apartment building")} within ${r} m, ${num(rn.higher)} scored higher than this one and ${num(rn.lower)} lower (median ${num(rn.median_score)}).`
-      : `${plural(rn.buildings, "evaluated apartment building")} within ${r} m ${rn.buildings === 1 ? "has" : "have"} a median RentSafeTO score of ${num(rn.median_score)} out of 100.`,
-    [rn.id, rn.higher != null ? refs.latest : null]);
-  }
-
-  // Checklist.
+  // Checklist, unchanged from before the panel became flags.
   if (e && refs.latest) {
     for (const item of lowest.filter((i) => i.score < e.item_scale_max).slice(0, 2)) {
       say(checklist, `The City's last evaluation${e.date ? ` (${dateLabel(e.date)})` : ""} graded ${item.item.toLowerCase()} ${item.score} of ${e.item_scale_max}. What has been fixed since?`, [refs.latest]);
@@ -896,7 +871,7 @@ export function templateLines(brief: Brief, extras: Extras | null, set: Evidence
   }
   const rc = b.in_rentsafe ? rentControl(b.year_built) : "unknown";
   say(checklist, rc === "likely_covered"
-    ? "Is this unit covered by the rent-increase guideline, and what were the last two increases?"
+    ? "Is this unit covered by the rent-increase guideline, and what were the most recent increases?"
     : rc === "likely_exempt"
       ? `Was this unit first occupied after ${RENT_CONTROL_CUTOFF}? If so, how are rent increases decided?`
       : "When was this unit first occupied, and is it covered by rent control?",
@@ -917,26 +892,63 @@ export function templateLines(brief: Brief, extras: Extras | null, set: Evidence
     say(checklist, "Who handles maintenance requests, and how do I reach them after hours?", [refs.address]);
   }
 
-  return { sentences: sentences.slice(0, MAX_SENTENCES), checklist: checklist.slice(0, MAX_QUESTIONS) };
+  return { sentences, checklist: checklist.slice(0, MAX_QUESTIONS) };
 }
 
-/** Deterministic, cited summary built from the brief and extras without AI (model "template"). */
-export function templateSummary(brief: Brief, extras: Extras | null, now: Date = new Date()): Summary {
+/** Deterministic, cited flags and checklist built without AI (model "template"). */
+export function templateSummary(
+  brief: Brief,
+  extras: Extras | null,
+  now: Date = new Date(),
+  listing: ListingContext = null,
+): Summary {
   const set = buildEvidence(brief, extras);
-  return toSummary(templateLines(brief, extras, set), set.cites, TEMPLATE_MODEL, now);
+  return toSummary(templateLines(brief, extras, set, listing), set.cites, TEMPLATE_MODEL, now);
 }
 
 // Requests and cache keys ---------------------------------------------------------------------------------------
 
 export type RadiusLimits = { min: number; max: number; default: number };
-export type SummaryKey = { address_point_id: number; radius_m: number };
+export type SummaryKey = { address_point_id: number; radius_m: number; rent: number | null; beds: number | null };
 
-/** SummaryRequest -> key, or an error message for a 400. */
+/**
+ * The monthly rents (dollars) and bedroom counts the AI routes accept. The page reading rent and beds from the URL
+ * uses the same bounds, so a hand-edited link can't make every AI panel answer 400.
+ */
+export const RENT_LIMITS = { min: 100, max: 50_000 } as const;
+export const MAX_BEDROOMS = 10;
+
+/** A request's optional rent and beds, checked against RENT_LIMITS and MAX_BEDROOMS (absent or null is fine). */
+export function parseRentAndBeds(
+  body: Record<string, unknown>,
+): { ok: true; rent: number | null; beds: number | null } | { ok: false; error: string } {
+  let rent: number | null = null;
+  if (body.rent !== undefined && body.rent !== null) {
+    if (typeof body.rent !== "number" || !Number.isFinite(body.rent)
+      || body.rent < RENT_LIMITS.min || body.rent > RENT_LIMITS.max) {
+      return {
+        ok: false,
+        error: `rent must be a monthly amount in dollars from ${RENT_LIMITS.min} to ${new Intl.NumberFormat("en-CA").format(RENT_LIMITS.max)}, or left out.`,
+      };
+    }
+    rent = Math.round(body.rent);
+  }
+  let beds: number | null = null;
+  if (body.beds !== undefined && body.beds !== null) {
+    if (typeof body.beds !== "number" || !Number.isInteger(body.beds) || body.beds < 0 || body.beds > MAX_BEDROOMS) {
+      return { ok: false, error: `beds must be a whole number from 0 (bachelor) to ${MAX_BEDROOMS}, or left out.` };
+    }
+    beds = body.beds;
+  }
+  return { ok: true, rent, beds };
+}
+
+/** SummaryRequest -> key, or an error message for a 400. rent and beds let the flags rank the asking rent. */
 export function parseSummaryRequest(
   body: unknown,
   radius: RadiusLimits,
 ): { ok: true; value: SummaryKey } | { ok: false; error: string } {
-  if (!isRecord(body)) return { ok: false, error: "Send JSON: { address_point_id, radius_m? }." };
+  if (!isRecord(body)) return { ok: false, error: "Send JSON: { address_point_id, radius_m?, rent?, beds? }." };
   const id = body.address_point_id;
   if (typeof id !== "number" || !Number.isSafeInteger(id) || id <= 0) {
     return { ok: false, error: "address_point_id must be a positive whole number." };
@@ -945,7 +957,10 @@ export function parseSummaryRequest(
   if (typeof r !== "number" || !Number.isInteger(r) || r < radius.min || r > radius.max) {
     return { ok: false, error: `radius_m must be a whole number of metres from ${radius.min} to ${radius.max}.` };
   }
-  return { ok: true, value: { address_point_id: id, radius_m: r } };
+  const listing = parseRentAndBeds(body);
+  if (!listing.ok) return listing;
+  return { ok: true, value: { address_point_id: id, radius_m: r, rent: listing.rent, beds: listing.beds } };
 }
 
-export const summaryCacheKey = (k: SummaryKey) => `${k.address_point_id}:${k.radius_m}`;
+export const summaryCacheKey = (k: SummaryKey) =>
+  `${k.address_point_id}:${k.radius_m}:${k.rent ?? "-"}:${k.beds ?? "-"}`;

@@ -24,7 +24,7 @@ export function HomeTools() {
       <section aria-labelledby="search-h" className="px-1 sm:px-0">
         <h2 id="search-h" className="plate text-[1.6rem] font-bold text-ink">Or look up an address</h2>
         {prefill?.keep ? (
-          <p className="mt-1 text-[15px] text-ink-2">The listing&apos;s rent and bedrooms will be compared on the brief.</p>
+          <p className="mt-1 text-[15px] text-ink-2">The listing&apos;s rent, bedrooms and claims carry over to the brief.</p>
         ) : null}
         <div className="mt-3 max-w-2xl">
           <SearchBox key={prefill?.nonce ?? 0} initialAddress={prefill?.address ?? ""} keep={prefill?.keep ?? ""}
