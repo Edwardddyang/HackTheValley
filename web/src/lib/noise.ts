@@ -1,4 +1,4 @@
-import type { Brief } from "./brief";
+import type { Brief, Cite } from "./brief";
 
 // Construction & noise score for an address, from the brief alone: major permits nearby (the brief's
 // "notable" list) and 311 noise complaints, each weighted by distance. A rough guide to how much
@@ -42,7 +42,17 @@ export type ConstructionNoise = {
   noise_complaints_within_radius: number;
   noise_period: { from: string | null; to: string | null };
   radius_m: number;
+  /** Source rows behind the counts: the major permits within 500 m and the noise complaints within 250 m. */
+  cites: { major: Cite | null; complaints: Cite | null };
 };
+
+/** One row, or a row count with up to five sample rows, from the same file. */
+function citeRows(base: { dataset: string; file: string } | null | undefined, rows: number[]): Cite | null {
+  if (!base || !rows.length) return null;
+  return rows.length === 1 ? { dataset: base.dataset, file: base.file, row: rows[0] }
+    : { dataset: base.dataset, file: base.file, row_count: rows.length, sample_rows: rows.slice(0, 5) };
+}
+const rowOf = (c: Cite) => ("row" in c ? [c.row] : c.sample_rows ?? []);
 
 /** The brief lists at most this many major permits (supabase/migrations/0002_brief.sql). */
 const NOTABLE_LIMIT = 10;
@@ -72,9 +82,10 @@ export function constructionNoise(brief: Brief): ConstructionNoise {
   const projects = Object.values(sites);
   const permits = projects.reduce((sum, p) => sum + permitWeight(p.type) * decay(p.distance_m), 0);
 
-  const complaintDistances = brief.service_requests_311.nearby.points
+  const noisePoints = brief.service_requests_311.nearby.points
     .filter((p) => isNoiseComplaint(p.type) && Number.isFinite(p.lat) && Number.isFinite(p.lon))
-    .map((p) => distanceM(lat, lon, p.lat, p.lon));
+    .map((p) => ({ row: p.row, d: distanceM(lat, lon, p.lat, p.lon) }));
+  const complaintDistances = noisePoints.map((p) => p.d);
   const complaints = Math.min(COMPLAINT_CAP, complaintDistances.reduce((sum, d) => sum + COMPLAINT_WEIGHT * decay(d), 0));
 
   const score = Math.round((permits + complaints) * 10) / 10;
@@ -92,5 +103,9 @@ export function constructionNoise(brief: Brief): ConstructionNoise {
     noise_complaints_within_radius: complaintDistances.length,
     noise_period: brief.service_requests_311.period,
     radius_m,
+    cites: {
+      major: citeRows(projects[0]?.cite, projects.filter((p) => p.distance_m <= 500).flatMap((p) => rowOf(p.cite))),
+      complaints: citeRows(brief.service_requests_311.nearby.top_types[0]?.cite, noisePoints.filter((p) => p.d <= 250).map((p) => p.row)),
+    },
   };
 }
