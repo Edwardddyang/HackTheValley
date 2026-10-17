@@ -6,7 +6,7 @@ import type * as ListingCore from "./listing-core";
 
 // See summary-core.test.ts for why the module is loaded by URL.
 const {
-  addressSearchQueries, cleanListingAddress, listingTextPart, MAX_IMAGE_BYTES, normaliseAddressForSearch,
+  addressSearchQueries, cleanListingAddress, isLinkOnly, listingTextPart, MAX_IMAGE_BYTES, normaliseAddressForSearch,
   normaliseListingExtraction, parseBedrooms, parseIsoDate, parseListingRequest, parseRent,
 } = (await import(new URL("./listing-core.ts", import.meta.url).href)) as typeof ListingCore;
 
@@ -182,6 +182,15 @@ test("normaliseListingExtraction cleans claims: caps, unknown topics, duplicates
     claims: Array.from({ length: 20 }, (_, i) => ({ quote: `claim ${i}`, topic: "other" })),
   });
   assert.equal(many.claims.length, 12);
+});
+
+test("isLinkOnly spots bare links but not ads that merely contain one", () => {
+  assert.equal(isLinkOnly("https://www.facebook.com/share/1C6awx4Knm/"), true);
+  assert.equal(isLinkOnly("check this out!! https://www.kijiji.ca/v-apartments-condos/city-of-toronto/listing/1234"), true);
+  assert.equal(isLinkOnly("www.kijiji.ca/v-apartments-condos/1234 \n "), true);
+  assert.equal(isLinkOnly("Bright 1 bedroom in the Annex – $2,350/month. 375 Brunswick Ave. More: https://kijiji.ca/x"), false);
+  assert.equal(isLinkOnly("Bright 1 bedroom in the Annex – $2,350/month"), false);
+  assert.equal(isLinkOnly(""), false);
 });
 
 test("listingTextPart keeps the listing inside its delimiters", () => {

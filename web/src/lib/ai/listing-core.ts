@@ -347,6 +347,16 @@ export const LISTING_RESPONSE_SCHEMA = {
   ],
 } as const;
 
+/**
+ * True when the pasted "listing" is just a link (or a few), with no real ad text around it. RentReceipts never
+ * visits listing sites, so a bare URL can't be read; the form uses this to ask for the ad's text or a screenshot.
+ */
+export function isLinkOnly(text: string): boolean {
+  if (!/\bhttps?:\/\/|\bwww\./i.test(text)) return false;
+  const leftover = text.replace(/\bhttps?:\/\/\S+|\bwww\.\S+/gi, " ").replace(/\s+/g, " ").trim();
+  return leftover.length < 30;
+}
+
 const LISTING_TAG_RE = /<\s*\/?\s*(?:listing)\s*>/gi;
 
 /** Removes every match of `re`, repeating until none is left, so "</lis</listing>ting>" can't rebuild a tag. */

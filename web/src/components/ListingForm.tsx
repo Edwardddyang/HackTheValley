@@ -5,6 +5,7 @@ import { type ClipboardEvent, type FormEvent, type RefObject, useId, useRef, use
 
 import type { ApiError, ListingExtraction, ListingRequest, ListingResponse } from "@/lib/ai-types";
 import { encodeClaimsParam } from "@/lib/ai/ad-check-core";
+import { isLinkOnly } from "@/lib/ai/listing-core";
 import type { AddressMatch } from "@/lib/brief";
 import { DEFAULT_RADIUS_M } from "@/lib/brief";
 import { bedroomsLabel, date, money } from "@/lib/format";
@@ -101,9 +102,20 @@ export function ListingForm({ onSearchInstead }: { onSearchInstead: (address: st
       setState({ kind: "error", message: "Paste the listing text or add a screenshot first.", searchInstead: false });
       return;
     }
+    // A bare link can't be read: RentReceipts never visits listing sites. Ask for the ad itself.
+    const linkOnly = isLinkOnly(text);
+    if (linkOnly && !shot) {
+      setState({
+        kind: "error",
+        message: "That looks like a link, not the ad. RentReceipts never visits listing sites — open the listing and paste the ad's text here, or add a screenshot of it.",
+        searchInstead: true,
+      });
+      return;
+    }
     setState({ kind: "submitting" });
     const body: ListingRequest = {};
-    if (text.trim()) body.text = text.trim();
+    // With a screenshot, a link-only paste is left out: the ad is read from the image, and the link adds nothing.
+    if (text.trim() && !linkOnly) body.text = text.trim();
     if (shot) body.image = { data: shot.data, mime_type: shot.mime_type };
     let res: Response;
     try {
