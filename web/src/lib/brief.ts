@@ -97,17 +97,24 @@ export const DEFAULT_RADIUS_M = 500;
 export const MIN_RADIUS_M = 100;
 export const MAX_RADIUS_M = 1000;
 
+// Supabase's anon role cancels statements after 3 s. A brief takes ~0.3-0.6 s, but the first
+// one on a cold database connection can take longer; the retry then finds a warm cache.
+const STATEMENT_TIMEOUT = "57014";
+
+async function rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    const { data, error } = await supabase().rpc(fn, args);
+    if (!error) return data as T;
+    if (error.code !== STATEMENT_TIMEOUT || attempt === 2) {
+      throw new Error(`${fn} failed: ${error.message}`);
+    }
+  }
+}
+
 export async function geocode(query: string, maxResults = 5): Promise<AddressMatch[]> {
-  const { data, error } = await supabase().rpc("bb_geocode", { q: query, max_results: maxResults });
-  if (error) throw new Error(`bb_geocode failed: ${error.message}`);
-  return data ?? [];
+  return (await rpc<AddressMatch[] | null>("bb_geocode", { q: query, max_results: maxResults })) ?? [];
 }
 
 export async function getBrief(addressPointId: number, radiusM = DEFAULT_RADIUS_M): Promise<Brief | null> {
-  const { data, error } = await supabase().rpc("bb_brief", {
-    p_address_point_id: addressPointId,
-    p_radius_m: radiusM,
-  });
-  if (error) throw new Error(`bb_brief failed: ${error.message}`);
-  return data;
+  return rpc<Brief | null>("bb_brief", { p_address_point_id: addressPointId, p_radius_m: radiusM });
 }

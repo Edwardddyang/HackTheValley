@@ -82,17 +82,23 @@ $$;
 create or replace function bb_geocode(q text, max_results int default 5)
 returns table (address_point_id bigint, address text, municipality text, ward_number smallint,
                lat double precision, lon double precision, similarity real)
-language sql stable as $$
-    with n as (select bb_normalize_address(q) as nq,
-                      substring(bb_normalize_address(q) from '^(\d+[a-z]?)\s') as num)
+language plpgsql stable as $$
+-- plpgsql, not sql: the Supabase API passes arguments through json_to_record, which hides
+-- them from the planner when an sql function is inlined; it then skipped the trigram index
+-- and timed out. Normalising into variables first keeps the index lookup.
+declare
+    nq  text := bb_normalize_address(q);
+    num text := substring(bb_normalize_address(q) from '^(\d+[a-z]?)\s');
+begin
+    return query
     select a.address_point_id, a.address_full, a.municipality, a.ward_number,
-           st_y(a.geom), st_x(a.geom), similarity(lower(a.address_full), n.nq)
-      from address_points a, n
-     where lower(a.address_full) % n.nq
-       and (n.num is null or lower(a.address_full) like n.num || ' %')
-     order by similarity(lower(a.address_full), n.nq) desc, a.address_point_id
-     limit max_results
-$$;
+           st_y(a.geom), st_x(a.geom), similarity(lower(a.address_full), nq)
+      from address_points a
+     where lower(a.address_full) % nq
+       and (num is null or lower(a.address_full) like num || ' %')
+     order by similarity(lower(a.address_full), nq) desc, a.address_point_id
+     limit max_results;
+end $$;
 
 -- The brief --------------------------------------------------------------------
 create or replace function bb_brief(p_address_point_id bigint, p_radius_m int default 500)
