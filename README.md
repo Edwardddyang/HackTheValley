@@ -24,6 +24,7 @@ cd etl
 uv sync
 cp ../.env.example ../.env     # then paste your Supabase session pooler URL into ../.env
 uv run bb init-db              # creates the tables (safe to re-run)
+# after changing supabase/migrations: uv run bb reset-db --yes  (drops and recreates, then reload)
 ```
 
 ## Workflow
@@ -36,8 +37,9 @@ uv run bb load all                  # everything, in dependency order
 uv run bb near "100 Queen St W"     # smoke test: what's loaded around an address
 ```
 
-Load `address_points` before `building_permits`. Permits have no coordinates of their own and
-get them by matching `GEO_ID` to the address point.
+`bb load all` loads in dependency order. Loading one at a time: `address_points` before
+`building_permits` (permits get their location from their `GEO_ID` address point), and
+`intersections` before `service_requests_311` (requests reported at a corner get its point).
 
 ## Datasets
 
@@ -47,28 +49,41 @@ get them by matching `GEO_ID` to the address point.
 | `wards` | City Wards, 25-ward model | `wards` |
 | `neighbourhoods` | Neighbourhoods, 158 model | `neighbourhoods` |
 | `rentsafe` | Apartment Building Evaluations (RentSafeTO) | `rentsafe_evaluations` |
-| `building_permits` | Building Permits, active + cleared since 2017 | `building_permits` |
+| `building_permits` | Building Permits: all active, cleared ones completed since 2025 | `building_permits` |
 | `development_applications` | Development Applications | `development_applications` |
-| `service_requests_311` | 311 Service Requests, customer initiated (one year only) | `service_requests_311` |
+| `intersections` | Intersection File (Centreline Intersection) | `intersections` |
+| `service_requests_311` | 311 Service Requests, customer initiated (one year only) | `service_requests_311`, `sr311_request_types` |
 | `crime_rates` | Neighbourhood Crime Rates (TPS) | `crime_rates`, `neighbourhood_population` |
-| `neighbourhood_profiles` | Neighbourhood Profiles, 2021 Census | `neighbourhood_profiles` |
+| `neighbourhood_profiles` | Neighbourhood Profiles, 2021 Census | `neighbourhood_profiles`, `neighbourhood_profile_variables` |
 | `ward_profiles` | Ward Profiles, 2021 Census | `ward_profiles` |
 
-Every row stores `source_file` and `source_row_id` (the file's `_id`, or its row number when it
-has none), so the AI can cite exactly which record a claim came from.
+Every row stores `source_id` (→ `sources`: dataset + file name) and `source_row_id` (the file's
+`_id`, or its row number when it has none), so the AI can cite exactly which record a claim
+came from.
+
+## Storage budget (Supabase free tier, 500 MB)
+
+All of the above comes to ~457 MB, leaving ~40 MB for app data (users, reviews; photos go to
+Supabase Storage, which has its own quota). To fit, cleared permits are limited to those
+completed since 2025 (`CLEARED_SINCE` in `sources/building_permits.py`) and 311 to one year.
 
 ## Things the data does and doesn't contain
 
 - **311 requests have no coordinates and no closed date.** Location is a postal FSA (e.g. `M4L`),
-  an intersection, or the ward. "Within 500 m" and "time to resolve" can't come from this file.
+  an intersection, or the ward, so "time to resolve" can't come from this file. Requests
+  reported at an intersection (~19%) are placed on it when the two street names identify
+  exactly one intersection: 71,799 of 82,511 in 2026. The rest have no point. The City's
+  Open311 API, which had locations, was retired in 2021 and now returns 403.
   The 2026 file is Windows-1252 encoded, and about 9% of its rows have an unquoted comma
   ("Environment, Climate & Forestry"). The loader repairs both and prints any row it can't.
 - **Building permits have no coordinates.** They are placed via `GEO_ID` = Address Points
   `ADDRESS_POINT_ID`.
 - **Development applications use X/Y in EPSG:7991** (NAD27 / MTM zone 10). Checked against
-  RentSafeTO rows that have both: median error ~10 m.
+  RentSafeTO rows that have both: median error ~10 m. 43 rows are in UTM 17N instead and are
+  converted as such; points outside Toronto are dropped.
 - **Crime is per neighbourhood per year**, not per incident. Rates per 100k are TPS's own.
   Blank cells mean no incidents (the file never contains a literal 0) and are stored as 0.
-- **RentSafeTO** has two files with different scoring categories. Shared fields are columns;
+- **RentSafeTO** has two files with different scoring categories. One row's year evaluated
+  is "202510"; impossible years are stored as null (its evaluation date is intact). Shared fields are columns;
   the per-category scores are in `item_scores` (JSON).
 - Staff contact details (development applications) and builder names (permits) are not loaded.

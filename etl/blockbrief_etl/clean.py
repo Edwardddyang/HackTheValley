@@ -78,6 +78,16 @@ _utm_to_lonlat = Transformer.from_crs(26917, 4326, always_xy=True)
 TORONTO_BBOX = (-79.70, 43.55, -79.10, 43.88)  # min lon, min lat, max lon, max lat
 
 
+# GeoJSON point text. City CSV downloads hold a one-point MultiPoint
+# ({"coordinates": [[-79.519, 43.599]], "type": "MultiPoint"}); the API returns a plain Point.
+_GEOJSON_COORDS = r'"coordinates":\s*\[+\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)'
+
+
+def geojson_point_ewkt(s: pd.Series) -> pd.Series:
+    coords = s.astype("string").str.extract(_GEOJSON_COORDS)
+    return point_ewkt(coords[0], coords[1])
+
+
 def city_xy_to_ewkt(x: pd.Series, y: pd.Series) -> pd.Series:
     x = pd.to_numeric(x, errors="coerce")
     y = pd.to_numeric(y, errors="coerce")

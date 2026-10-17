@@ -17,7 +17,10 @@ def connect() -> psycopg.Connection:
             f"DATABASE_URL is not set. Copy .env.example to {ENV_FILE} and paste your "
             "Supabase session pooler connection string."
         )
-    return psycopg.connect(url)
+    # autocommit: each replace_table() transaction commits on its own. Without it, any read
+    # (e.g. an enrich() lookup) opens an outer transaction, later loads become savepoints
+    # inside it, and one failure rolls back every table loaded since.
+    return psycopg.connect(url, autocommit=True)
 
 
 def apply_migrations(conn: psycopg.Connection) -> list[str]:

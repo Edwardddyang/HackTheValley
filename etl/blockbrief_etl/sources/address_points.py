@@ -10,10 +10,6 @@ EXPECTS = ["'Address Points - 4326.csv' (downloads as address-points-4326.csv, ~
 
 COLUMNS = ["ADDRESS_POINT_ID", "ADDRESS_FULL", "MUNICIPALITY_NAME", "WARD", "PLACE_NAME", "geometry"]
 
-# geometry is GeoJSON text. The CSV download holds a one-point MultiPoint
-# ({"coordinates": [[-79.519, 43.599]], "type": "MultiPoint"}, checked on all 525k rows);
-# the API returns a plain Point. The pattern accepts both.
-_COORDS = r'"coordinates":\s*\[+\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)'
 
 
 def transform(files):
@@ -21,7 +17,6 @@ def transform(files):
     for path in files:
         df = read_csv(path)
         require_columns(df, COLUMNS, path)
-        coords = df["geometry"].str.extract(_COORDS)
         frames.append(pd.DataFrame({
             "address_point_id": clean.integer(df["ADDRESS_POINT_ID"]),
             "address_full": clean.text(df["ADDRESS_FULL"]),
@@ -30,7 +25,7 @@ def transform(files):
             "place_name": clean.text(df["PLACE_NAME"]),
             "source_file": path.name,
             "source_row_id": row_ids(df),
-            "geom": clean.point_ewkt(coords[0], coords[1]),
+            "geom": clean.geojson_point_ewkt(df["geometry"]),  # one-point MultiPoint in all 525k rows
         }))
     out = pd.concat(frames, ignore_index=True)
     # address_full and geom are NOT NULL in the schema

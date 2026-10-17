@@ -124,9 +124,22 @@ create table if not exists development_applications (
 );
 create index if not exists dev_apps_geom_geog on development_applications using gist ((geom::geography));
 
+-- Source: Intersection File (Centreline Intersection). One row per intersection_id
+-- (multi-level intersections repeat per elevation in the file; the first is kept).
+create table if not exists intersections (
+    intersection_id bigint primary key,
+    description     text,                  -- street names joined by " / "
+    classification  text,
+    source_id       smallint not null references sources,
+    source_row_id   bigint not null,
+    geom            geometry(Point, 4326) not null
+);
+
 -- Source: 311 Service Requests - Customer Initiated (one yearly file).
 -- NOTE: no coordinates and no closed date in this dataset. Location is a postal FSA,
--- or an intersection (when fsa is null), plus the ward.
+-- or an intersection (when fsa is null), plus the ward. Requests whose two cross streets
+-- identify exactly one intersection get that intersection's point (intersection_id, geom);
+-- the rest have geom null.
 -- Division and section depend only on request_type (checked: 570 types, no conflicts),
 -- so they live in sr311_request_types. Ward names are in `wards`.
 create table if not exists sr311_request_types (
@@ -145,8 +158,11 @@ create table if not exists service_requests_311 (
     intersection_street_2 text,
     ward_number           smallint,
     request_type          text references sr311_request_types,
+    intersection_id       bigint,
+    geom                  geometry(Point, 4326),
     primary key (source_id, source_row_id)
 );
+create index if not exists sr311_geom_geog on service_requests_311 using gist ((geom::geography)) where geom is not null;
 create index if not exists sr311_fsa_type  on service_requests_311 (fsa, request_type);
 create index if not exists sr311_ward_type on service_requests_311 (ward_number, request_type);
 

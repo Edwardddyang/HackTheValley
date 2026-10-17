@@ -15,6 +15,10 @@ EXPECTS = [
 ]
 DEPENDS_ON = ["address_points"]
 
+# Storage budget (Supabase free tier): keep cleared permits completed from this date on.
+# 2025-2026 is ~137k of the 444k cleared rows. Active permits are all kept.
+CLEARED_SINCE = "2025-01-01"
+
 COLUMNS = ["PERMIT_NUM", "REVISION_NUM", "PERMIT_TYPE", "STRUCTURE_TYPE", "WORK",
            "STREET_NUM", "STREET_NAME", "STREET_TYPE", "STREET_DIRECTION", "POSTAL", "GEO_ID",
            "APPLICATION_DATE", "ISSUED_DATE", "COMPLETED_DATE", "STATUS", "DESCRIPTION",
@@ -54,6 +58,11 @@ def transform(files):
         group = _group(path)
         df = read_csv(path)
         require_columns(df, COLUMNS, path)
+        if group == "cleared":
+            keep = pd.to_datetime(df["COMPLETED_DATE"], errors="coerce") >= CLEARED_SINCE
+            print(f"    {path.name}: keeping {keep.sum():,} of {len(df):,} cleared permits "
+                  f"completed since {CLEARED_SINCE}")
+            df = df[keep]
         frames.append(pd.DataFrame({
             "source_file": path.name,
             "source_row_id": row_ids(df),

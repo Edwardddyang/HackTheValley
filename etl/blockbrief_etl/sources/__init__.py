@@ -13,6 +13,7 @@ from . import (
     address_points,
     building_permits,
     crime_rates,
+    intersections,
     development_applications,
     neighbourhood_profiles,
     neighbourhoods,
@@ -22,7 +23,8 @@ from . import (
     wards,
 )
 
-# Load order matters: building_permits get their coordinates from address_points.
+# Load order matters: building_permits get their coordinates from address_points, and
+# service_requests_311 from intersections.
 ALL = [
     address_points,
     wards,
@@ -30,6 +32,7 @@ ALL = [
     rentsafe,
     building_permits,
     development_applications,
+    intersections,
     service_requests_311,
     crime_rates,
     neighbourhood_profiles,

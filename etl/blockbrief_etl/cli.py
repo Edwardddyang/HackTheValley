@@ -90,6 +90,7 @@ PROJECT_TABLES = [
     "service_requests_311", "sr311_request_types", "neighbourhood_profiles",
     "neighbourhood_profile_variables", "ward_profiles", "crime_rates", "neighbourhood_population",
     "building_permits", "development_applications", "rentsafe_evaluations", "address_points",
+    "intersections",
     "neighbourhoods", "wards", "sources",
 ]
 
@@ -127,6 +128,7 @@ NEAR_SQL = {
     "RentSafeTO evaluations": "select count(*) from rentsafe_evaluations where st_dwithin(geom::geography, %(p)s::geography, %(r)s)",
     "Active building permits": "select count(*) from building_permits where permit_group = 'active' and st_dwithin(geom::geography, %(p)s::geography, %(r)s)",
     "Development applications": "select count(*) from development_applications where st_dwithin(geom::geography, %(p)s::geography, %(r)s)",
+    "311 requests placed at an intersection": "select count(*) from service_requests_311 where geom is not null and st_dwithin(geom::geography, %(p)s::geography, %(r)s)",
 }
 
 
