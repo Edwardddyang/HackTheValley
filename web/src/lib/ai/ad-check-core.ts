@@ -8,7 +8,7 @@ import type { Brief, Cite } from "../brief";
 import type { Extras } from "../extras";
 import { BEDROOM_NOUN, bedroomsKey } from "../format.ts";
 import {
-  checkLine, citesFor, cleanText, groundingContext, MIN_PRICE_GAP_PCT, rentControl, titleCase, validIds,
+  checkLine, citesFor, cleanText, groundingContext, MIN_PRICE_GAP_PCT, parseRentAndBeds, rentControl, titleCase, validIds,
   type Evidence, type EvidenceSet, type GroundingContext, type RadiusLimits, type Rejection,
 } from "./summary-core.ts";
 
@@ -57,10 +57,22 @@ export function normaliseClaims(raw: unknown): Claim[] {
   return out;
 }
 
-/** Claims -> the `claims` URL parameter (compact JSON [[topic, quote], ...]), the path rent and beds already take. */
+/**
+ * Most characters the `claims` parameter may take once URL-encoded. Twelve 200-character quotes in a non-Latin script
+ * encode to ~22 KB, and a URL that long gets the whole page refused (HTTP 431).
+ */
+export const MAX_CLAIMS_PARAM_CHARS = 6_000;
+
+/**
+ * Claims -> the `claims` URL parameter (compact JSON [[topic, quote], ...]), the path rent and beds already take.
+ * Trailing claims are dropped until the encoded parameter fits MAX_CLAIMS_PARAM_CHARS; null when none fit.
+ */
 export function encodeClaimsParam(claims: readonly Claim[]): string | null {
-  if (!claims.length) return null;
-  return JSON.stringify(claims.slice(0, MAX_CLAIMS).map((c) => [c.topic, c.quote]));
+  for (let n = Math.min(claims.length, MAX_CLAIMS); n > 0; n--) {
+    const json = JSON.stringify(claims.slice(0, n).map((c) => [c.topic, c.quote]));
+    if (encodeURIComponent(json).length <= MAX_CLAIMS_PARAM_CHARS) return json;
+  }
+  return null;
 }
 
 /** The `claims` URL parameter back to claims. Anything malformed is dropped, never an error. */
@@ -123,20 +135,9 @@ export function parseAdCheckRequest(
     return fail(`radius_m must be a whole number of metres from ${radius.min} to ${radius.max}.`);
   }
 
-  let rent: number | null = null;
-  if (body.rent !== undefined && body.rent !== null) {
-    if (typeof body.rent !== "number" || !Number.isFinite(body.rent) || body.rent < 100 || body.rent > 50_000) {
-      return fail("rent must be a monthly amount in dollars from 100 to 50,000, or left out.");
-    }
-    rent = Math.round(body.rent);
-  }
-  let beds: number | null = null;
-  if (body.beds !== undefined && body.beds !== null) {
-    if (typeof body.beds !== "number" || !Number.isInteger(body.beds) || body.beds < 0 || body.beds > 10) {
-      return fail("beds must be a whole number from 0 (bachelor) to 10, or left out.");
-    }
-    beds = body.beds;
-  }
+  const listing = parseRentAndBeds(body);
+  if (!listing.ok) return fail(listing.error);
+  const { rent, beds } = listing;
 
   if (!Array.isArray(body.claims) || body.claims.length === 0) return fail("claims must be a non-empty array.");
   if (body.claims.length > MAX_CLAIMS) return fail(`At most ${MAX_CLAIMS} claims can be checked at once.`);
@@ -564,7 +565,7 @@ Rules:
 - Rent control is only "likely": say likely covered or likely exempt, and that the renter should confirm with the landlord.
 - For rents, CMHC's "vacant_units" figures are the closest to a new lease; "all_units" averages include long-time tenants.
 - Weigh a claim about the building's condition (well maintained, renovated, clean) against the RentSafeTO evaluation: the score, how it compares with other Toronto buildings, and the lowest-graded items.
-- For a price claim, give the CMHC average for the listing's bedroom type and the difference LISTING already computed; a claim that the price is fair, a deal or below market is challenged when the ad asks more than the vacant-unit average.
+- For a price claim, give the CMHC average for the listing's bedroom type and the difference LISTING already computed; a claim that the price is fair, a deal or below market is challenged when the ad asks at least about ${MIN_PRICE_GAP_PCT}% more than the vacant-unit average.
 - Neutral, factual tone. No legal advice, no telling the renter whether to sign or walk away.`;
 }
 

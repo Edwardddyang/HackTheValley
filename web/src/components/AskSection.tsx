@@ -18,13 +18,17 @@ type Turn =
   | { question: string; status: "answered"; answer: AskAnswer }
   | { question: string; status: "failed"; message: string };
 
-/** 3-4 suggested chips come from the brief's flags (low score, no AC, construction, nearby buildings). */
-export function AskSection({ addressPointId, radius, suggestions }: {
-  addressPointId: number; radius: number; suggestions: string[];
+/**
+ * 3-4 suggested chips come from the brief's flags (low score, no AC, construction, nearby buildings). rent and beds
+ * come from a pasted listing, so an answer can restate the asking rent against the CMHC average.
+ */
+export function AskSection({ addressPointId, radius, rent = null, beds = null, suggestions }: {
+  addressPointId: number; radius: number; rent?: number | null; beds?: number | null; suggestions: string[];
 }) {
   const ids = useId();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
+  const input = useRef<HTMLInputElement>(null);
   const listEnd = useRef<HTMLDivElement>(null);
   const busy = turns.some((t) => t.status === "pending");
 
@@ -32,6 +36,8 @@ export function AskSection({ addressPointId, radius, suggestions }: {
     const question = questionRaw.replace(/\s+/g, " ").trim().slice(0, MAX_QUESTION_CHARS);
     if (!question || busy) return;
     setDraft("");
+    // The chips and the Ask button disable themselves while the answer loads; keep keyboard focus in the form.
+    input.current?.focus();
 
     const history = turns
       .filter((t): t is Extract<Turn, { status: "answered" }> => t.status === "answered")
@@ -40,7 +46,7 @@ export function AskSection({ addressPointId, radius, suggestions }: {
     setTurns((old) => [...old, { question, status: "pending" }]);
     requestAnimationFrame(() => listEnd.current?.scrollIntoView({ block: "nearest" }));
 
-    const body: AskRequest = { address_point_id: addressPointId, radius_m: radius, question, history };
+    const body: AskRequest = { address_point_id: addressPointId, radius_m: radius, rent, beds, question, history };
     let done: Turn;
     try {
       const res = await fetch("/api/ask", {
@@ -58,6 +64,8 @@ export function AskSection({ addressPointId, radius, suggestions }: {
       done = { question, status: "failed", message: "RentReceipts couldn't be reached. Check your connection and ask again." };
     }
     setTurns((old) => old.map((t) => (t.status === "pending" && t.question === question ? done : t)));
+    // A failed question goes back into the box so it needn't be retyped, unless something new is being typed there.
+    if (done.status === "failed") setDraft((current) => (current.trim() ? current : question));
   }
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -116,6 +124,7 @@ export function AskSection({ addressPointId, radius, suggestions }: {
       <form onSubmit={onSubmit} className="mt-4 flex max-w-[68ch] flex-wrap items-center gap-2">
         <label htmlFor={`${ids}-q`} className="sr-only">Your question about this address</label>
         <input
+          ref={input}
           id={`${ids}-q`}
           type="text"
           value={draft}

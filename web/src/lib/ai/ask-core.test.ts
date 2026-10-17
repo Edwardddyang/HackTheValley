@@ -5,6 +5,7 @@ import { test } from "node:test";
 
 import type { Brief } from "../brief";
 import type { Extras } from "../extras";
+import type * as AdCheckCore from "./ad-check-core";
 import type * as AskCore from "./ask-core";
 import type * as SummaryCore from "./summary-core";
 
@@ -14,8 +15,10 @@ const {
   NO_ANSWER_TEXT, UNGROUNDED_ANSWER_TEXT, askResponseSchema, askSystemInstruction, askUserPrompt, parseAskRequest,
   suggestedQuestions, validateAskOutput,
 } = (await import(new URL("./ask-core.ts", import.meta.url).href)) as typeof AskCore;
-const { buildEvidence, checkLine, groundingContext } =
+const { MAX_BEDROOMS, RENT_LIMITS, buildEvidence, checkLine, groundingContext } =
   (await import(new URL("./summary-core.ts", import.meta.url).href)) as typeof SummaryCore;
+const { adCheckContext, rentComparison } =
+  (await import(new URL("./ad-check-core.ts", import.meta.url).href)) as typeof AdCheckCore;
 
 const fixture = (name: string) => JSON.parse(readFileSync(new URL(`../../fixtures/${name}`, import.meta.url), "utf8"));
 const BRIEF: Brief = fixture("brief-375-brunswick.json");
@@ -28,7 +31,7 @@ const LIMITS = { min: 100, max: 1000, default: 500 };
 test("parseAskRequest: question and history caps", () => {
   assert.deepEqual(parseAskRequest({ address_point_id: 778448, question: "  How old is the  building? " }, LIMITS), {
     ok: true,
-    value: { address_point_id: 778448, radius_m: 500, question: "How old is the building?", history: [] },
+    value: { address_point_id: 778448, radius_m: 500, rent: null, beds: null, question: "How old is the building?", history: [] },
   });
   const withHistory = parseAskRequest({
     address_point_id: 7, radius_m: 250, question: "And the score?",
@@ -51,6 +54,49 @@ test("parseAskRequest: question and history caps", () => {
   ]) {
     assert.equal(parseAskRequest(bad, LIMITS).ok, false, JSON.stringify(bad)?.slice(0, 60));
   }
+});
+
+test("parseAskRequest takes the listing's rent and beds within the shared bounds", () => {
+  const ask = (extra: Record<string, unknown>) => parseAskRequest({ address_point_id: 7, question: "Is it fair?", ...extra }, LIMITS);
+  const listed = ask({ rent: 2350, beds: 1 });
+  assert.ok(listed.ok && listed.value.rent === 2350 && listed.value.beds === 1);
+  const nulls = ask({ rent: null, beds: null });
+  assert.ok(nulls.ok && nulls.value.rent === null && nulls.value.beds === null);
+  for (const ok of [{ rent: RENT_LIMITS.min }, { rent: RENT_LIMITS.max }, { beds: 0 }, { beds: MAX_BEDROOMS }]) {
+    assert.equal(ask(ok).ok, true, JSON.stringify(ok));
+  }
+  for (const bad of [{ rent: RENT_LIMITS.min - 1 }, { rent: RENT_LIMITS.max + 1 }, { rent: "2350" }, { beds: -1 },
+    { beds: MAX_BEDROOMS + 1 }, { beds: 1.5 }]) {
+    assert.equal(ask(bad).ok, false, JSON.stringify(bad));
+  }
+});
+
+test("with a listing, an answer may restate the renter's rent when it cites the CMHC rent item", () => {
+  const set = buildEvidence(brief(), extras());
+  const cx = rentComparison(EXTRAS.rent_benchmark, 2350, 1);
+  assert.ok(cx);
+  const listingCtx = adCheckContext(set, 2350, 1, cx);
+  const answer = {
+    answer: [{
+      text: "The ad asks $2,350 a month, $258 (12%) more than the $2,092 CMHC average for vacant 1-bedroom units in the area.",
+      evidence_ids: [set.refs.rent],
+    }],
+  };
+  const withListing = validateAskOutput(answer, set, listingCtx);
+  assert.deepEqual(withListing.rejected, []);
+  assert.equal(withListing.lines[0].text, answer.answer[0].text);
+  const plain = validateAskOutput(answer, set, groundingContext(set));
+  assert.match(plain.rejected[0]?.reason ?? "", /number 2350 is not in the cited evidence/);
+  assert.deepEqual(plain.lines.map((l) => l.text), [UNGROUNDED_ANSWER_TEXT]);
+
+  // The prompt carries the same LISTING section as the summary's, between EVIDENCE and the question.
+  const prompt = askUserPrompt(set.evidence, "Is $2,350 fair for a 1-bed?", [], cx);
+  assert.ok(prompt.includes("LISTING (what the renter told us"), prompt.slice(-400));
+  assert.ok(prompt.includes('"asking_rent":2350') && prompt.includes('"percent_difference":12'));
+  assert.ok(prompt.indexOf("EVIDENCE:") < prompt.indexOf("LISTING") && prompt.indexOf("LISTING") < prompt.indexOf("<question>"));
+  assert.ok(!askUserPrompt(set.evidence, "Is it fair?", []).includes("LISTING"));
+  assert.match(askSystemInstruction(500), /Use only the facts in EVIDENCE and LISTING/);
+  assert.match(askSystemInstruction(500), /Copy numbers exactly as they appear in the facts of the items you cite or in LISTING/);
 });
 
 test("a follow-up can carry back the longest answer the server gives", () => {

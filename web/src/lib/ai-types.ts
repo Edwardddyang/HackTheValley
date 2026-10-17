@@ -63,6 +63,9 @@ export type AdCheck = {
 export type AskRequest = {
   address_point_id: number;
   radius_m?: number;
+  /** From a pasted listing, like SummaryRequest: lets an answer restate the asking rent against the CMHC average. */
+  rent?: number | null;
+  beds?: number | null;
   /** At most 300 characters. */
   question: string;
   /** The last turns (at most 2), so follow-ups make sense. */

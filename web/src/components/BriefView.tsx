@@ -16,6 +16,7 @@ import { Cite } from "./Cite";
 import { LimitsPanel } from "./LimitsPanel";
 import { ListingCard } from "./ListingCard";
 import { MapPanel } from "./MapPanel";
+import { Term } from "./Term";
 import { BarList, CompareBar, Empty, Note, Pill, Section, Stat } from "./ui";
 
 export type ListingHints = { rent: number | null; beds: number | null; claims: Claim[] };
@@ -75,7 +76,7 @@ export function BriefView({ brief, extras, alternatives, radius, listing, fixtur
           )}
           <SummaryPanel />
           <AskSection addressPointId={brief.address.address_point_id} radius={brief.address.radius_m}
-            suggestions={suggestedQuestions(brief, extras)} />
+            rent={listing.rent} beds={listing.beds} suggestions={suggestedQuestions(brief, extras)} />
           <BuildingSection brief={brief} extras={extras} asOfYear={asOfYear} />
           <ChecklistPanel address={brief.address.address} />
           <NearbyBuildingsSection brief={brief} />
@@ -303,7 +304,11 @@ function RequestsSection({ brief }: { brief: Brief }) {
     types.map((t) => ({ label: t.type, count: t.count, note: t.still_open ? `${num(t.still_open)} still open` : undefined, cite: t.cite }));
   return (
     <Section id="requests" title="311 requests in the area"
-      subtitle={<>Requests to the City from {date(s.period.from)} to {date(s.period.to)}. 311 records only a postal area or the nearest intersection, never the address, so these counts describe the area around the building, <strong className="font-semibold text-ink">not the building itself</strong>.</>}>
+      subtitle={<><Term label="311 service requests">311 is Toronto&apos;s non-emergency city line: residents call or go
+        online about things like noise, garbage, pests or property standards, and each report becomes a service request
+        in the City&apos;s open data.</Term> from {date(s.period.from)} to {date(s.period.to)}. 311 records only a postal
+        area or the nearest intersection, never the address, so these counts describe the area around the building,{" "}
+        <strong className="font-semibold text-ink">not the building itself</strong>.</>}>
       <div className="grid gap-8 md:grid-cols-2">
         <div>
           <Stat value={num(s.nearby.count)} label={`reported at street intersections within ${metres(brief.address.radius_m)}`} />

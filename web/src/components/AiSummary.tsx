@@ -47,6 +47,8 @@ export function SummaryProvider({ addressPointId, radius, rent = null, beds = nu
     })
       .then(async (res) => {
         const json = (await res.json().catch(() => null)) as Summary | ApiError | null;
+        // Aborted by the cleanup while the body was read: the next run owns the state; this isn't a failure.
+        if (controller.signal.aborted) return;
         loaded.current = `${requestKey}#${attempt}`;
         if (res.ok && json && "sentences" in json) {
           setState({ status: "ready", summary: json });
@@ -91,7 +93,7 @@ export function SummaryPanel() {
           (state.summary.sentences.length === 0 ? (
             <>
               <p className="max-w-[68ch] text-[1.0625rem] text-ink">
-                No red flags in the records for this address. The sections below still hold the full picture.
+                No red flags in the records for this address. The sections below show how much the records cover.
               </p>
               <Provenance summary={state.summary} />
             </>
@@ -124,7 +126,7 @@ export function ChecklistPanel({ address }: { address: string }) {
       "",
       ...items.map((q) => `[ ] ${q.text}`),
       "",
-      "From Block Brief, using City of Toronto open data.",
+      "From RentReceipts, using City of Toronto open data.",
     ].join("\n");
     try {
       await navigator.clipboard.writeText(text);

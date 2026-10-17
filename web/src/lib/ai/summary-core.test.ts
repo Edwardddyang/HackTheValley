@@ -11,9 +11,9 @@ import type * as SummaryCore from "./summary-core";
 // Node runs .ts natively, but the modules are loaded by URL and keep their types through the type-only imports
 // above (see the note in this file's history: value imports by URL, types from the declaration).
 const {
-  buildEvidence, checkLine, citesFor, extractNumbers, groundingContext, isNumberGrounded, parseSummaryRequest,
-  rentControl, summaryCacheKey, summaryResponseSchema, templateLines, templateSummary, TEMPLATE_MODEL, toSummary,
-  validateSummaryOutput,
+  MAX_BEDROOMS, RENT_LIMITS, buildEvidence, checkLine, citesFor, extractNumbers, groundingContext, isNumberGrounded,
+  parseSummaryRequest, rentControl, summaryCacheKey, summaryResponseSchema, summarySystemInstruction, summaryUserPrompt,
+  templateLines, templateSummary, TEMPLATE_MODEL, toSummary, validateSummaryOutput,
 } = (await import(new URL("./summary-core.ts", import.meta.url).href)) as typeof SummaryCore;
 const { adCheckContext, rentComparison } =
   (await import(new URL("./ad-check-core.ts", import.meta.url).href)) as typeof AdCheckCore;
@@ -68,6 +68,8 @@ test("evidence covers the building, registration, rents, nearby change, 311, cri
   assert.equal(building.score, 70);
   assert.equal(building.evaluated_on, "2025-10-02");
   assert.equal(building.percent_of_toronto_buildings_scoring_lower, 0.9);
+  // The server-computed inversion keeps "lower than 99.1% of buildings" phrasings grounded.
+  assert.equal(building.percent_of_toronto_buildings_scoring_equal_or_higher, 99.1);
   assert.equal(building.year_built, 1960);
   assert.match(String(building.rent_control), /^likely covered/);
   assert.deepEqual((building.lowest_graded_items as string[])[0], "Balcony guards: 1 of 3");
@@ -267,6 +269,12 @@ test("the rent flag needs a clear gap over the vacant-unit average", () => {
   // A 3-bedroom only has the all-units average (long-time tenants included): never a flag.
   assert.equal(rentComparison(EXTRAS.rent_benchmark, 3500, 3)?.kind, "all_units");
   assert.equal(flagged(3500, 3), false, "$305 over the all-units average");
+
+  // The prompt states the same threshold, and the LISTING section carries the computed gap.
+  assert.match(summarySystemInstruction(500), /an asking rent well above the CMHC vacant-unit average \(about 5% or more\)/);
+  const prompt = summaryUserPrompt(set.evidence, rentComparison(EXTRAS.rent_benchmark, 2350, 1));
+  assert.ok(prompt.includes('"asks_minus_average":258') && prompt.includes('"percent_difference":12'));
+  assert.ok(!summaryUserPrompt(set.evidence).includes("LISTING"));
 });
 
 test("checkLine: rent control must be hedged in statements, and no advice on signing", () => {
@@ -415,6 +423,18 @@ test("parseSummaryRequest and summaryCacheKey", () => {
     { address_point_id: 7, beds: 11 }]) {
     assert.equal(parseSummaryRequest(bad, limits).ok, false, JSON.stringify(bad));
   }
+  // The shared bounds, exactly: the page reading rent and beds from the URL uses the same ones.
+  assert.deepEqual(RENT_LIMITS, { min: 100, max: 50_000 });
+  assert.equal(MAX_BEDROOMS, 10);
+  const at = (extra: Record<string, unknown>) => parseSummaryRequest({ address_point_id: 7, ...extra }, limits).ok;
+  for (const ok of [{ rent: RENT_LIMITS.min }, { rent: RENT_LIMITS.max }, { beds: 0 }, { beds: MAX_BEDROOMS }]) {
+    assert.equal(at(ok), true, JSON.stringify(ok));
+  }
+  for (const bad of [{ rent: RENT_LIMITS.min - 1 }, { rent: RENT_LIMITS.max + 1 }, { beds: -1 }, { beds: MAX_BEDROOMS + 1 }]) {
+    assert.equal(at(bad), false, JSON.stringify(bad));
+  }
+  const tooHigh = parseSummaryRequest({ address_point_id: 7, rent: 75_000 }, limits);
+  assert.ok(!tooHigh.ok && tooHigh.error === "rent must be a monthly amount in dollars from 100 to 50,000, or left out.");
   assert.equal(summaryCacheKey({ address_point_id: 778448, radius_m: 500, rent: null, beds: null }), "778448:500:-:-");
   assert.equal(summaryCacheKey({ address_point_id: 778448, radius_m: 500, rent: 2350, beds: 1 }), "778448:500:2350:1");
 });

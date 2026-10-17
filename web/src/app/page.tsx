@@ -5,6 +5,7 @@ import { HomeTools } from "@/components/HomeTools";
 import { SearchBox } from "@/components/SearchBox";
 import { SiteHeader } from "@/components/SiteHeader";
 import { parseClaimsParam } from "@/lib/ai/ad-check-core";
+import { MAX_BEDROOMS, RENT_LIMITS } from "@/lib/ai/summary-core";
 import { DEFAULT_RADIUS_M, MAX_RADIUS_M, MIN_RADIUS_M } from "@/lib/brief";
 import { loadBrief } from "@/lib/load";
 
@@ -27,12 +28,16 @@ function first(v: string | string[] | undefined) {
   return Array.isArray(v) ? v[0] : v;
 }
 
-/** rent, beds and claims come from a pasted listing; ignore anything that isn't a plausible value. */
+/**
+ * rent, beds and claims come from a pasted listing; ignore anything outside the bounds the AI routes accept, so a
+ * hand-edited link can't make the flags, the checklist and the ad check fail.
+ */
 function listingHints(sp: Record<string, string | string[] | undefined>): ListingHints {
   const rentRaw = first(sp.rent);
-  const rent = rentRaw && /^\d{2,6}$/.test(rentRaw) && Number(rentRaw) >= 50 && Number(rentRaw) <= 100_000 ? Number(rentRaw) : null;
+  const rent = rentRaw && /^\d{1,6}$/.test(rentRaw) && Number(rentRaw) >= RENT_LIMITS.min && Number(rentRaw) <= RENT_LIMITS.max
+    ? Number(rentRaw) : null;
   const bedsRaw = first(sp.beds);
-  const beds = bedsRaw && /^\d{1,2}$/.test(bedsRaw) && Number(bedsRaw) <= 20 ? Number(bedsRaw) : null;
+  const beds = bedsRaw && /^\d{1,2}$/.test(bedsRaw) && Number(bedsRaw) <= MAX_BEDROOMS ? Number(bedsRaw) : null;
   return { rent, beds, claims: parseClaimsParam(first(sp.claims)) };
 }
 

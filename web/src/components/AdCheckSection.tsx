@@ -46,6 +46,8 @@ export function AdCheckSection({ addressPointId, radius, rent, beds, claims }: {
     })
       .then(async (res) => {
         const json = (await res.json().catch(() => null)) as AdCheck | ApiError | null;
+        // Aborted by the cleanup while the body was read: the next run owns the state; this isn't a failure.
+        if (controller.signal.aborted) return;
         loaded.current = `${requestKey}#${attempt}`;
         if (res.ok && json && "rows" in json) {
           setState({ status: "ready", adCheck: json });
@@ -66,7 +68,7 @@ export function AdCheckSection({ addressPointId, radius, rent, beds, claims }: {
 
   return (
     <Section id="adcheck" title="Ad check"
-      subtitle={<>Each claim from the ad you pasted, next to what the public records say. <strong className="font-semibold text-ink">Can’t check</strong> is an honest answer: no loaded record speaks to that claim.</>}>
+      subtitle={<>Each claim from the ad, next to what the public records say. <strong className="font-semibold text-ink">Can’t check</strong> is an honest answer: no loaded record speaks to that claim.</>}>
       <p className="sr-only" role="status">
         {state.status === "loading" ? "Checking the ad's claims." : state.status === "ready" ? "The ad check is ready." : ""}
       </p>

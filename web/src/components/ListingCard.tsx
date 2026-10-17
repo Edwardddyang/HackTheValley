@@ -27,7 +27,7 @@ export function ListingCard({ rent, beds, benchmark }: { rent: number | null; be
   const noun = key ? BEDROOM_NOUN[key] : null;
 
   return (
-    <Section id="listing" title="Your listing" subtitle="From the ad you pasted. Check these against the lease before you sign.">
+    <Section id="listing" title="Your listing" subtitle="From the ad. Check these against the lease before you sign.">
       <dl className="grid grid-cols-2 gap-4 sm:max-w-md">
         <div>
           <dt className="text-[15px] text-ink-2">Asking rent</dt>

@@ -5,7 +5,7 @@ import { AiError, aiConfigured } from "@/lib/ai/gemini";
 import { clientIp, createRateLimiter } from "@/lib/ai/rate-limit";
 import { DEFAULT_RADIUS_M, MAX_RADIUS_M, MIN_RADIUS_M } from "@/lib/brief";
 
-// POST /api/ask { address_point_id, radius_m?, question, history? } -> AskAnswer
+// POST /api/ask { address_point_id, radius_m?, rent?, beds?, question, history? } -> AskAnswer
 //
 // The server rebuilds the brief and extras itself; the question and history are untrusted text and stay inside
 // delimiters. Every answer line passes the same grounding checks as the summary. A free-form question has no
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   try {
     body = JSON.parse(raw);
   } catch {
-    return error(400, "Send JSON: { address_point_id, radius_m?, question, history? }.");
+    return error(400, "Send JSON: { address_point_id, radius_m?, rent?, beds?, question, history? }.");
   }
 
   const parsed = parseAskRequest(body, { min: MIN_RADIUS_M, max: MAX_RADIUS_M, default: DEFAULT_RADIUS_M });

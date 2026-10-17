@@ -4,13 +4,15 @@ import type { AskAnswer } from "@/lib/ai-types";
 import { getBrief } from "@/lib/brief";
 import { getExtras } from "@/lib/extras";
 
+import { adCheckContext, rentComparison } from "./ad-check-core";
 import { type AskKey, askResponseSchema, askSystemInstruction, askUserPrompt, validateAskOutput } from "./ask-core";
 import { generateJson } from "./gemini";
-import { buildEvidence, citesFor, groundingContext } from "./summary-core";
+import { buildEvidence, citesFor } from "./summary-core";
 
 /**
  * Answers one question from the records alone. Rebuilds the brief and extras server-side, so nothing the browser
- * sends reaches the prompt except the delimited question and history. Null when the address point doesn't exist;
+ * sends reaches the prompt except the delimited question and history and the validated rent and beds. Null when the
+ * address point doesn't exist;
  * throws AiError when Gemini fails (the route maps it; there is no template for a free-form question).
  */
 export async function getAsk(key: AskKey): Promise<AskAnswer | null> {
@@ -24,10 +26,13 @@ export async function getAsk(key: AskKey): Promise<AskAnswer | null> {
   if (!brief) return null;
 
   const set = buildEvidence(brief, extras);
-  const ctx = groundingContext(set);
+  // A listing's rent and beds reach the prompt as LISTING and join the CMHC rent item's allowed numbers, exactly as
+  // in the summary and the ad check, so "is $2,350 fair?" can be answered with the renter's own figure.
+  const cx = rentComparison(extras?.rent_benchmark ?? null, key.rent, key.beds);
+  const ctx = adCheckContext(set, key.rent, key.beds, cx);
   const { data, model } = await generateJson({
     systemInstruction: askSystemInstruction(brief.address.radius_m),
-    contents: askUserPrompt(set.evidence, key.question, key.history),
+    contents: askUserPrompt(set.evidence, key.question, key.history, cx),
     schema: askResponseSchema(set.evidence.items.map((i) => i.id)),
     temperature: 0.2,
   });

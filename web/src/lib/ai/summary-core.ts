@@ -209,11 +209,15 @@ export function buildEvidence(brief: Brief, extras: Extras | null): EvidenceSet 
       score: e.score,
       score_out_of: SCORE_OUT_OF,
       percent_of_toronto_buildings_scoring_lower: e.percent_of_buildings_scoring_lower,
+      // Models love to invert "0.9% score lower" into "99.1%"; computing it here keeps that phrasing grounded.
+      percent_of_toronto_buildings_scoring_equal_or_higher: e.percent_of_buildings_scoring_lower != null
+        ? Math.round((100 - e.percent_of_buildings_scoring_lower) * 10) / 10
+        : null,
       item_grades: `1 (worst) to ${e.item_scale_max} (best)`,
       lowest_graded_items: lowest.map((i) => `${sentenceCase(i.item)}: ${i.score} of ${e.item_scale_max}`),
     });
     if (e.percent_of_buildings_scoring_lower != null) {
-      notes.push("percent_of_toronto_buildings_scoring_lower compares with the latest evaluation of every RentSafeTO building in Toronto (2023+ scoring).");
+      notes.push("percent_of_toronto_buildings_scoring_lower and percent_of_toronto_buildings_scoring_equal_or_higher compare with the latest evaluation of every RentSafeTO building in Toronto (2023+ scoring).");
     }
     if (lowest.length) notes.push(`lowest_graded_items lists at most ${lowest.length} items; other items may have the same grade.`);
 
@@ -681,11 +685,12 @@ export function summarySystemInstruction(radiusM: number): string {
 You receive EVIDENCE as JSON: "items", each with an "id" (like "f3"), what it is "about", and "facts" from City of Toronto open data, the Toronto Police Service and CMHC, plus "notes" that explain the data. You may also receive LISTING: the asking rent and bedrooms the renter gave, with the difference from the cited CMHC average already computed.
 
 Write two things:
-1. "flags": 0 to 3 short bullets (under 25 words each) naming the standout deviations in the records, the most serious first. A flag is something a renter would want explained before signing: a low or falling RentSafeTO score and its worst-graded items, no cooling on file, an asking rent above the CMHC vacant-unit average, major construction or a development application close by, offence rates well above Toronto's. Rank, don't summarize: leave out everything ordinary for Toronto, and return an empty list when nothing stands out - never pad to 3.
+1. "flags": 0 to 3 short bullets (under 25 words each) naming the standout deviations in the records, the most serious first. A flag is something a renter would want explained before signing: a low or falling RentSafeTO score and its worst-graded items, no cooling on file, an asking rent well above the CMHC vacant-unit average (about ${MIN_PRICE_GAP_PCT}% or more), major construction or a development application close by, offence rates well above Toronto's. Rank, don't summarize: leave out everything ordinary for Toronto, and return an empty list when nothing stands out - never pad to 3. Write each flag tight and comparative - the thing, its number, and what it compares to, side by side ("Assault rate in the neighbourhood: N per 100,000 vs Toronto's M") - never lead-ins like "In the X neighbourhood, the 2025 rate was".
 2. "checklist": 3 to 6 questions the renter can ask the landlord at the viewing, grounded in the lowest-graded items and the other facts.
 
 Rules:
 - Use only the facts in EVIDENCE and LISTING. No outside knowledge, guesses or assumptions.
+- A number alone says nothing: pair it with its comparison from the same facts (the city median, Toronto's rate, the CMHC average, the previous score). Write dates short ("Oct 2025", not "on 2025-10-02"), and don't narrate sources ("according to the 2021 Census", "reported by Toronto Police") - the citations already carry that.
 - Every flag and question lists in "evidence_ids" the id of each item it relies on, copied exactly. At least one.
 - Copy numbers exactly as they appear in the facts of the items you cite or in LISTING. Don't calculate, convert or invent numbers.
 - 311 requests are located only to an intersection or a postal area, never to a building, and the data has no closing dates: say "within ${radiusM} m" or "in Ward N", never "at this building", and never say how quickly requests were resolved.
@@ -705,14 +710,18 @@ export type ListingContext = {
   rent: number; kind: "vacant_units" | "all_units"; noun: string; average: number; diff: number; pct: number;
 } | null;
 
-export function summaryUserPrompt(evidence: Evidence, listing: ListingContext = null): string {
-  const listingPart = listing
+/** The LISTING section of a prompt (shared with ask-the-records), or "" without a listing. */
+export function listingPromptPart(listing: ListingContext): string {
+  return listing
     ? `\n\nLISTING (what the renter told us, with the difference from the cited CMHC average already computed):\n${JSON.stringify({
         asking_rent: listing.rent, bedroom_type: listing.noun, average_kind: listing.kind,
         average_monthly_rent: listing.average, asks_minus_average: listing.diff, percent_difference: listing.pct,
       })}`
     : "";
-  return `EVIDENCE:\n${JSON.stringify(evidence)}${listingPart}`;
+}
+
+export function summaryUserPrompt(evidence: Evidence, listing: ListingContext = null): string {
+  return `EVIDENCE:\n${JSON.stringify(evidence)}${listingPromptPart(listing)}`;
 }
 
 /** JSON schema for Gemini's structured output; the enum limits citations to the evidence ids. */
@@ -846,7 +855,7 @@ export function templateLines(
   const hood = brief.area.neighbourhood?.name;
   if (refs.crime && hood && typeof comparedTypes === "number" && typeof aboveTypes === "number"
     && comparedTypes > 0 && aboveTypes * 2 > comparedTypes) {
-    flag(40, `In ${hood}, ${aboveTypes} of ${comparedTypes} offence types reported by Toronto Police had ${brief.crime.year} rates above Toronto's.`, [refs.crime]);
+    flag(40, `${aboveTypes} of ${comparedTypes} offence types in ${hood} had ${brief.crime.year} rates above Toronto's.`, [refs.crime]);
   }
 
   const sentences = candidates.sort((x, y) => x.priority - y.priority).slice(0, MAX_FLAGS).map((c) => c.line);
@@ -902,6 +911,38 @@ export function templateSummary(
 export type RadiusLimits = { min: number; max: number; default: number };
 export type SummaryKey = { address_point_id: number; radius_m: number; rent: number | null; beds: number | null };
 
+/**
+ * The monthly rents (dollars) and bedroom counts the AI routes accept. The page reading rent and beds from the URL
+ * uses the same bounds, so a hand-edited link can't make every AI panel answer 400.
+ */
+export const RENT_LIMITS = { min: 100, max: 50_000 } as const;
+export const MAX_BEDROOMS = 10;
+
+/** A request's optional rent and beds, checked against RENT_LIMITS and MAX_BEDROOMS (absent or null is fine). */
+export function parseRentAndBeds(
+  body: Record<string, unknown>,
+): { ok: true; rent: number | null; beds: number | null } | { ok: false; error: string } {
+  let rent: number | null = null;
+  if (body.rent !== undefined && body.rent !== null) {
+    if (typeof body.rent !== "number" || !Number.isFinite(body.rent)
+      || body.rent < RENT_LIMITS.min || body.rent > RENT_LIMITS.max) {
+      return {
+        ok: false,
+        error: `rent must be a monthly amount in dollars from ${RENT_LIMITS.min} to ${new Intl.NumberFormat("en-CA").format(RENT_LIMITS.max)}, or left out.`,
+      };
+    }
+    rent = Math.round(body.rent);
+  }
+  let beds: number | null = null;
+  if (body.beds !== undefined && body.beds !== null) {
+    if (typeof body.beds !== "number" || !Number.isInteger(body.beds) || body.beds < 0 || body.beds > MAX_BEDROOMS) {
+      return { ok: false, error: `beds must be a whole number from 0 (bachelor) to ${MAX_BEDROOMS}, or left out.` };
+    }
+    beds = body.beds;
+  }
+  return { ok: true, rent, beds };
+}
+
 /** SummaryRequest -> key, or an error message for a 400. rent and beds let the flags rank the asking rent. */
 export function parseSummaryRequest(
   body: unknown,
@@ -916,21 +957,9 @@ export function parseSummaryRequest(
   if (typeof r !== "number" || !Number.isInteger(r) || r < radius.min || r > radius.max) {
     return { ok: false, error: `radius_m must be a whole number of metres from ${radius.min} to ${radius.max}.` };
   }
-  let rent: number | null = null;
-  if (body.rent !== undefined && body.rent !== null) {
-    if (typeof body.rent !== "number" || !Number.isFinite(body.rent) || body.rent < 100 || body.rent > 50_000) {
-      return { ok: false, error: "rent must be a monthly amount in dollars from 100 to 50,000, or left out." };
-    }
-    rent = Math.round(body.rent);
-  }
-  let beds: number | null = null;
-  if (body.beds !== undefined && body.beds !== null) {
-    if (typeof body.beds !== "number" || !Number.isInteger(body.beds) || body.beds < 0 || body.beds > 10) {
-      return { ok: false, error: "beds must be a whole number from 0 (bachelor) to 10, or left out." };
-    }
-    beds = body.beds;
-  }
-  return { ok: true, value: { address_point_id: id, radius_m: r, rent, beds } };
+  const listing = parseRentAndBeds(body);
+  if (!listing.ok) return listing;
+  return { ok: true, value: { address_point_id: id, radius_m: r, rent: listing.rent, beds: listing.beds } };
 }
 
 export const summaryCacheKey = (k: SummaryKey) =>
