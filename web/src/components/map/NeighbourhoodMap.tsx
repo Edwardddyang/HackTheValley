@@ -17,7 +17,7 @@ import { FlyoverButton } from "./Flyover";
 import { SHADE_ORDER, SHADES, shadeFill, shadeGradient } from "./hoodShades";
 import type { HoodsFile, HoodValues, Shade } from "./hoodShades";
 import MapLayerControls from "./MapLayerControls";
-import { AMENITY_MARK, amenityLocations, briefCenter, briefLocations, defaultLayers, isValidLocation, layerLabels, radiusCircle, sr311Intersections } from "./mapData";
+import { AMENITY_MARK, amenityLocations, briefCenter, briefLocations, defaultLayers, isValidLocation, layerLabels, matchesQuery, radiusCircle, sr311Intersections } from "./mapData";
 import type { LayerId, MapLocation } from "./mapData";
 
 // From feature/frontend (Satwik): expandable map with layer controls and an accessible location
@@ -166,6 +166,11 @@ function MapExplorer({ brief, typeLabels }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const expandRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const [query, setQuery] = useState("");
+  const searching = query.trim() !== "";
+  const matching = useMemo(() => new Set(locations.filter((l) => matchesQuery(l, query)).map((l) => l.id)), [locations, query]);
+  const listed = searching ? locations.filter((l) => matching.has(l.id)) : locations;
+  const hiddenMatches = searching ? listed.filter((l) => isValidLocation(l.location) && !visible[l.layer]).length : 0;
   const visiblePoints = plotted.filter((location) => visible[location.layer]);
   const selected = visiblePoints.find((location) => location.id === selectedId);
   const circle = useMemo(() => (hasCenter ? radiusCircle(center, brief.address.radius_m) : null),
@@ -454,16 +459,18 @@ function MapExplorer({ brief, typeLabels }: Props) {
                   <Layer id="sr311-points" type="circle"
                     paint={{
                       "circle-radius": ["interpolate", ["linear"], ["get", "count"], 1, 4, 5, 8, 15, 12, 40, 15],
-                      "circle-color": "#0284c7", "circle-opacity": 0.85, "circle-stroke-width": 1, "circle-stroke-color": "#ffffff",
+                      "circle-color": "#0284c7", "circle-opacity": searching ? 0.2 : 0.85, "circle-stroke-width": 1, "circle-stroke-color": "#ffffff",
                     }} />
                   <Layer id="sr311-count" type="symbol"
                     layout={{ "text-field": ["get", "label"], "text-size": 10, "text-font": ["Noto Sans Bold"],
                       "text-allow-overlap": true, "text-ignore-placement": true }}
-                    paint={{ "text-color": "#ffffff" }} />
+                    paint={{ "text-color": "#ffffff", "text-opacity": searching ? 0.3 : 1 }} />
                 </Source>}
-                {visiblePoints.map((location) => <Marker key={location.id} latitude={location.location.lat} longitude={location.location.lng} anchor="center">
+                {/* While a search is active, matches get a ring and sit on top; everything but the address fades back. */}
+                {visiblePoints.map((location) => <Marker key={location.id} latitude={location.location.lat} longitude={location.location.lng} anchor="center"
+                  style={searching && matching.has(location.id) ? { zIndex: 2 } : undefined}>
                   <button type="button" aria-label={`${location.name}: ${layerLabels[location.layer]}`} onClick={(event) => { event.stopPropagation(); setPick311(null); setSelectedId(location.id); }}
-                    className={`flex items-center justify-center rounded-full border-2 border-white font-bold text-white shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#142D4E] ${MARKER_CLASS[location.layer]}`}>
+                    className={`flex items-center justify-center rounded-full border-2 border-white font-bold text-white shadow-md transition-opacity focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#142D4E] ${MARKER_CLASS[location.layer]} ${!searching ? "" : matching.has(location.id) ? "ring-4 ring-amber-400" : location.layer === "building" ? "" : "opacity-25"}`}>
                     <span aria-hidden="true">{location.label ?? MARKER_TEXT[location.layer]}</span>
                   </button>
                 </Marker>)}
@@ -514,11 +521,22 @@ function MapExplorer({ brief, typeLabels }: Props) {
           <p className="text-xs leading-5 text-slate-500">{expanded ? "Drag to pan; scroll or use the zoom controls. Keyboard: focus the map, then use arrow keys to pan and +/− to zoom." : "Drag to pan and use +/− to zoom. Expand the map to enable scroll zoom."}</p>
         </>
       )}
-      <details className="rounded-xl border border-slate-200 bg-white p-4" open={expanded || undefined}>
-        <summary className="cursor-pointer rounded text-sm font-semibold focus-visible:outline-2 focus-visible:outline-teal-700">Map locations — accessible list ({locations.length})</summary>
+      <div className="rounded-xl border border-slate-200 bg-white p-4">
+        <label htmlFor={`${id}-search`} className="text-sm font-semibold">Search map locations</label>
+        <input id={`${id}-search`} type="search" value={query} onChange={(e) => setQuery(e.target.value)}
+          placeholder="grocery, transit, pharmacy, permit, RentSafeTO, a street…" aria-describedby={`${id}-search-count`}
+          className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-[#142D4E] placeholder:text-slate-400 focus-visible:outline-2 focus-visible:outline-teal-700" />
+        <p id={`${id}-search-count`} role="status" className="mt-2 text-xs leading-5 text-slate-500">
+          {!searching ? `${locations.length} locations; matches are highlighted on the map as you type.`
+            : listed.length === 0 ? "No locations match. Try grocery, transit, pharmacy, hospital, permit or RentSafeTO."
+            : `${listed.length} of ${locations.length} locations match, highlighted on the map${hiddenMatches ? `; ${hiddenMatches} ${hiddenMatches === 1 ? "is" : "are"} on a hidden layer` : ""}.`}
+        </p>
+      </div>
+      <details className="rounded-xl border border-slate-200 bg-white p-4" open={expanded || searching || undefined}>
+        <summary className="cursor-pointer rounded text-sm font-semibold focus-visible:outline-2 focus-visible:outline-teal-700">Map locations — accessible list ({searching ? `${listed.length} of ${locations.length}` : locations.length})</summary>
         <p className="mt-3 text-xs leading-5 text-slate-500">All marked locations are listed here, including hidden layers. The {num(sr311.total)} 311 requests (at {num(sr311.fc.features.length)} intersections) are summarised by type in the 311 panel instead.</p>
         <ul className="mt-3 max-h-72 space-y-3 overflow-y-auto text-sm">
-          {locations.map((location) => <li key={location.id} className="border-t border-slate-100 pt-3">
+          {listed.map((location) => <li key={location.id} className="border-t border-slate-100 pt-3">
             <p className="font-medium">{location.name}</p><p className="mt-1 line-clamp-2 text-xs text-slate-600">{layerLabels[location.layer]} · {location.description}</p>
             {distanceLabel(location) && <p className="mt-1 text-xs text-slate-600">{distanceLabel(location)}</p>}
             {hasCenter && isValidLocation(location.location) ? <button type="button" onClick={() => focusLocation(location)} className="mt-2 rounded text-xs font-medium text-teal-800 underline focus-visible:outline-2 focus-visible:outline-teal-700">Show on map</button> : <p className="mt-1 text-xs text-slate-500">Coordinates unavailable; no marker plotted.</p>}
