@@ -21,6 +21,32 @@ export function titleCase(s: string | null | undefined) {
   return s.toLowerCase().replace(/\b([a-z])/g, (c) => c.toUpperCase());
 }
 
+/** "HOT WATER" -> "Hot water" (registration fields are upper case codes). */
+export function sentenceCase(s: string | null | undefined) {
+  if (!s) return "";
+  const lower = s.trim().toLowerCase();
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+/** Listing bedroom count (0 = bachelor) as words. */
+export function bedroomsLabel(beds: number) {
+  if (beds === 0) return "Bachelor";
+  return beds === 1 ? "1 bedroom" : `${beds} bedrooms`;
+}
+
+/** Listing bedroom count -> the CMHC table column it compares with. */
+export function bedroomsKey(beds: number): "studio" | "one" | "two" | "three_plus" {
+  return beds <= 0 ? "studio" : beds === 1 ? "one" : beds === 2 ? "two" : "three_plus";
+}
+
+/** CMHC's label for that column, for sentences ("1-bedroom apartments"). */
+export const BEDROOM_NOUN: Record<"studio" | "one" | "two" | "three_plus", string> = {
+  studio: "bachelor",
+  one: "1-bedroom",
+  two: "2-bedroom",
+  three_plus: "3-bedroom-or-larger",
+};
+
 export const OFFENCE_LABELS: Record<string, string> = {
   ASSAULT: "Assault",
   AUTOTHEFT: "Auto theft",
@@ -39,6 +65,9 @@ export const DATASET_NAMES: Record<string, { short: string; long: string }> = {
   wards: { short: "Wards", long: "City Wards" },
   neighbourhoods: { short: "Hoods", long: "Neighbourhoods (158 model)" },
   rentsafe_evaluations: { short: "RentSafeTO", long: "Apartment Building Evaluations (RentSafeTO)" },
+  apartment_registrations: { short: "Registry", long: "Apartment Building Registration" },
+  cmhc_rents: { short: "CMHC", long: "CMHC Rental Market Survey" },
+  intersections: { short: "Corners", long: "Intersection File (Centreline Intersection)" },
   building_permits: { short: "Permits", long: "Building Permits" },
   development_applications: { short: "Dev apps", long: "Development Applications" },
   service_requests_311: { short: "311", long: "311 Service Requests" },

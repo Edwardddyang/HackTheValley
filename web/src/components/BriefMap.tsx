@@ -17,9 +17,11 @@ setWorkerUrl("/maplibre-gl-worker.mjs");
 
 type LayerKey = "rentsafe" | "permits" | "devapps" | "sr311";
 
-// Fixed palette slots (validated together); the map tiles are always light, so these are
-// the light-mode steps. Buildings use ink + a score label rather than a fourth hue.
-const COLORS = { sr311: "#2a78d6", devapps: "#eb6834", permits: "#1baf7a", building: "#0b0b0b", ring: "#fcfcfb" };
+// Fixed palette slots; the map tiles are always light, so these are the light-mode steps
+// (each 4.5:1+ against the white letter it carries). Buildings use ink + a score label rather
+// than a fourth hue, and permits/applications carry a letter, so hue is never the only signal.
+const COLORS = { sr311: "#2468b8", devapps: "#b84a17", permits: "#137a55", building: "#17263a", ring: "#ffffff" };
+const LETTER = { permits: "P", devapps: "A" } as const;
 
 type Picked = { lon: number; lat: number; layer: LayerKey; props: Record<string, unknown> };
 
@@ -53,8 +55,10 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
 
   const data = useMemo(() => ({
     ring: { type: "Feature", geometry: circle(lon, lat, radius_m), properties: {} } as GeoJSON.Feature<Polygon>,
+    // 311 points are the intersection the request was reported at, not an address; the date is
+    // when it was reported (the data has no closed date).
     sr311: points(brief.service_requests_311.nearby.points, (p) => ({
-      title: p.type, sub: `${p.status} · ${p.date}`, row: p.row,
+      title: p.type, sub: `Reported ${p.date} at this intersection. Status: ${p.status}.`, row: p.row,
     })),
     devapps: points(brief.development_applications.open, (d) => ({
       title: typeLabels[d.type] ?? d.type,
@@ -88,14 +92,20 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
     setPicked({ lon: plon, lat: plat, layer: f.layer.id.replace("-pts", "") as LayerKey, props: f.properties ?? {} });
   }
 
+  const badge = (bg: string, letter: string) => (
+    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold leading-none text-white"
+      style={{ background: bg, boxShadow: `0 0 0 1.5px ${COLORS.ring}` }}>
+      {letter}
+    </span>
+  );
   const legend: { key: LayerKey; label: string; count: number; swatch: React.ReactNode }[] = [
-    { key: "rentsafe", label: "RentSafeTO buildings (score)", count: brief.rentsafe_nearby.buildings.length,
-      swatch: <span className="inline-block h-3 w-3 rounded-full border-2" style={{ background: COLORS.building, borderColor: COLORS.ring }} /> },
+    { key: "rentsafe", label: "RentSafeTO buildings, with score", count: brief.rentsafe_nearby.buildings.length,
+      swatch: badge(COLORS.building, "") },
     { key: "permits", label: "Major construction", count: brief.construction_nearby.notable.length,
-      swatch: <span className="inline-block h-3 w-3 rounded-full" style={{ background: COLORS.permits }} /> },
+      swatch: badge(COLORS.permits, LETTER.permits) },
     { key: "devapps", label: "Open development applications", count: brief.development_applications.open.length,
-      swatch: <span className="inline-block h-3 w-3 rounded-full" style={{ background: COLORS.devapps }} /> },
-    { key: "sr311", label: "311 requests at intersections", count: brief.service_requests_311.nearby.points.length,
+      swatch: badge(COLORS.devapps, LETTER.devapps) },
+    { key: "sr311", label: "311 requests, placed at intersections", count: brief.service_requests_311.nearby.points.length,
       swatch: <span className="inline-block h-2 w-2 rounded-full" style={{ background: COLORS.sr311 }} /> },
   ];
 
@@ -127,11 +137,19 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
         </Source>
         <Source id="devapps" type="geojson" data={data.devapps}>
           <Layer id="devapps-pts" type="circle" layout={{ visibility: visible.devapps ? "visible" : "none" }}
-            paint={{ "circle-radius": 7, "circle-color": COLORS.devapps, "circle-stroke-width": 2, "circle-stroke-color": COLORS.ring }} />
+            paint={{ "circle-radius": 8, "circle-color": COLORS.devapps, "circle-stroke-width": 2, "circle-stroke-color": COLORS.ring }} />
+          <Layer id="devapps-label" type="symbol"
+            layout={{ visibility: visible.devapps ? "visible" : "none", "text-field": LETTER.devapps, "text-size": 10,
+              "text-font": ["Noto Sans Bold"], "text-allow-overlap": true, "text-ignore-placement": true }}
+            paint={{ "text-color": COLORS.ring }} />
         </Source>
         <Source id="permits" type="geojson" data={data.permits}>
           <Layer id="permits-pts" type="circle" layout={{ visibility: visible.permits ? "visible" : "none" }}
-            paint={{ "circle-radius": 7, "circle-color": COLORS.permits, "circle-stroke-width": 2, "circle-stroke-color": COLORS.ring }} />
+            paint={{ "circle-radius": 8, "circle-color": COLORS.permits, "circle-stroke-width": 2, "circle-stroke-color": COLORS.ring }} />
+          <Layer id="permits-label" type="symbol"
+            layout={{ visibility: visible.permits ? "visible" : "none", "text-field": LETTER.permits, "text-size": 10,
+              "text-font": ["Noto Sans Bold"], "text-allow-overlap": true, "text-ignore-placement": true }}
+            paint={{ "text-color": COLORS.ring }} />
         </Source>
         <Source id="rentsafe" type="geojson" data={data.rentsafe}>
           <Layer id="rentsafe-pts" type="circle" layout={{ visibility: visible.rentsafe ? "visible" : "none" }}
@@ -153,13 +171,13 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
             <div className="space-y-1 pr-3 text-[13px] leading-snug">
               <div className="font-medium text-ink">{String(picked.props.title ?? "")}</div>
               {picked.props.address ? <div className="text-ink-2">{String(picked.props.address)}</div> : null}
-              <div className="text-ink-3">{String(picked.props.sub ?? "")}</div>
+              <div className="text-ink-2">{String(picked.props.sub ?? "")}</div>
               {picked.props.description ? (
                 <p className="line-clamp-4 text-ink-2">{String(picked.props.description)}</p>
               ) : null}
               {picked.props.url ? (
                 <a className="text-accent underline" href={String(picked.props.url)} target="_blank" rel="noreferrer">
-                  City application page
+                  City application page<span className="sr-only"> (opens in a new tab)</span>
                 </a>
               ) : null}
             </div>
@@ -167,8 +185,8 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
         )}
       </Map>
 
-      <fieldset className="absolute left-2 top-2 rounded-lg border border-border bg-surface/95 px-2.5 py-1.5 text-[11px] shadow-sm backdrop-blur sm:left-3 sm:top-3 sm:px-3 sm:py-2 sm:text-xs">
-        <legend className="sr-only">Map layers</legend>
+      <fieldset className="absolute left-2 top-2 rounded-lg border border-border bg-surface/95 px-2.5 py-1.5 text-xs shadow-sm backdrop-blur sm:left-3 sm:top-3 sm:px-3 sm:py-2 sm:text-[13px]">
+        <legend className="sr-only">Map layers to show</legend>
         {legend.map((l) => (
           <label key={l.key} className="flex cursor-pointer items-center gap-2 py-0.5 text-ink-2">
             <input type="checkbox" className="accent-[var(--ink)]" checked={visible[l.key]}
