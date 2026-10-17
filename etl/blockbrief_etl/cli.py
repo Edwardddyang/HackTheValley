@@ -110,14 +110,12 @@ def cmd_load(args):
             tables = _transform(mod)
             if tables is None:
                 continue
+            if hasattr(mod, "enrich"):
+                tables = mod.enrich(conn, tables)
             for table, df in tables.items():
                 t = time.time()
                 n = db.replace_table(conn, table, df)
                 print(f"    loaded {n:,} rows into {table} in {time.time() - t:.1f}s")
-            for sql in getattr(mod, "POST_LOAD_SQL", []):
-                cur = conn.execute(sql)
-                conn.commit()
-                print(f"    post-load step updated {cur.rowcount:,} rows")
             if mod.FOLDER == "building_permits":
                 total, located = conn.execute(
                     "select count(*), count(geom) from building_permits").fetchone()

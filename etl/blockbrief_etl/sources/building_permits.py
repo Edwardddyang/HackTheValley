@@ -21,17 +21,22 @@ COLUMNS = ["PERMIT_NUM", "REVISION_NUM", "PERMIT_TYPE", "STRUCTURE_TYPE", "WORK"
            "CURRENT_USE", "PROPOSED_USE", "DWELLING_UNITS_CREATED", "DWELLING_UNITS_LOST",
            "EST_CONST_COST"]
 
-# The permit files have no coordinates. GEO_ID is the Address Points ADDRESS_POINT_ID
-# (checked: permit 19 155845 DRN, GEO_ID 865172 = address point 865172, 20 Saunders Ave).
-POST_LOAD_SQL = [
+
+
+def enrich(conn, tables):
+    """Give each permit its address point's location before loading.
+
+    The permit files have no coordinates. GEO_ID is the Address Points ADDRESS_POINT_ID
+    (checked: permit 19 155845 DRN, GEO_ID 865172 = address point 865172, 20 Saunders Ave).
+    Done before COPY rather than as an UPDATE afterwards: an UPDATE rewrites every row and
+    leaves the old copies behind, which doubled the table's size.
     """
-    update building_permits p
-       set geom = a.geom
-      from address_points a
-     where a.address_point_id = p.geo_id
-       and p.geom is null
-    """,
-]
+    points = dict(conn.execute("select address_point_id, st_asewkt(geom) from address_points").fetchall())
+    if not points:
+        print("    address_points is empty, so permits will have no location. Load it first.")
+    df = tables["building_permits"]
+    df["geom"] = df["geo_id"].map(lambda g: points.get(g) if g is not None else None)
+    return tables
 
 
 def _group(path):

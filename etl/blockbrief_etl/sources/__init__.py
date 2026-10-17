@@ -6,7 +6,7 @@ DATASET_URL  where to download it
 EXPECTS      which file(s) to download from that page
 DEPENDS_ON   folders that must be loaded first (optional)
 transform(files) -> {table_name: DataFrame}   columns must match supabase/migrations
-POST_LOAD_SQL  statements to run after loading (optional)
+enrich(conn, tables) -> tables   fill in fields that need the database, before loading (optional)
 """
 
 from . import (
