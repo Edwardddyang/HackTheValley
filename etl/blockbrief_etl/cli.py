@@ -90,7 +90,7 @@ PROJECT_TABLES = [
     "service_requests_311", "sr311_request_types", "neighbourhood_profiles",
     "neighbourhood_profile_variables", "ward_profiles", "crime_rates", "neighbourhood_population",
     "building_permits", "development_applications", "rentsafe_evaluations", "address_points",
-    "intersections",
+    "intersections", "apartment_registrations", "cmhc_rents",
     "neighbourhoods", "wards", "sources",
 ]
 
