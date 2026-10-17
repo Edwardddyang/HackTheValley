@@ -1,66 +1,103 @@
 @import "tailwindcss";
 
-/* Colour roles. Series/status values come from the validated reference palette
-   (dataviz skill): the first three categorical slots are safe together on a map. */
+/* Colour roles.
+   Survey-paper ground, navy ink, lake-teal actions and links. Amber, brick and moss are reserved
+   for inspection-score levels and always travel with a text label and a shape, so colour is never
+   the only signal. Every text pair below is at least 4.5:1 (WCAG AA) on page, surface and surface-2.
+   Series colours are for map markers and bars; markers also carry a letter, so they don't rely on hue. */
 :root {
   color-scheme: light;
-  --page: #f9f9f7;
-  --surface: #fcfcfb;
-  --surface-2: #f0efec;
-  --ink: #0b0b0b;
-  --ink-2: #52514e;
-  --ink-3: #898781;
-  --hairline: #e1e0d9;
-  --border: rgba(11, 11, 11, 0.1);
-  --baseline: #c3c2b7;
-  --accent: #2a78d6;
-  --series-311: #2a78d6;
-  --series-devapp: #eb6834;
-  --series-permit: #1baf7a;
-  --building: #0b0b0b;
-  --tooltip-bg: #0b0b0b;
-  --tooltip-ink: #f0efec;
+  --page: #eef2f1;
+  --surface: #ffffff;
+  --surface-2: #e2e9e8;
+  --ink: #17263a;
+  --ink-2: #4a5a6b;
+  --ink-3: #536376;
+  --hairline: #d3dcdd;
+  --border: rgba(23, 38, 58, 0.16);
+  --field: #5b6b7c; /* input borders: 3:1+ against page and surface */
+  --baseline: #b9c5c7;
+  --accent: #0e5a5e;
+  --accent-ink: #ffffff;
+  --accent-tint: #dcecec;
+  --amber: #8f4b00;
+  --amber-tint: #fbefd9;
+  --brick: #a1302b;
+  --brick-tint: #fbe6e3;
+  --moss: #2f6b45;
+  --moss-tint: #e3f0e7;
+  --series-311: #2468b8;
+  --series-devapp: #b84a17;
+  --series-permit: #137a55;
+  --building: #17263a;
+  --tooltip-bg: #17263a;
+  --tooltip-ink: #e5ecf2;
+  --focus: #0e5a5e;
+  --skeleton: #d8e1e1;
 }
 
+/* Dark values, defined once and applied by the OS setting or an explicit data-theme. */
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
-    --page: #0d0d0d;
-    --surface: #1a1a19;
-    --surface-2: #232321;
-    --ink: #f0efec;
-    --ink-2: #c3c2b7;
-    --ink-3: #898781;
-    --hairline: #2c2c2a;
-    --border: rgba(255, 255, 255, 0.1);
-    --baseline: #383835;
-    --accent: #3987e5;
-    --series-311: #3987e5;
-    --series-devapp: #d95926;
-    --series-permit: #199e70;
-    --building: #f0efec;
-    --tooltip-bg: #f0efec;
-    --tooltip-ink: #0b0b0b;
+    --page: #0f1a26;
+    --surface: #152232;
+    --surface-2: #1b2a3c;
+    --ink: #e5ecf2;
+    --ink-2: #b4c2d0;
+    --ink-3: #93a4b6;
+    --hairline: #2c3b4d;
+    --border: rgba(229, 236, 242, 0.14);
+    --field: #8394a6;
+    --baseline: #3a4b5f;
+    --accent: #7ccfd0;
+    --accent-ink: #0f1a26;
+    --accent-tint: #173a40;
+    --amber: #e3b36a;
+    --amber-tint: #3a2a12;
+    --brick: #f29a90;
+    --brick-tint: #3d1e1c;
+    --moss: #86cfa0;
+    --moss-tint: #173324;
+    --series-311: #6aa5ec;
+    --series-devapp: #e8885a;
+    --series-permit: #4cc497;
+    --building: #e5ecf2;
+    --tooltip-bg: #e5ecf2;
+    --tooltip-ink: #0f1a26;
+    --focus: #7ccfd0;
+    --skeleton: #22344a;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --page: #0d0d0d;
-  --surface: #1a1a19;
-  --surface-2: #232321;
-  --ink: #f0efec;
-  --ink-2: #c3c2b7;
-  --ink-3: #898781;
-  --hairline: #2c2c2a;
-  --border: rgba(255, 255, 255, 0.1);
-  --baseline: #383835;
-  --accent: #3987e5;
-  --series-311: #3987e5;
-  --series-devapp: #d95926;
-  --series-permit: #199e70;
-  --building: #f0efec;
-  --tooltip-bg: #f0efec;
-  --tooltip-ink: #0b0b0b;
+  --page: #0f1a26;
+  --surface: #152232;
+  --surface-2: #1b2a3c;
+  --ink: #e5ecf2;
+  --ink-2: #b4c2d0;
+  --ink-3: #93a4b6;
+  --hairline: #2c3b4d;
+  --border: rgba(229, 236, 242, 0.14);
+  --field: #8394a6;
+  --baseline: #3a4b5f;
+  --accent: #7ccfd0;
+  --accent-ink: #0f1a26;
+  --accent-tint: #173a40;
+  --amber: #e3b36a;
+  --amber-tint: #3a2a12;
+  --brick: #f29a90;
+  --brick-tint: #3d1e1c;
+  --moss: #86cfa0;
+  --moss-tint: #173324;
+  --series-311: #6aa5ec;
+  --series-devapp: #e8885a;
+  --series-permit: #4cc497;
+  --building: #e5ecf2;
+  --tooltip-bg: #e5ecf2;
+  --tooltip-ink: #0f1a26;
+  --focus: #7ccfd0;
+  --skeleton: #22344a;
 }
 
 @theme inline {
@@ -72,19 +109,110 @@
   --color-ink-3: var(--ink-3);
   --color-hairline: var(--hairline);
   --color-border: var(--border);
+  --color-field: var(--field);
   --color-baseline: var(--baseline);
   --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-tint: var(--accent-tint);
+  --color-amber: var(--amber);
+  --color-amber-tint: var(--amber-tint);
+  --color-brick: var(--brick);
+  --color-brick-tint: var(--brick-tint);
+  --color-moss: var(--moss);
+  --color-moss-tint: var(--moss-tint);
   --color-series-311: var(--series-311);
   --color-series-devapp: var(--series-devapp);
   --color-series-permit: var(--series-permit);
   --color-building: var(--building);
-  --font-sans: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-plate), var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: 1rem;
+}
+/* Jumping to a section clears the brief's sticky header (sticky from the sm breakpoint up). */
+@media (min-width: 40rem) {
+  html:has(.sticky-header) {
+    scroll-padding-top: 6rem;
+  }
 }
 
 body {
   background: var(--page);
   color: var(--ink);
+  font-family: var(--font-sans);
+  line-height: 1.55;
+  text-rendering: optimizeLegibility;
+}
+
+/* Condensed display face: addresses and headings read like a building's address plate. */
+.plate {
+  font-family: var(--font-display);
+  font-stretch: 78%;
+  letter-spacing: -0.005em;
+  line-height: 1.05;
+}
+
+.num {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* One visible focus ring for every interactive element. */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Skip link: hidden until focused. */
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  z-index: 60;
+  background: var(--ink);
+  color: var(--page);
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 1rem;
+}
+
+/* Loading placeholders. */
+.skeleton {
+  background: var(--skeleton);
+  border-radius: 4px;
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+}
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* The one orchestrated moment: the score needle travels along the ruler once on load. */
+.ruler-marker {
+  animation: ruler-in 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes ruler-in {
+  from {
+    left: 0%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Citation tag: the tooltip opens on hover and on keyboard focus. */
@@ -93,22 +221,25 @@ body {
   display: inline-flex;
   vertical-align: super;
   margin-left: 0.2em;
+  line-height: 1;
 }
 .cite > button {
-  font-size: 0.625rem;
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 600;
   line-height: 1;
-  padding: 0.15em 0.35em;
+  padding: 0.2em 0.4em;
   border-radius: 0.25rem;
   border: 1px solid var(--border);
-  color: var(--ink-3);
+  color: var(--ink-2);
   background: var(--surface);
   cursor: help;
 }
 .cite > button:hover,
 .cite > button:focus-visible {
-  color: var(--ink);
-  border-color: var(--ink-3);
-  outline: none;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-color: var(--accent);
 }
 .cite > .cite-tip {
   display: none;
@@ -118,14 +249,16 @@ body {
   left: 50%;
   transform: translateX(-50%);
   width: max-content;
-  max-width: 18rem;
+  max-width: min(18rem, 70vw);
   padding: 0.5rem 0.625rem;
   border-radius: 0.375rem;
   background: var(--tooltip-bg);
   color: var(--tooltip-ink);
-  font-size: 0.75rem;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 400;
   line-height: 1.35;
-  vertical-align: baseline;
+  letter-spacing: normal;
   text-align: left;
   white-space: normal;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
@@ -135,21 +268,57 @@ body {
   display: block;
 }
 
-/* MapLibre popups inherit the app's colours. */
+/* MapLibre popups and controls in the app's colours; the basemap itself is always light. */
 .maplibregl-popup-content {
   background: var(--surface) !important;
   color: var(--ink);
   border-radius: 0.5rem !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
   padding: 0.75rem 0.875rem !important;
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-sans);
 }
 .maplibregl-popup-tip {
   border-top-color: var(--surface) !important;
   border-bottom-color: var(--surface) !important;
 }
 .maplibregl-popup-close-button {
-  color: var(--ink-3);
-  font-size: 1rem;
-  padding: 0 0.4rem;
+  color: var(--ink-2);
+  font-size: 1.1rem;
+  padding: 0 0.45rem;
+}
+.maplibregl-ctrl-group button:focus-visible,
+.maplibregl-popup-close-button:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 1px;
+}
+.maplibregl-canvas:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: -3px;
+}
+
+/* Printing: the brief prints as a plain document; "Print list" prints only the viewing checklist. */
+@media print {
+  :root {
+    --page: #ffffff;
+    --surface: #ffffff;
+    --ink: #000000;
+    --ink-2: #333333;
+    --ink-3: #333333;
+  }
+  .no-print,
+  .maplibregl-map {
+    display: none !important;
+  }
+  html[data-print="checklist"] body * {
+    visibility: hidden;
+  }
+  html[data-print="checklist"] #checklist,
+  html[data-print="checklist"] #checklist * {
+    visibility: visible;
+  }
+  html[data-print="checklist"] #checklist {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+  }
 }

@@ -12,7 +12,9 @@ enrich(conn, tables) -> tables   fill in fields that need the database, before l
 
 from . import (
     address_points,
+    apartment_registrations,
     building_permits,
+    cmhc_rents,
     crime_rates,
     intersections,
     development_applications,
@@ -31,6 +33,7 @@ ALL = [
     wards,
     neighbourhoods,
     rentsafe,
+    apartment_registrations,
     building_permits,
     development_applications,
     intersections,
@@ -38,5 +41,6 @@ ALL = [
     crime_rates,
     neighbourhood_profiles,
     ward_profiles,
+    cmhc_rents,
 ]
 BY_FOLDER = {m.FOLDER: m for m in ALL}

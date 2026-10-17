@@ -87,6 +87,8 @@ radius query reads a few disk pages, not one per row (6x fewer for permits downt
 | `crime_rates` | Neighbourhood Crime Rates (TPS) | `crime_rates`, `neighbourhood_population` |
 | `neighbourhood_profiles` | Neighbourhood Profiles, 2021 Census | `neighbourhood_profiles`, `neighbourhood_profile_variables` |
 | `ward_profiles` | Ward Profiles, 2021 Census | `ward_profiles` |
+| `apartment_registrations` | Apartment Building Registration | `apartment_registrations` |
+| `cmhc_rents` | CMHC Rental Market Survey, Toronto, Oct 2025 | `cmhc_rents` |
 
 Every row stores `source_id` (→ `sources`: dataset + file name) and `source_row_id` (the file's
 `_id`, or its row number when it has none), so the AI can cite exactly which record a claim
