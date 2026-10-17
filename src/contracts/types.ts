@@ -116,6 +116,20 @@ export type WardPanel = {
   source: SourceId;
 };
 
+/**
+ * What Gemini read out of a pasted rental listing (text or screenshot). The user supplies the listing;
+ * we never fetch or scrape listing sites. Fields are null when the listing doesn't say.
+ */
+export type ListingExtraction = {
+  address: string | null; // as written in the listing; resolved through address search
+  unit: string | null;
+  askingRent: number | null; // CAD per month
+  bedrooms: number | null; // 0 = bachelor
+  utilitiesIncluded: string | null;
+  availableFrom: string | null; // ISO date
+  confidence: "high" | "medium" | "low"; // low means: ask the user to confirm the address
+};
+
 /** Gemini output. Every sentence cites at least one SourceId that appears elsewhere in the report. */
 export type Brief = {
   sentences: { text: string; sources: SourceId[] }[];
@@ -126,6 +140,7 @@ export type Brief = {
 
 export type BuildingReport = {
   query: AddressMatch;
+  listing: ListingExtraction | null; // set when the report started from a pasted listing
   building: BuildingCard | null; // null for houses, condos and small buildings outside RentSafeTO
   nearby: NearbyChange[]; // within 500 m, nearest first
   area: AreaComplaints;

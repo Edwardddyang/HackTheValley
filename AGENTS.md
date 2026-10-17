@@ -12,7 +12,7 @@ Read docs/BRIEF.md (demo script, must/won't list, data table) before you start.
 |---|---|---|
 | Frontend: search, report page, map, ward panel UI | Satwik | src/app/, src/components/ |
 | Data: loaders, tables, SQL functions | Edward | etl/ |
-| AI brief, viewing checklist, rent-control logic | Ariaz | src/lib/ai/, src/app/api/brief/ |
+| Paste-a-listing, AI brief, viewing checklist, rent-control logic | Ariaz | src/lib/ai/, src/app/api/brief/, src/app/api/listing/ |
 | Shared types | Ariaz | src/contracts/types.ts |
 | Ward content, CMHC, sources and limitations copy, Devpost | 4th member | src/content/, docs/ |
 | package.json, lockfile | Ariaz | |
