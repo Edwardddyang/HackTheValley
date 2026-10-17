@@ -116,6 +116,45 @@ function points<T extends { lat: number; lon: number }>(items: T[], props: (t: T
   } as FeatureCollection<Point>;
 }
 
+/** The City snaps every 311 request to its nearest intersection, so identical coordinates are the
+ * data's real granularity: one circle per intersection, sized and labelled by how many landed there. */
+function sr311Intersections(pts: Brief["service_requests_311"]["nearby"]["points"]) {
+  // Plain objects, not Map: this module imports react-map-gl's <Map> under that name.
+  const by: Record<string, typeof pts> = {};
+  for (const p of pts) {
+    if (p.lat == null || p.lon == null) continue;
+    (by[`${p.lon.toFixed(6)},${p.lat.toFixed(6)}`] ??= []).push(p);
+  }
+  const features = Object.values(by).map((group) => {
+    const types: Record<string, number> = {};
+    const statuses: Record<string, number> = {};
+    let latest = group[0];
+    for (const p of group) {
+      types[p.type] = (types[p.type] ?? 0) + 1;
+      statuses[p.status] = (statuses[p.status] ?? 0) + 1;
+      if (p.date > latest.date) latest = p;
+    }
+    const n = group.length;
+    const top = Object.entries(types).sort((a, b) => b[1] - a[1]).slice(0, 3)
+      .map(([t, c]) => (c > 1 ? `${t} (${c})` : t)).join(", ");
+    // The statuses are the dataset's own strings (Completed, In Progress, New, Cancelled, …).
+    const status = n === 1
+      ? group[0].status.toLowerCase()
+      : Object.entries(statuses).sort((a, b) => b[1] - a[1]).map(([s, c]) => `${c} ${s.toLowerCase()}`).join(", ");
+    return {
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [group[0].lon, group[0].lat] },
+      properties: {
+        count: n,
+        label: n >= 3 ? String(n) : "",
+        title: n === 1 ? "One 311 request at this intersection" : `${n} 311 requests at this intersection`,
+        sub: `${top}. Most recent ${latest.date}. Status: ${status}.`,
+      },
+    };
+  });
+  return { type: "FeatureCollection", features } as FeatureCollection<Point>;
+}
+
 export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabels: Record<string, string> }) {
   const { lat, lon, radius_m } = brief.address;
   const [visible, setVisible] = useState<Record<LayerKey, boolean>>({
@@ -124,7 +163,6 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
   const [picked, setPicked] = useState<Picked | null>(null);
   const [hovering, setHovering] = useState(false);
   const [three, setThree] = useState(false);
-  const [heat, setHeat] = useState(false);
   const [amenOn, setAmenOn] = useState(true);
   const [amen, setAmen] = useState<AmenityResult | "loading" | "error">("loading");
   const [areaOn, setAreaOn] = useState(false);
@@ -189,9 +227,7 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
     ring: { type: "Feature", geometry: circle(lon, lat, radius_m), properties: {} } as GeoJSON.Feature<Polygon>,
     // 311 points are the intersection the request was reported at, not an address; the date is
     // when it was reported (the data has no closed date).
-    sr311: points(brief.service_requests_311.nearby.points, (p) => ({
-      title: p.type, sub: `Reported ${p.date} at this intersection. Status: ${p.status}.`, row: p.row,
-    })),
+    sr311: sr311Intersections(brief.service_requests_311.nearby.points),
     // `id` matches the row keys in BriefView, so a row's "Map" button opens its own popup even
     // when several records share one point.
     devapps: points(brief.development_applications.open, (d) => ({
@@ -391,18 +427,16 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
             paint={{ "text-color": COLORS.ring }} />
         </Source>
         <Source id="sr311" type="geojson" data={data.sr311}>
-          <Layer id="sr311-heat" type="heatmap" layout={{ visibility: visible.sr311 && heat ? "visible" : "none" }}
+          <Layer id="sr311-pts" type="circle" layout={{ visibility: visible.sr311 ? "visible" : "none" }}
             paint={{
-              "heatmap-weight": 1,
-              "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 12, 0.6, 16, 1.4],
-              "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 12, 12, 16, 28],
-              "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"],
-                0, "rgba(36,104,184,0)", 0.25, "rgba(36,104,184,0.25)", 0.5, "rgba(36,104,184,0.5)",
-                0.75, "rgba(219,116,7,0.65)", 1, "rgba(184,74,23,0.85)"],
-              "heatmap-opacity": 0.8,
+              "circle-radius": ["interpolate", ["linear"], ["get", "count"], 1, 4, 5, 8, 15, 12, 40, 15],
+              "circle-color": COLORS.sr311, "circle-opacity": 0.85,
+              "circle-stroke-width": 1, "circle-stroke-color": COLORS.ring,
             }} />
-          <Layer id="sr311-pts" type="circle" layout={{ visibility: visible.sr311 && !heat ? "visible" : "none" }}
-            paint={{ "circle-radius": 4, "circle-color": COLORS.sr311, "circle-opacity": 0.55, "circle-stroke-width": 1, "circle-stroke-color": COLORS.ring }} />
+          <Layer id="sr311-count" type="symbol"
+            layout={{ visibility: visible.sr311 ? "visible" : "none", "text-field": ["get", "label"], "text-size": 10,
+              "text-font": ["Noto Sans Bold"], "text-allow-overlap": true, "text-ignore-placement": true }}
+            paint={{ "text-color": COLORS.ring }} />
         </Source>
         <Source id="devapps" type="geojson" data={data.devapps}>
           <Layer id="devapps-pts" type="circle" layout={{ visibility: visible.devapps ? "visible" : "none" }}
@@ -481,13 +515,6 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
               <span className="ml-auto pl-2 tabular-nums text-ink-3">{l.count}</span>
             </label>
           ))}
-          {visible.sr311 && (
-            <label className="flex cursor-pointer items-center gap-2 py-0.5 pl-5 text-ink-2">
-              <input type="checkbox" className="accent-[var(--ink)]" checked={heat}
-                onChange={(e) => setHeat(e.target.checked)} />
-              <span>as heatmap</span>
-            </label>
-          )}
           <label className="mt-1 flex cursor-pointer items-center gap-2 border-t border-hairline pt-1.5 text-ink-2">
             <input type="checkbox" className="accent-[var(--ink)]" checked={three}
               onChange={(e) => setThree(e.target.checked)} />
