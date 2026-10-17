@@ -158,8 +158,8 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
           { id: "311", label: "311 requests", badge: count(brief.service_requests_311.nearby.count), content: (
             <Grid><AreaComplaintsPanel brief={brief} /></Grid>
           ) },
-          { id: "reviews", label: "Reviews", badge: "Soon", content: (
-            <Grid><ReviewsSection /></Grid>
+          { id: "reviews", label: "Reviews", content: (
+            <Grid><ReviewsSection addressPointId={brief.address.address_point_id} address={brief.address.address} /></Grid>
           ) },
           { id: "about", label: "About the data", content: (
             <div className="space-y-5">

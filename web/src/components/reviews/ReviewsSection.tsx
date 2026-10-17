@@ -6,10 +6,10 @@ import { ReviewForm } from "./ReviewForm";
 
 // From feature/frontend-ui (ogd-ola). The fictional sample reviews are left out: next to real
 // City data they would read as real. Reviews arrive once storage and moderation exist.
-export function ReviewsSection() {
+export function ReviewsSection({ addressPointId, address }: { addressPointId: number; address: string }) {
   const [showForm, setShowForm] = useState(false);
   return (
-    <section id="reviews" aria-label="Tenant reviews"
+    <section id="reviews" aria-label={`Tenant reviews of ${address}`} data-address-point-id={addressPointId}
       className="min-w-0 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/30 md:col-span-2">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <h2 className="text-xl font-semibold tracking-tight text-[#142D4E]">Tenant reviews</h2>
