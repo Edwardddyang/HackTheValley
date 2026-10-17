@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
+    "check": "npm run lint && npm run typecheck && npm run build",
+    "etl": "node --env-file=.env.local etl/load.mjs"
   },
   "dependencies": {
     "next": "16.4.2",
@@ -18,8 +21,12 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "adm-zip": "^0.6.1",
+    "csv-parse": "^7.0.3",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
+    "pg": "^8.23.1",
+    "pg-copy-streams": "^7.0.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
