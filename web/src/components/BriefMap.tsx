@@ -33,7 +33,12 @@ const SECTION_OF: Record<LayerKey, string> = {
   rentsafe: "nearby-buildings", permits: "construction", devapps: "development", sr311: "requests",
 };
 
-type Picked = { lon: number; lat: number; layer: LayerKey | "amenity"; props: Record<string, unknown> };
+type Picked = { lon: number; lat: number; layer: LayerKey | "amenity" | "hood"; props: Record<string, unknown> };
+
+type Shade = "none" | "rent" | "assault";
+/** public/hoods-toronto.json: simplified City boundaries carrying per-hood values. */
+type HoodsFile = { domains: Record<"rent" | "assault", [number, number]>; fc: FeatureCollection };
+const SHADE_DEEP: Record<"rent" | "assault", string> = { rent: "#13724f", assault: "#a62e1c" };
 
 function circle(lon: number, lat: number, radiusM: number, steps = 96): Polygon {
   const coords: [number, number][] = [];
@@ -106,8 +111,37 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
   const [amenOn, setAmenOn] = useState(true);
   const [amen, setAmen] = useState<Amenity[] | "loading" | "error">("loading");
   const [areaOn, setAreaOn] = useState(false);
+  const [shade, setShade] = useState<Shade>("none");
+  const [hoods, setHoods] = useState<HoodsFile | "error" | null>(null);
+  const [full, setFull] = useState(false);
+
+  useEffect(() => {
+    if (!full) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setFull(false);
+    window.addEventListener("keydown", onKey);
+    // The map region wrapper is position:sticky, a stacking context of its own; without a
+    // z-index the page header and cite chips would paint over the full-screen map.
+    const region = containerRef.current?.closest<HTMLElement>("[role='region']");
+    const prevZ = region?.style.zIndex ?? "";
+    if (region) region.style.zIndex = "60";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      if (region) region.style.zIndex = prevZ;
+    };
+  }, [full]);
   const mapRef = useRef<MapRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // The boundary file is ~0.5 MB, so it only loads the first time shading is turned on.
+  useEffect(() => {
+    if (shade === "none" || hoods) return;
+    let gone = false;
+    fetch("/hoods-toronto.json")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((j) => !gone && setHoods(j as HoodsFile))
+      .catch(() => !gone && setHoods("error"));
+    return () => { gone = true; };
+  }, [shade, hoods]);
 
   // After the commit, not in the change handler: an easeTo started mid-render can be
   // cancelled by react-map-gl's own camera reconciliation.
@@ -164,6 +198,7 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
   const interactive = [
     ...(["rentsafe", "permits", "devapps", "sr311"] as LayerKey[]).filter((k) => visible[k]).map((k) => `${k}-pts`),
     ...(amenOn ? ["amenity-pts"] : []),
+    ...(shade !== "none" ? ["hoods-fill"] : []),
   ];
 
   // "Map" buttons on brief rows dispatch this event; fly there and open the matching popup.
@@ -202,9 +237,23 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
 
   function onClick(e: MapLayerMouseEvent) {
     const f = e.features?.[0];
-    if (!f || f.geometry.type !== "Point") return setPicked(null);
-    const [plon, plat] = f.geometry.coordinates;
-    setPicked({ lon: plon, lat: plat, layer: f.layer.id.replace("-pts", "") as Picked["layer"], props: f.properties ?? {} });
+    if (f?.geometry.type === "Point") {
+      const [plon, plat] = f.geometry.coordinates;
+      setPicked({ lon: plon, lat: plat, layer: f.layer.id.replace("-pts", "") as Picked["layer"], props: f.properties ?? {} });
+      return;
+    }
+    if (f?.layer.id === "hoods-fill") {
+      const p = f.properties as { name?: string; rent?: number; assault?: number };
+      setPicked({
+        lon: e.lngLat.lng, lat: e.lngLat.lat, layer: "hood",
+        props: {
+          title: p.name,
+          sub: `Median renter shelter cost ${p.rent != null ? money(p.rent) : "—"} · assault rate ${p.assault != null ? num(Math.round(p.assault)) : "—"}/100k (2025). Details and sources in the brief.`,
+        },
+      });
+      return;
+    }
+    setPicked(null);
   }
 
   const badge = (bg: string, letter: string) => (
@@ -225,7 +274,10 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
   ];
 
   return (
-    <div ref={containerRef} className="relative h-full w-full overflow-hidden rounded-xl border border-border bg-surface-2">
+    <div ref={containerRef}
+      className={full
+        ? "fixed inset-0 z-50 overflow-hidden bg-surface-2"
+        : "relative h-full w-full overflow-hidden rounded-xl border border-border bg-surface-2"}>
       <Map
         key={brief.address.address_point_id}
         ref={mapRef}
@@ -241,6 +293,20 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
       >
         <NavigationControl position="top-right" showCompass={false} />
         <ScaleControl position="bottom-left" unit="metric" />
+
+        {shade !== "none" && hoods && hoods !== "error" && (
+          /* beforeId slots the tint under the style's roads and labels, classic-choropleth style. */
+          <Source id="hoods" type="geojson" data={hoods.fc}>
+            <Layer id="hoods-fill" type="fill" beforeId="highway_path"
+              paint={{
+                "fill-color": ["interpolate", ["linear"], ["coalesce", ["get", shade], hoods.domains[shade][0]],
+                  hoods.domains[shade][0], "#f3f0e8", hoods.domains[shade][1], SHADE_DEEP[shade]],
+                "fill-opacity": 0.55,
+              }} />
+            <Layer id="hoods-line" type="line" beforeId="highway_path"
+              paint={{ "line-color": COLORS.building, "line-opacity": 0.25, "line-width": 0.5 }} />
+          </Source>
+        )}
 
         <Source id="ring" type="geojson" data={data.ring}>
           <Layer id="ring-fill" type="fill" paint={{ "fill-color": COLORS.sr311, "fill-opacity": 0.04 }} />
@@ -336,7 +402,7 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
                   City application page<span className="sr-only"> (opens in a new tab)</span>
                 </a>
               ) : null}
-              {picked.layer !== "amenity" ? (
+              {picked.layer !== "amenity" && picked.layer !== "hood" ? (
                 <a className="block text-accent underline" href={`#${SECTION_OF[picked.layer]}`}>See in brief</a>
               ) : null}
             </div>
@@ -410,9 +476,39 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
           <span className="w-3" aria-hidden="true" />
           <span>Area stats</span>
         </label>
+        <label className="flex items-center gap-2 py-0.5 text-ink-2">
+          <span>Shade areas</span>
+          <select className="ml-auto rounded border border-border bg-surface px-1 py-0.5 text-xs text-ink"
+            value={shade} onChange={(e) => setShade(e.target.value as Shade)}>
+            <option value="none">off</option>
+            <option value="rent">by median rent</option>
+            <option value="assault">by assault rate</option>
+          </select>
+        </label>
+        {shade !== "none" && hoods && hoods !== "error" && (
+          <p className="flex items-center gap-1.5 py-0.5 text-[11px] text-ink-3">
+            <span className="tabular-nums">
+              {shade === "rent" ? money(hoods.domains.rent[0]) : num(hoods.domains.assault[0])}
+            </span>
+            <span aria-hidden="true" className="inline-block h-2 w-16 rounded-sm"
+              style={{ background: `linear-gradient(to right, #f3f0e8, ${SHADE_DEEP[shade]})` }} />
+            <span className="tabular-nums">
+              {shade === "rent" ? money(hoods.domains.rent[1]) : `${num(hoods.domains.assault[1])}/100k`}
+            </span>
+            <span className="pl-1">· click an area</span>
+          </p>
+        )}
+        {shade !== "none" && hoods === "error" && (
+          <p className="py-0.5 text-ink-3">Couldn&apos;t load the boundaries.</p>
+        )}
       </fieldset>
 
       {areaOn && <AreaStats brief={brief} />}
+
+      <button type="button" onClick={() => setFull((f) => !f)}
+        className="absolute right-12 top-2 rounded-lg border border-border bg-surface/95 px-2.5 py-1.5 text-xs font-medium text-ink shadow-sm backdrop-blur hover:border-ink sm:text-[13px]">
+        {full ? "Exit full screen" : "Full screen"}
+      </button>
 
       <FlyoverButton lat={lat} lon={lon} address={brief.address.address} />
     </div>
