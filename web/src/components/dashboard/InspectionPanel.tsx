@@ -2,7 +2,7 @@ import { Cite } from "@/components/Cite";
 import type { Brief, RentSafeStats } from "@/lib/brief";
 import { date, month, num, titleCase } from "@/lib/format";
 
-import { DashboardPanel, SourceNote, Unavailable } from "./DashboardPanel";
+import { CompareBar, DashboardPanel, SCORE_LABEL, SCORE_RULE, SourceNote, StatusTag, Unavailable, rate } from "./DashboardPanel";
 
 // Layout from feature/frontend's InspectionPanel / InspectionCard; data from bb_brief.
 export default function InspectionPanel({ brief, stats }: { brief: Brief; stats: RentSafeStats | null }) {
@@ -19,6 +19,7 @@ export default function InspectionPanel({ brief, stats }: { brief: Brief; stats:
   const median = stats?.median_score ?? null;
   // The median covers 2023+ scoring only; item scale 3 means this evaluation uses it (pre-2023 was 1-5).
   const comparable = e.item_scale_max === 3 && median != null;
+  const status = comparable ? rate(score, median, SCORE_RULE) : null;
   return (
     <DashboardPanel id="inspection" title="RentSafeTO inspection" subtitle="An inspection snapshot, with the lowest-scoring categories and past evaluations.">
       <div className="flex flex-wrap items-end justify-between gap-5">
@@ -32,7 +33,13 @@ export default function InspectionPanel({ brief, stats }: { brief: Brief; stats:
         </div>
         <div className="text-sm"><p className="text-slate-500">Inspection date</p><p className="mt-1 font-medium text-slate-800">{date(e.date)}</p></div>
       </div>
-      {score != null && <meter min={0} max={100} value={score} aria-label="Recorded inspection score out of 100" className="mt-4 h-4 w-full accent-teal-700" />}
+      {score != null && (
+        <div className="mt-4" role="img" aria-label={`Inspection score ${score} out of 100${comparable ? `; city median ${median}` : ""}`}>
+          <CompareBar value={score} compare={comparable ? median : null} max={100} status={status}
+            title={`Score ${score} / 100${comparable ? ` · city median ${median}` : ""}`} />
+          {status && <p className="mt-2"><StatusTag status={status} label={SCORE_LABEL[status]} /></p>}
+        </div>
+      )}
       <p className="mt-3 text-xs leading-5 text-slate-600">
         {comparable ? <>City median: {num(median)} / 100 across {num(stats?.buildings)} buildings (each building&apos;s latest 2023+ evaluation)</> : "City median unavailable for this scoring system"}
         {e.percent_of_buildings_scoring_lower != null && <> · {e.percent_of_buildings_scoring_lower}% of evaluated buildings score lower</>}

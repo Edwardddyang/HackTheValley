@@ -81,7 +81,7 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
         <NearbyConstructionPanel brief={brief} />
         <DevelopmentPanel brief={brief} />
         <AreaComplaintsPanel brief={brief} />
-        <NearbyBuildingsPanel brief={brief} />
+        <NearbyBuildingsPanel brief={brief} stats={stats} />
         <AddressPermitsPanel brief={brief} />
         <CrimePanel brief={brief} />
         <NeighbourhoodPanel brief={brief} />
