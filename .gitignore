@@ -39,12 +39,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# team
-!.env.example
-*.local.md
-.claude/settings.local.json
-.claude/worktrees/
-
-# etl downloads (large, re-downloadable)
-etl/.cache/
