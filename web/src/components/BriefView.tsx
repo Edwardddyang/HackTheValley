@@ -6,7 +6,10 @@ import type { AddressMatch, Brief } from "@/lib/brief";
 import type { Extras } from "@/lib/extras";
 import { OFFENCE_LABELS, compactMoney, date, metres, money, num, titleCase } from "@/lib/format";
 
+import { suggestedQuestions } from "@/lib/ai/ask-core";
+
 import { AdCheckSection } from "./AdCheckSection";
+import { AskSection } from "./AskSection";
 import { ChecklistPanel, SummaryPanel, SummaryProvider } from "./AiSummary";
 import { BuildingSection } from "./BuildingSection";
 import { Cite } from "./Cite";
@@ -37,6 +40,7 @@ export function BriefView({ brief, extras, alternatives, radius, listing, fixtur
     ...(hasListing ? [["listing", "Your listing"] as [string, string]] : []),
     ...(listing.claims.length ? [["adcheck", "Ad check"] as [string, string]] : []),
     ["summary", "In plain language"],
+    ["ask", "Ask the records"],
     ["building", "Building"],
     ["checklist", "Viewing questions"],
     ["nearby-buildings", "Nearby buildings"],
@@ -69,6 +73,8 @@ export function BriefView({ brief, extras, alternatives, radius, listing, fixtur
               rent={listing.rent} beds={listing.beds} claims={listing.claims} />
           )}
           <SummaryPanel />
+          <AskSection addressPointId={brief.address.address_point_id} radius={brief.address.radius_m}
+            suggestions={suggestedQuestions(brief, extras)} />
           <BuildingSection brief={brief} extras={extras} asOfYear={asOfYear} />
           <ChecklistPanel address={brief.address.address} />
           <NearbyBuildingsSection brief={brief} />

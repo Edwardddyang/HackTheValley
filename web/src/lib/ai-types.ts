@@ -53,4 +53,17 @@ export type AdCheck = {
   generated_at: string;
 };
 
+// Ask the records (POST /api/ask): a free-form question answered only from the loaded records. The question and
+// history are untrusted text; every answer line cites the records it used, through the same checks as the summary.
+
+export type AskRequest = {
+  address_point_id: number;
+  radius_m?: number;
+  /** At most 300 characters. */
+  question: string;
+  /** The last turns (at most 2), so follow-ups make sense. */
+  history?: { question: string; answer: string }[];
+};
+export type AskAnswer = { lines: SummaryLine[]; model: string; generated_at: string };
+
 export type ApiError = { error: string };
