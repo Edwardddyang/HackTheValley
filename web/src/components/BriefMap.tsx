@@ -4,12 +4,14 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 import type { FeatureCollection, Point, Polygon } from "geojson";
 import { type MapLayerMouseEvent, setWorkerUrl } from "maplibre-gl";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import Map, { Layer, type MapRef, NavigationControl, Popup, ScaleControl, Source } from "react-map-gl/maplibre";
 
-import { type Amenity, AMENITY_LABELS, AMENITY_LETTERS, fetchAmenities } from "@/lib/amenities";
+import {
+  type Amenity, AMENITY_CATEGORIES, AMENITY_LABELS, AMENITY_LETTERS, AMENITY_RADIUS_M, type AmenityResult, fetchAmenities,
+} from "@/lib/amenities";
 import type { Brief } from "@/lib/brief";
-import { metres, money, num, OFFENCE_LABELS } from "@/lib/format";
+import { metres, money, month, num, OFFENCE_LABELS } from "@/lib/format";
 
 import { FlyoverButton } from "./Flyover";
 import { SHOW_ON_MAP_EVENT, type ShowOnMapDetail } from "./ShowOnMap";
@@ -39,6 +41,15 @@ type Shade = "none" | "rent" | "assault";
 /** public/hoods-toronto.json: simplified City boundaries carrying per-hood values. */
 type HoodsFile = { domains: Record<"rent" | "assault", [number, number]>; fc: FeatureCollection };
 const SHADE_DEEP: Record<"rent" | "assault", string> = { rent: "#13724f", assault: "#a62e1c" };
+
+/** "1.2 km" / "3 km" for the essentials search radii. */
+const km = (m: number) => `${num(m / 1000)} km`;
+
+/** Popup line for an essentials marker. The distance is as the crow flies, not a walking route. */
+const amenitySub = (a: Amenity) => `${AMENITY_LABELS[a.category]} · ${metres(a.distance_m)} straight-line · OpenStreetMap`;
+
+/** Below Tailwind's sm breakpoint the legend starts collapsed so it doesn't cover the map. */
+const WIDE_QUERY = "(min-width: 640px)";
 
 function circle(lon: number, lat: number, radiusM: number, steps = 96): Polygon {
   const coords: [number, number][] = [];
@@ -77,6 +88,9 @@ function ghostTowers(open: Brief["development_applications"]["open"]): FeatureCo
   const tallest: Record<string, { lon: number; lat: number; storeys: number }> = {};
   for (const a of open) {
     if (a.lat == null || a.lon == null) continue;
+    // Condominium plans register units in a building that is usually already approved or built,
+    // so they would stack a ghost on top of a real tower.
+    if (a.type === "CD") continue;
     let storeys = 0;
     for (const m of (a.description ?? "").matchAll(STOREY_RE)) storeys = Math.max(storeys, Number(m[1]));
     if (!storeys) continue;
@@ -112,11 +126,14 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
   const [three, setThree] = useState(false);
   const [heat, setHeat] = useState(false);
   const [amenOn, setAmenOn] = useState(true);
-  const [amen, setAmen] = useState<Amenity[] | "loading" | "error">("loading");
+  const [amen, setAmen] = useState<AmenityResult | "loading" | "error">("loading");
   const [areaOn, setAreaOn] = useState(false);
   const [shade, setShade] = useState<Shade>("none");
   const [hoods, setHoods] = useState<HoodsFile | "error" | null>(null);
   const [full, setFull] = useState(false);
+  // BriefMap only renders in the browser (MapPanel loads it with ssr: false), so window is there.
+  const [legendOpen, setLegendOpen] = useState(() => typeof window === "undefined" || window.matchMedia(WIDE_QUERY).matches);
+  const layersId = useId();
 
   useEffect(() => {
     if (!full) return;
@@ -135,11 +152,12 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
   const mapRef = useRef<MapRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // The boundary file is ~0.5 MB, so it only loads the first time shading is turned on.
+  // The boundary file is ~0.5 MB, so it only loads the first time shading is turned on. After a
+  // failure, switching shading off resets `hoods` to null (in the select's handler) to allow a retry.
   useEffect(() => {
     if (shade === "none" || hoods) return;
     let gone = false;
-    fetch("/hoods-toronto.json")
+    fetch("/hoods-toronto.json", { signal: AbortSignal.timeout(15_000) })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((j) => !gone && setHoods(j as HoodsFile))
       .catch(() => !gone && setHoods("error"));
@@ -235,19 +253,18 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
     return () => window.removeEventListener(SHOW_ON_MAP_EVENT, onShow);
   }, [data, focus]);
 
+  const amenItems = useMemo(() => (typeof amen === "object" ? amen.items : []), [amen]);
   const amenData = useMemo(() => points(
-    Array.isArray(amen) ? amen : [],
-    (a) => ({ title: a.name, sub: `${AMENITY_LABELS[a.category]} · ${metres(a.distance_m)} away · OpenStreetMap`, letter: AMENITY_LETTERS[a.category] }),
-  ), [amen]);
+    amenItems,
+    (a) => ({ title: a.name, sub: amenitySub(a), letter: AMENITY_LETTERS[a.category] }),
+  ), [amenItems]);
 
-  // amen is sorted by distance, so the first of each category is the nearest one.
+  // Items are sorted by distance, so the first of each category is the nearest one.
   const nearestAmen = useMemo(() => {
-    if (!Array.isArray(amen)) return [];
-    const have = new Set<string>();
-    const out: Amenity[] = [];
-    for (const a of amen) if (!have.has(a.category)) { have.add(a.category); out.push(a); }
+    const out: Partial<Record<Amenity["category"], Amenity>> = {};
+    for (const a of amenItems) out[a.category] ??= a;
     return out;
-  }, [amen]);
+  }, [amenItems]);
 
   function onClick(e: MapLayerMouseEvent) {
     const f = e.features?.[0];
@@ -257,18 +274,27 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
       return;
     }
     if (f?.layer.id === "hoods-fill") {
-      const p = f.properties as { name?: string; rent?: number; assault?: number };
+      const p = f.properties as { id?: number; name?: string; rent?: number; assault?: number };
+      // The brief cites figures for the address's own neighbourhood only, so only that one points there.
+      const own = p.id != null && Number(p.id) === brief.area.neighbourhood?.hood_id;
       setPicked({
         lon: e.lngLat.lng, lat: e.lngLat.lat, layer: "hood",
         props: {
           title: p.name,
-          sub: `Median renter shelter cost ${p.rent != null ? money(p.rent) : "—"} · assault rate ${p.assault != null ? num(Math.round(p.assault)) : "—"}/100k (2025). Details and sources in the brief.`,
+          sub: `Renters' median shelter cost ${p.rent != null ? `${money(p.rent)}/mo` : "—"} (2021 Census) · assault ${p.assault != null ? num(Math.round(p.assault)) : "—"} per 100k (Toronto Police, 2025).${own ? " This is the address's neighbourhood; the brief cites both figures." : ""}`,
+          section: own ? "crime" : undefined,
         },
       });
       return;
     }
     setPicked(null);
   }
+
+  // Brief layers link to their section; a neighbourhood popup links only when it is the address's own.
+  const pickedSection = !picked ? null
+    : picked.layer === "amenity" || picked.layer === "hood"
+      ? (typeof picked.props.section === "string" ? picked.props.section : null)
+      : SECTION_OF[picked.layer];
 
   const badge = (bg: string, letter: string) => (
     <span className="inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold leading-none text-white"
@@ -408,7 +434,8 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
         </Source>
 
         {picked && (
-          <Popup longitude={picked.lon} latitude={picked.lat} anchor="bottom" offset={12} maxWidth="280px"
+          // No fixed anchor: MapLibre then places the popup on whichever side keeps it inside the map.
+          <Popup longitude={picked.lon} latitude={picked.lat} offset={12} maxWidth="280px"
             onClose={() => setPicked(null)} closeOnClick={false}>
             <div className="space-y-1 pr-3 text-[13px] leading-snug">
               <div className="font-medium text-ink">{String(picked.props.title ?? "")}</div>
@@ -422,9 +449,9 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
                   City application page<span className="sr-only"> (opens in a new tab)</span>
                 </a>
               ) : null}
-              {picked.layer !== "amenity" && picked.layer !== "hood" ? (
+              {pickedSection ? (
                 // Leaving full screen first, or the page would scroll invisibly behind the map.
-                <a className="block text-accent underline" href={`#${SECTION_OF[picked.layer]}`}
+                <a className="block text-accent underline" href={`#${pickedSection}`}
                   onClick={() => setFull(false)}>See in brief</a>
               ) : null}
             </div>
@@ -432,99 +459,145 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
         )}
       </Map>
 
-      <fieldset className="absolute left-2 top-2 max-h-[calc(100%-16px)] overflow-y-auto rounded-lg border border-border bg-surface/95 px-2.5 py-1.5 text-xs shadow-sm backdrop-blur sm:left-3 sm:top-3 sm:px-3 sm:py-2 sm:text-[13px]">
-        <legend className="sr-only">Map layers to show</legend>
-        {legend.map((l) => (
-          <label key={l.key} className="flex cursor-pointer items-center gap-2 py-0.5 text-ink-2">
-            <input type="checkbox" className="accent-[var(--ink)]" checked={visible[l.key]}
-              onChange={(e) => setVisible((v) => ({ ...v, [l.key]: e.target.checked }))} />
-            <span className="flex w-3 justify-center">{l.swatch}</span>
-            <span>{l.label}</span>
-            <span className="ml-auto pl-2 tabular-nums text-ink-3">{l.count}</span>
-          </label>
-        ))}
-        {visible.sr311 && (
-          <label className="flex cursor-pointer items-center gap-2 py-0.5 pl-5 text-ink-2">
-            <input type="checkbox" className="accent-[var(--ink)]" checked={heat}
-              onChange={(e) => setHeat(e.target.checked)} />
-            <span>as heatmap</span>
-          </label>
-        )}
-        <label className="mt-1 flex cursor-pointer items-center gap-2 border-t border-hairline pt-1.5 text-ink-2">
-          <input type="checkbox" className="accent-[var(--ink)]" checked={three}
-            onChange={(e) => setThree(e.target.checked)} />
-          <span className="flex w-3 justify-center">
-            <span className="inline-block h-2.5 w-2.5 rounded-[2px] border border-ink-3" style={{ background: "#d8d4c8" }} />
-          </span>
-          <span>3D buildings</span>
-        </label>
-        {three && data.ghosts.features.length > 0 && (
-          <p className="flex items-center gap-2 py-0.5 text-ink-2">
-            <span className="w-[13px]" aria-hidden="true" />
+      {/* z-10: on narrow maps the expanded panel overlaps the corner buttons; it should win. */}
+      <div className="absolute left-2 top-2 z-10 max-h-[calc(100%-16px)] max-w-[calc(100%-16px)] overflow-y-auto rounded-lg border border-border bg-surface/95 px-2.5 py-1.5 text-xs shadow-sm backdrop-blur sm:left-3 sm:top-3 sm:max-w-[21rem] sm:px-3 sm:py-2 sm:text-[13px]">
+        <button type="button" aria-expanded={legendOpen} aria-controls={layersId}
+          onClick={() => setLegendOpen((o) => !o)}
+          className="flex w-full items-center justify-between gap-3 py-0.5 font-medium text-ink">
+          <span>Layers</span>
+          <svg aria-hidden="true" viewBox="0 0 10 6" className={`h-1.5 w-2.5 ${legendOpen ? "rotate-180" : ""}`}>
+            <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+        </button>
+        <fieldset id={layersId} hidden={!legendOpen} className="mt-1 border-t border-hairline pt-1">
+          <legend className="sr-only">Map layers to show</legend>
+          {legend.map((l) => (
+            <label key={l.key} className="flex cursor-pointer items-center gap-2 py-0.5 text-ink-2">
+              <input type="checkbox" className="accent-[var(--ink)]" checked={visible[l.key]}
+                onChange={(e) => setVisible((v) => ({ ...v, [l.key]: e.target.checked }))} />
+              <span className="flex w-3 justify-center">{l.swatch}</span>
+              <span>{l.label}</span>
+              <span className="ml-auto pl-2 tabular-nums text-ink-3">{l.count}</span>
+            </label>
+          ))}
+          {visible.sr311 && (
+            <label className="flex cursor-pointer items-center gap-2 py-0.5 pl-5 text-ink-2">
+              <input type="checkbox" className="accent-[var(--ink)]" checked={heat}
+                onChange={(e) => setHeat(e.target.checked)} />
+              <span>as heatmap</span>
+            </label>
+          )}
+          <label className="mt-1 flex cursor-pointer items-center gap-2 border-t border-hairline pt-1.5 text-ink-2">
+            <input type="checkbox" className="accent-[var(--ink)]" checked={three}
+              onChange={(e) => setThree(e.target.checked)} />
             <span className="flex w-3 justify-center">
-              <span className="inline-block h-2.5 w-2.5 rounded-[2px]" style={{ background: COLORS.devapps, opacity: 0.4 }} />
+              <span className="inline-block h-2.5 w-2.5 rounded-[2px] border border-ink-3" style={{ background: "#d8d4c8" }} />
             </span>
-            <span>Proposed/approved — height approximate</span>
-            <span className="ml-auto pl-2 tabular-nums text-ink-3">{data.ghosts.features.length}</span>
-          </p>
-        )}
-        <label className="mt-1 flex cursor-pointer items-center gap-2 border-t border-hairline pt-1.5 text-ink-2">
-          <input type="checkbox" className="accent-[var(--ink)]" checked={amenOn}
-            onChange={(e) => setAmenOn(e.target.checked)} />
-          <span className="flex w-3 justify-center">{badge(COLORS.amenity, "")}</span>
-          <span>Essentials (OpenStreetMap)</span>
-          <span className="ml-auto pl-2 tabular-nums text-ink-3">{Array.isArray(amen) ? amen.length : "…"}</span>
-        </label>
-        {amenOn && nearestAmen.map((a) => (
-          <button key={a.category} type="button"
-            className="flex w-full max-w-[280px] cursor-pointer items-center gap-2 py-0.5 pl-5 text-left text-ink-2 hover:text-ink"
-            onClick={() => window.dispatchEvent(new CustomEvent<ShowOnMapDetail>(SHOW_ON_MAP_EVENT, {
-              detail: {
-                lon: a.lon, lat: a.lat, layer: "amenity",
-                props: { title: a.name, sub: `${AMENITY_LABELS[a.category]} · ${metres(a.distance_m)} away · OpenStreetMap` },
-              },
-            }))}>
-            <span className="flex w-3 shrink-0 justify-center">{badge(COLORS.amenity, AMENITY_LETTERS[a.category])}</span>
-            <span className="min-w-0 truncate">{a.name}</span>
-            <span className="ml-auto shrink-0 pl-2 tabular-nums text-ink-3">{metres(a.distance_m)}</span>
-          </button>
-        ))}
-        {amenOn && amen === "error" && (
-          <p className="py-0.5 pl-5 text-ink-3">Couldn&apos;t reach OpenStreetMap.</p>
-        )}
-        <label className="flex cursor-pointer items-center gap-2 py-0.5 text-ink-2">
-          <input type="checkbox" className="accent-[var(--ink)]" checked={areaOn}
-            onChange={(e) => setAreaOn(e.target.checked)} />
-          <span className="w-3" aria-hidden="true" />
-          <span>Area stats</span>
-        </label>
-        <label className="flex items-center gap-2 py-0.5 text-ink-2">
-          <span>Shade areas</span>
-          <select className="ml-auto rounded border border-border bg-surface px-1 py-0.5 text-xs text-ink"
-            value={shade} onChange={(e) => setShade(e.target.value as Shade)}>
-            <option value="none">off</option>
-            <option value="rent">by median rent</option>
-            <option value="assault">by assault rate</option>
-          </select>
-        </label>
-        {shade !== "none" && hoods && hoods !== "error" && (
-          /* The domain is clipped (areas beyond it share the end colours), hence ≤ and ≥. */
-          <p className="flex items-center gap-1.5 py-0.5 text-[11px] text-ink-3">
-            <span className="tabular-nums">
-              ≤ {shade === "rent" ? money(hoods.domains.rent[0]) : num(Math.round(hoods.domains.assault[0]))}
+            <span>3D buildings</span>
+          </label>
+          {three && data.ghosts.features.length > 0 && (
+            <p className="flex items-start gap-2 py-0.5 text-ink-2">
+              <span className="w-[13px] shrink-0" aria-hidden="true" />
+              <span className="flex w-3 shrink-0 justify-center pt-[3px]">
+                <span className="inline-block h-2.5 w-2.5 rounded-[2px]" style={{ background: COLORS.devapps, opacity: 0.4 }} />
+              </span>
+              <span>Proposed or approved — height from application text (storeys × 3 m); footprint illustrative</span>
+              <span className="ml-auto pl-2 tabular-nums text-ink-3">{data.ghosts.features.length}</span>
+            </p>
+          )}
+          <label className="mt-1 flex cursor-pointer items-center gap-2 border-t border-hairline pt-1.5 text-ink-2">
+            <input type="checkbox" className="accent-[var(--ink)]" checked={amenOn}
+              onChange={(e) => setAmenOn(e.target.checked)} />
+            <span className="flex w-3 justify-center">{badge(COLORS.amenity, "")}</span>
+            <span>Essentials (OpenStreetMap{typeof amen === "object" && amen.asof ? `, ${month(amen.asof)}` : ""})</span>
+            <span className="ml-auto pl-2 tabular-nums text-ink-3">
+              {typeof amen === "object" ? amen.items.length : amen === "error" ? "—" : "…"}
             </span>
-            <span aria-hidden="true" className="inline-block h-2 w-16 rounded-sm"
-              style={{ background: `linear-gradient(to right, #f3f0e8, ${SHADE_DEEP[shade]})` }} />
-            <span className="tabular-nums">
-              ≥ {shade === "rent" ? money(hoods.domains.rent[1]) : `${num(Math.round(hoods.domains.assault[1]))}/100k`}
-            </span>
-            <span className="pl-1">· click an area</span>
-          </p>
-        )}
-        {shade !== "none" && hoods === "error" && (
-          <p className="py-0.5 text-ink-3">Couldn&apos;t load the boundaries.</p>
-        )}
-      </fieldset>
+          </label>
+          {/* One row per category, category word first (the letter badge alone is a code); an absent
+              category says so instead of silently leaving its row out. */}
+          {amenOn && typeof amen === "object" && AMENITY_CATEGORIES.map((c) => {
+            const a = nearestAmen[c];
+            const label = AMENITY_LABELS[c];
+            const mark = (
+              <span aria-hidden="true" className="flex w-3 shrink-0 justify-center">{badge(COLORS.amenity, AMENITY_LETTERS[c])}</span>
+            );
+            if (!a) {
+              return (
+                <p key={c} className="flex w-full max-w-[280px] items-center gap-2 py-0.5 pl-5 text-ink-3">
+                  {mark}
+                  <span>{label} · none within {km(AMENITY_RADIUS_M[c])}</span>
+                </p>
+              );
+            }
+            return (
+              <button key={c} type="button"
+                className="flex w-full max-w-[280px] cursor-pointer items-center gap-2 py-0.5 pl-5 text-left text-ink-2 hover:text-ink"
+                onClick={() => window.dispatchEvent(new CustomEvent<ShowOnMapDetail>(SHOW_ON_MAP_EVENT, {
+                  detail: { lon: a.lon, lat: a.lat, layer: "amenity", props: { title: a.name, sub: amenitySub(a) } },
+                }))}>
+                {mark}
+                <span className="min-w-0 truncate">{a.name === label ? label : `${label} · ${a.name}`}</span>
+                <span className="ml-auto shrink-0 pl-2 tabular-nums text-ink-3">{metres(a.distance_m)}</span>
+                <span className="sr-only">, show on the map</span>
+              </button>
+            );
+          })}
+          {amenOn && amen === "error" && (
+            <p className="py-0.5 pl-5 text-ink-3">The essentials list didn&apos;t load.</p>
+          )}
+          <label className="flex cursor-pointer items-center gap-2 py-0.5 text-ink-2">
+            <input type="checkbox" className="accent-[var(--ink)]" checked={areaOn}
+              onChange={(e) => setAreaOn(e.target.checked)} />
+            <span className="w-3" aria-hidden="true" />
+            <span>Area stats</span>
+          </label>
+          {/* Below sm the figures sit here in the panel; from sm up they float as a card (below). */}
+          {areaOn && (
+            <div className="sm:hidden">
+              <AreaStats brief={brief} inline />
+            </div>
+          )}
+          <label className="flex items-center gap-2 py-0.5 text-ink-2">
+            <span>Shade areas</span>
+            <select className="ml-auto rounded border border-border bg-surface px-1 py-0.5 text-xs text-ink"
+              value={shade}
+              onChange={(e) => {
+                const next = e.target.value as Shade;
+                // Switching off after a failed load clears the error, so switching on again retries.
+                if (next === "none" && hoods === "error") setHoods(null);
+                setShade(next);
+              }}>
+              <option value="none">off</option>
+              <option value="rent">by renters&apos; shelter cost (2021)</option>
+              <option value="assault">by assault rate (2025)</option>
+            </select>
+          </label>
+          {shade !== "none" && hoods === null && (
+            <p className="py-0.5 text-ink-3" role="status">Loading shading…</p>
+          )}
+          {shade !== "none" && hoods && hoods !== "error" && (
+            <>
+              {/* The domain is clipped (areas beyond it share the end colours), hence ≤ and ≥. */}
+              <p className="flex items-center gap-1.5 py-0.5 text-[11px] text-ink-3">
+                <span className="tabular-nums">
+                  ≤ {shade === "rent" ? money(hoods.domains.rent[0]) : num(Math.round(hoods.domains.assault[0]))}
+                </span>
+                <span aria-hidden="true" className="inline-block h-2 w-16 rounded-sm"
+                  style={{ background: `linear-gradient(to right, #f3f0e8, ${SHADE_DEEP[shade]})` }} />
+                <span className="tabular-nums">
+                  ≥ {shade === "rent" ? money(hoods.domains.rent[1]) : `${num(Math.round(hoods.domains.assault[1]))}/100k`}
+                </span>
+                <span className="pl-1">· tap or click an area</span>
+              </p>
+              <p className="text-[11px] text-ink-3">City boundaries · 2021 Census · TPS 2025</p>
+            </>
+          )}
+          {shade !== "none" && hoods === "error" && (
+            <p className="py-0.5 text-ink-3">The shading didn&apos;t load. Switch it off and on to retry.</p>
+          )}
+        </fieldset>
+      </div>
 
       {areaOn && <AreaStats brief={brief} />}
 
@@ -538,33 +611,61 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
   );
 }
 
-/** Compact neighbourhood figures over the map; the full, cited versions live in the brief. */
-function AreaStats({ brief }: { brief: Brief }) {
+/** A fixed, named set rather than the first few in data order (which is alphabetical by code). */
+const AREA_OFFENCES = ["ASSAULT", "BREAKENTER", "AUTOTHEFT"] as const;
+
+type Offence = Brief["crime"]["offences"][number];
+
+/** Compact figures for the address's own neighbourhood; the full, cited versions live in the brief.
+ *  From sm up a card floats over the map; below sm (`inline`) it sits inside the legend panel. */
+function AreaStats({ brief, inline = false }: { brief: Brief; inline?: boolean }) {
   const hood = brief.area.neighbourhood?.name ?? "This neighbourhood";
+  const crime = AREA_OFFENCES
+    .map((k) => brief.crime.offences.find((o) => o.offence === k))
+    .filter((o): o is Offence => o != null);
   const cv = brief.census.values ?? {};
   const census: [string, string][] = [];
-  if (cv.median_rent_monthly?.value != null) census.push(["Median renter shelter cost", money(cv.median_rent_monthly.value)]);
+  if (cv.median_rent_monthly?.value != null) census.push(["Median renter shelter cost", `${money(cv.median_rent_monthly.value)}/mo`]);
   if (cv.renter_households?.percent != null) census.push(["Households renting", `${num(Math.round(cv.renter_households.percent * 10) / 10)}%`]);
-  if (cv.median_household_income?.value != null) census.push(["Median household income", money(cv.median_household_income.value)]);
+  if (cv.median_household_income?.value != null) census.push(["Median household income (2020)", money(cv.median_household_income.value)]);
   return (
-    // Right side: on the left it covered the legend (including its own toggle) and the scale bar.
-    <div className="absolute bottom-8 right-2 max-w-[270px] rounded-lg border border-border bg-surface/95 p-3 text-xs shadow-sm backdrop-blur sm:right-3">
+    // Card on the right: on the left it covered the legend (including its own toggle) and the scale bar.
+    <div className={inline
+      ? "mt-1 max-w-[280px] border-t border-hairline pt-1.5 pl-5"
+      : "absolute bottom-8 right-2 hidden max-w-[270px] rounded-lg border border-border bg-surface/95 p-3 text-xs shadow-sm backdrop-blur sm:right-3 sm:block"}>
       <h3 className="text-[13px] font-semibold text-ink">{hood}</h3>
-      {brief.crime.offences.slice(0, 3).map((o) => (
-        <div key={o.offence} className="flex justify-between gap-3 py-0.5">
-          <span className="text-ink-2">{OFFENCE_LABELS[o.offence] ?? o.offence}</span>
-          <span className="tabular-nums text-ink">
-            {num(o.rate_per_100k)}<span className="text-ink-3"> · TO {num(o.city_rate_per_100k)}</span>
-          </span>
-        </div>
-      ))}
-      {census.map(([label, value]) => (
-        <div key={label} className="flex justify-between gap-3 py-0.5">
-          <span className="text-ink-2">{label}</span>
-          <span className="tabular-nums text-ink">{value}</span>
-        </div>
-      ))}
-      <p className="mt-1 text-ink-3">Crime is per 100,000 vs all of Toronto, neighbourhood level. Sources are in the brief.</p>
+      {crime.length === 0 && census.length === 0 ? (
+        <p className="mt-0.5 text-ink-3">No neighbourhood figures for this address.</p>
+      ) : (
+        <>
+          {crime.length > 0 && (
+            <>
+              <p className="mt-0.5 text-ink-3">Crime {brief.crime.year}, per 100k · grey: Toronto</p>
+              {crime.map((o) => (
+                <div key={o.offence} className="flex justify-between gap-3 py-0.5">
+                  <span className="text-ink-2">{OFFENCE_LABELS[o.offence] ?? o.offence}</span>
+                  <span className="tabular-nums text-ink">
+                    {num(o.rate_per_100k)}
+                    <span className="ml-2 text-ink-3"><span className="sr-only">, Toronto </span>{num(o.city_rate_per_100k)}</span>
+                  </span>
+                </div>
+              ))}
+            </>
+          )}
+          {census.length > 0 && (
+            <>
+              <p className="mt-1 text-ink-3">2021 Census</p>
+              {census.map(([label, value]) => (
+                <div key={label} className="flex justify-between gap-3 py-0.5">
+                  <span className="text-ink-2">{label}</span>
+                  <span className="tabular-nums text-ink">{value}</span>
+                </div>
+              ))}
+            </>
+          )}
+          <p className="mt-1 text-ink-3">Whole neighbourhood, not this street. Sources are in the brief.</p>
+        </>
+      )}
     </div>
   );
 }

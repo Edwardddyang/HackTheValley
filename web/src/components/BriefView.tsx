@@ -67,6 +67,9 @@ export function BriefView({ brief, extras, alternatives, radius, listing, fixtur
           <LimitsPanel />
           <p className="pb-4 text-sm leading-relaxed text-ink-2">
             Facts come from City of Toronto open data, Toronto Police Service data and CMHC&apos;s Rental Market Survey.
+            The map&apos;s essentials (subway, groceries, pharmacies, hospitals) come from OpenStreetMap (ODbL)
+            {/* The flyover only exists when a Maps key was set at build time (see Flyover.tsx). */}
+            {process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ? ", and the flyover shows Google Photorealistic 3D Tiles" : ""}.
             Hover or focus a source tag to see the dataset, file and row. Only the plain-language summary and the
             viewing questions are written by AI, and they cite the same records.
           </p>
@@ -214,7 +217,7 @@ function ConstructionSection({ brief }: { brief: Brief }) {
                   {titleCase(p.address)}
                   <Cite cite={p.cite} />
                   <ShowOnMap lon={p.lon} lat={p.lat} layer="permits" id={`${p.permit_num}|${p.type}`}
-                    label={p.address ?? "this project"} />
+                    label={p.address ? titleCase(p.address) : "this project"} />
                 </span>
                 <span className="num text-sm text-ink-2">{metres(p.distance_m)}</span>
               </div>
@@ -258,7 +261,7 @@ function DevelopmentSection({ brief }: { brief: Brief }) {
                   ) : null}
                   <Cite cite={a.cite} />
                   <ShowOnMap lon={a.lon} lat={a.lat} layer="devapps" id={`${a.application_number}|${a.type}`}
-                    label={a.address ?? "this application"} />
+                    label={a.address ? titleCase(a.address) : "this application"} />
                 </span>
                 <span className="num text-sm text-ink-2">{metres(a.distance_m)}</span>
               </div>
