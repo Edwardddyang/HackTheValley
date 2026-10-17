@@ -116,7 +116,7 @@ export function ChecklistPanel({ address }: { address: string }) {
       "",
       ...items.map((q) => `[ ] ${q.text}`),
       "",
-      "From Block Brief, using City of Toronto open data.",
+      "From RentReceipts, using City of Toronto open data.",
     ].join("\n");
     try {
       await navigator.clipboard.writeText(text);

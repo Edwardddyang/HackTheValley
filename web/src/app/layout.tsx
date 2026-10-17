@@ -23,8 +23,8 @@ const plate = Radio_Canada({
 
 export const metadata: Metadata = {
   title: {
-    default: "Block Brief: check a Toronto rental before you sign",
-    template: "%s | Block Brief",
+    default: "RentReceipts: check a Toronto rental before you sign",
+    template: "%s | RentReceipts",
   },
   description:
     "Paste a Toronto rental listing or search an address to see the building's City inspection record and what's around it, from open data, with every fact linked to its source.",

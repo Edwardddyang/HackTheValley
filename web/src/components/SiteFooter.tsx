@@ -8,7 +8,7 @@ export function SiteFooter() {
           City data from{" "}
           <a href="https://open.toronto.ca/" className="text-ink underline underline-offset-2">Toronto Open Data</a>,
           used under the Open Government Licence – Toronto. Rent benchmarks from CMHC&apos;s Rental Market Survey.
-          Block Brief is an independent student project from Hack the Valley 11. It is not a City of Toronto service
+          RentReceipts is an independent student project from Hack the Valley 11. It is not a City of Toronto service
           and isn&apos;t legal advice.{" "}
           <Link href="/sources" className="text-ink underline underline-offset-2">Where each number comes from</Link>.
         </p>

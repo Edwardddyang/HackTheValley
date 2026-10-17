@@ -1,4 +1,4 @@
-# Block Brief
+# RentReceipts
 
 Look up a Toronto rental address and see the building's condition and what's going on around it,
 built only from City of Toronto open data, with every fact traceable to a source row.

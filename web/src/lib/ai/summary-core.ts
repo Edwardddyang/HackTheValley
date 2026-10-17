@@ -633,7 +633,7 @@ export function toSummary(
 // Prompt and response schema ------------------------------------------------------------------------------------
 
 export function summarySystemInstruction(radiusM: number): string {
-  return `You write the summary at the top of Block Brief, a tool for Toronto renters looking up an address.
+  return `You write the summary at the top of RentReceipts, a tool for Toronto renters looking up an address.
 You receive EVIDENCE as JSON: "items", each with an "id" (like "f3"), what it is "about", and "facts" from City of Toronto open data, the Toronto Police Service and CMHC, plus "notes" that explain the data.
 
 Write two things:

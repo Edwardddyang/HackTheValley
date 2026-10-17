@@ -8,7 +8,7 @@ import { CITY_LICENCE, DATASETS } from "./datasets";
 
 export const metadata: Metadata = {
   title: "Sources and limits",
-  description: "Every dataset Block Brief uses, what it's used for, its licence, and what it can't tell you.",
+  description: "Every dataset RentReceipts uses, what it's used for, its licence, and what it can't tell you.",
 };
 
 const navLink = "-ml-0.5 block border-l-2 border-transparent py-1 pl-3 text-[15px] text-ink-2 hover:border-ink hover:text-ink";
@@ -21,7 +21,7 @@ export default function SourcesPage() {
         <div className="max-w-[46rem]">
           <h1 className="plate text-[clamp(2.6rem,9vw,4.5rem)] font-bold text-ink">Sources and limits</h1>
           <p className="mt-4 text-[1.15rem] leading-snug text-ink-2">
-            Every fact in a brief comes from one of the datasets below, loaded ahead of time into Block Brief&apos;s own
+            Every fact in a brief comes from one of the datasets below, loaded ahead of time into RentReceipts&apos; own
             database, so a brief never depends on a live City service. Listing sites are never visited or scraped: only
             the listing text or screenshot you paste is read.
           </p>

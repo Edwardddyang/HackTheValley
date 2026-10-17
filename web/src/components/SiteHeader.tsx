@@ -6,10 +6,10 @@ export function SiteHeader({ search, sticky = false }: { search?: ReactNode; sti
   return (
     <header className={`no-print border-b border-border bg-page/95 backdrop-blur ${sticky ? "sticky-header z-20 sm:sticky sm:top-0" : ""}`}>
       <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
-        <Link href="/" aria-label="Block Brief home"
+        <Link href="/" aria-label="RentReceipts home"
           className="plate flex shrink-0 items-center gap-2 text-[1.4rem] font-bold text-ink no-underline">
           <BlockMark />
-          Block Brief
+          RentReceipts
           <span className="sr-only">, Toronto</span>
         </Link>
         {search ? <div className="order-3 w-full sm:order-none sm:w-auto sm:min-w-0 sm:flex-1 sm:max-w-2xl">{search}</div> : null}
