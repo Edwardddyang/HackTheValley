@@ -1,0 +1,113 @@
+import { supabase } from "./supabase";
+
+// Shapes returned by the SQL functions in supabase/migrations/0002_brief.sql.
+
+/** Points at the dataset row(s) a fact came from. */
+export type Cite =
+  | { dataset: string; file: string; row: number }
+  | { dataset: string; file: string; row_count: number; sample_rows: number[] }
+  | { dataset: string; file: string; row: number; total_row?: number; column_hood_id: number };
+
+export type AddressMatch = {
+  address_point_id: number;
+  address: string;
+  municipality: string | null;
+  ward_number: number | null;
+  lat: number;
+  lon: number;
+  similarity: number;
+};
+
+type Count = { type: string; count: number };
+type RequestCount = Count & { still_open: number; cite: Cite };
+
+export type Brief = {
+  address: {
+    address_point_id: number; address: string; municipality: string | null;
+    lat: number; lon: number; radius_m: number; cite: Cite;
+  };
+  area: {
+    neighbourhood: { hood_id: number; name: string; classification: string; cite: Cite } | null;
+    ward: { ward_number: number; name: string; cite: Cite } | null;
+  };
+  building:
+    | { in_rentsafe: false; note: string }
+    | {
+        in_rentsafe: true; rsn: number; site_address: string; property_type: string | null;
+        year_built: number | null; storeys: number | null; units: number | null;
+        latest_evaluation: {
+          date: string | null; score: number | null; score_scale: string; item_scale_max: number;
+          percent_of_buildings_scoring_lower: number | null;
+          lowest_items: { item: string; score: number }[] | null; cite: Cite;
+        };
+        history: { date: string | null; score: number | null; cite: Cite }[];
+      };
+  permits_at_address: {
+    note: string;
+    items: {
+      permit_num: string; group: "active" | "cleared"; type: string; work: string | null;
+      status: string; application_date: string | null; issued_date: string | null;
+      completed_date: string | null; description: string | null; est_const_cost: number | null;
+      cite: Cite;
+    }[];
+  };
+  construction_nearby: {
+    active_permit_count: number;
+    by_type: Count[];
+    notable_definition: string;
+    notable: {
+      permit_num: string; type: string; status: string; address: string | null; distance_m: number;
+      issued_date: string | null; description: string | null; est_const_cost: number | null;
+      dwelling_units_created: number | null; cite: Cite;
+    }[];
+    cite: Cite | null;
+  };
+  development_applications: {
+    counts: Partial<Record<"in_review" | "approved" | "closed", number>> | null;
+    type_labels: Record<string, string>;
+    open: {
+      application_number: string; type: string; status: string;
+      status_group: "in_review" | "approved"; address: string | null; distance_m: number;
+      date_submitted: string | null; description: string | null; url: string | null;
+      community_meeting_date: string | null; cite: Cite;
+    }[];
+  };
+  service_requests_311: {
+    period: { from: string | null; to: string | null };
+    nearby: { note: string; count: number; top_types: RequestCount[] };
+    ward: { ward_number: number | null; count: number; top_types: RequestCount[] };
+  };
+  crime: {
+    year: number; note: string;
+    offences: {
+      offence: string; count: number; rate_per_100k: number; city_rate_per_100k: number | null;
+      previous_year_rate: number | null; cite: Cite;
+    }[];
+  };
+  census: {
+    source_note: string;
+    values: Record<string, {
+      label: string; value: number | null; of_total?: number; percent?: number;
+      toronto_neighbourhood_median: number | null; compared_as: "percent" | "value"; cite: Cite;
+    }> | null;
+  };
+};
+
+export const DEFAULT_RADIUS_M = 500;
+export const MIN_RADIUS_M = 100;
+export const MAX_RADIUS_M = 1000;
+
+export async function geocode(query: string, maxResults = 5): Promise<AddressMatch[]> {
+  const { data, error } = await supabase().rpc("bb_geocode", { q: query, max_results: maxResults });
+  if (error) throw new Error(`bb_geocode failed: ${error.message}`);
+  return data ?? [];
+}
+
+export async function getBrief(addressPointId: number, radiusM = DEFAULT_RADIUS_M): Promise<Brief | null> {
+  const { data, error } = await supabase().rpc("bb_brief", {
+    p_address_point_id: addressPointId,
+    p_radius_m: radiusM,
+  });
+  if (error) throw new Error(`bb_brief failed: ${error.message}`);
+  return data;
+}

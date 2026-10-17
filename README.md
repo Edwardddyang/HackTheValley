@@ -3,8 +3,12 @@
 Look up a Toronto rental address and see the building's condition and what's going on around it,
 built only from City of Toronto open data, with every fact traceable to a source row.
 
-This repo currently holds the **data layer**: drop the City's files into `data/raw/`, check them,
-and load them into Supabase (Postgres + PostGIS). UI and briefing logic come next.
+Two parts so far:
+
+- **Data layer**: drop the City's files into `data/raw/`, check them, and load them into
+  Supabase (Postgres + PostGIS).
+- **Briefing**: SQL functions build a facts-only brief for an address, and a Next.js API route
+  serves it. Every fact cites the dataset row it came from. The UI and AI summary come next.
 
 ## Layout
 
@@ -12,8 +16,34 @@ and load them into Supabase (Postgres + PostGIS). UI and briefing logic come nex
 data/raw/<dataset>/      drop downloaded files here (each folder's README says which file)
 etl/                     Python loader (`bb` command)
   blockbrief_etl/sources/  one module per dataset: how its file is read and cleaned
-supabase/migrations/     table definitions
+supabase/migrations/     0001 tables, 0002 read-only API access + brief functions
+web/                     Next.js app (API routes for now)
 ```
+
+## Brief API
+
+```sh
+cd web
+cp .env.example .env.local     # add the Supabase publishable key
+npm install
+npm run dev
+```
+
+- `GET /api/brief?address=100 Queen St W&radius=500` (radius 100–1000 m, default 500), or
+  `?id=<address_point_id>` to pick one of the returned `alternatives`.
+- `GET /api/geocode?q=100 queen` returns up to 5 address matches, for autocomplete.
+
+The brief has these sections, each fact with a `cite` (`dataset`, `file`, `row`, or `row_count`
+plus `sample_rows` for counts): `address`, `area` (neighbourhood, ward), `building` (RentSafeTO
+score, history, lowest-scoring items, percentile), `permits_at_address`, `construction_nearby`
+(active permits, notable projects), `development_applications` (open ones nearby),
+`service_requests_311` (placed requests nearby, plus ward totals), `crime` (neighbourhood vs city
+rates), `census` (rent, renters, shelter costs, income, dwellings, commute vs the neighbourhood
+median). `summary` is `null` until the AI summary is built.
+
+The logic lives in `supabase/migrations/0002_brief.sql` (`bb_geocode`, `bb_brief`). The API
+roles can only read tables and run these functions; Supabase's anonymous role has a 3 s
+statement timeout, and a brief takes ~0.2–0.8 s (the first one after a data load is slower).
 
 ## Setup (once)
 
@@ -37,7 +67,8 @@ uv run bb load all                  # everything, in dependency order
 uv run bb near "100 Queen St W"     # smoke test: what's loaded around an address
 ```
 
-`bb load all` loads in dependency order. Loading one at a time: `address_points` before
+`bb load all` loads in dependency order. Rows with a location are written in spatial order so a
+radius query reads a few disk pages, not one per row (6x fewer for permits downtown). Loading one at a time: `address_points` before
 `building_permits` (permits get their location from their `GEO_ID` address point), and
 `intersections` before `service_requests_311` (requests reported at a corner get its point).
 
