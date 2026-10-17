@@ -14,7 +14,7 @@ export function HomeTools() {
 
   return (
     <div className="flex flex-col gap-10">
-      <section aria-labelledby="paste-h" className="rounded-xl border border-border bg-surface p-4 sm:p-6">
+      <section aria-labelledby="paste-h" className="rounded-2xl border border-hairline bg-surface p-4 shadow-sm sm:p-6">
         <h2 id="paste-h" className="plate text-[2rem] font-bold text-ink">Paste a listing</h2>
         <div className="mt-3">
           <ListingForm onSearchInstead={(address, keep) => setPrefill({ address, keep, nonce: Date.now() })} />

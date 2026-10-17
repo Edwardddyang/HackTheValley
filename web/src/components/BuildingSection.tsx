@@ -23,7 +23,7 @@ export function BuildingSection({ brief, extras, asOfYear }: { brief: Brief; ext
   if (!b.in_rentsafe) {
     return (
       <Section id="building" title="The building">
-        <div className="rounded-lg border border-border bg-surface p-5">
+        <div className="rounded-xl border border-hairline bg-surface-2 p-5">
           <p className="font-semibold text-ink">This address isn&apos;t in RentSafeTO, so there&apos;s no City inspection score.</p>
           <p className="mt-2 max-w-[64ch] text-[15px] text-ink-2">
             {b.note} Condos, houses, basement apartments and smaller buildings aren&apos;t covered. Ask the landlord who
@@ -42,7 +42,7 @@ export function BuildingSection({ brief, extras, asOfYear }: { brief: Brief; ext
     <Section id="building" title="The building"
       subtitle="RentSafeTO is the City's inspection of apartment buildings: common areas, the exterior and maintenance records, scored 0 to 100. It doesn't look inside units.">
       {e.score == null ? (
-        <p className="rounded-md bg-surface-2 px-4 py-3 text-[15px]">This building is in RentSafeTO but its latest evaluation has no score.</p>
+        <p className="rounded-xl bg-surface-2 px-4 py-3 text-[15px]">This building is in RentSafeTO but its latest evaluation has no score.</p>
       ) : (
         <div>
           <p className="text-[15px] text-ink-2">Latest evaluation, {date(e.date)}</p>
@@ -73,7 +73,7 @@ export function BuildingSection({ brief, extras, asOfYear }: { brief: Brief; ext
 
       {e.lowest_items?.length ? (
         <div className="mt-2">
-          <h3 className="plate text-[1.35rem] font-bold text-ink">Lowest-scoring items</h3>
+          <h3 className="text-base font-semibold text-ink">Lowest-scoring items</h3>
           <p className="mt-1 max-w-[64ch] text-[15px] text-ink-2">
             Inspectors grade each item from 1 (worst) to {e.item_scale_max} (best). These are the lowest in this evaluation.
           </p>
@@ -90,7 +90,7 @@ export function BuildingSection({ brief, extras, asOfYear }: { brief: Brief; ext
 
       {b.history.length > 1 && (
         <div className="mt-6">
-          <h3 className="plate text-[1.35rem] font-bold text-ink">Evaluation history</h3>
+          <h3 className="text-base font-semibold text-ink">Evaluation history</h3>
           <ul className="mt-2 flex flex-wrap gap-2">
             {b.history.map((h, i) => (
               <li key={i}>
@@ -107,7 +107,7 @@ export function BuildingSection({ brief, extras, asOfYear }: { brief: Brief; ext
 
       <RentControlNote yearBuilt={b.year_built} cite={e.cite} />
 
-      <h3 className="plate mt-8 text-[1.35rem] font-bold text-ink">Building facts</h3>
+      <h3 className="mt-8 text-base font-semibold text-ink">Building facts</h3>
       <dl className="mt-2 grid gap-x-8 sm:grid-cols-2">
         <Fact term="Year built" cite={e.cite}>{b.year_built ?? "Not reported"}</Fact>
         <Fact term="Size" cite={e.cite}>

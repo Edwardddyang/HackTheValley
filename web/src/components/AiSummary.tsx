@@ -76,8 +76,8 @@ function failureFor(status: number): Failure {
 export function SummaryPanel() {
   const { state, retry } = useSummary();
   return (
-    <section id="summary" aria-labelledby="summary-h" className="rounded-lg border-l-4 border-accent bg-accent-tint px-4 py-4 sm:px-5">
-      <h2 id="summary-h" className="plate text-[1.6rem] font-bold text-ink">In plain language</h2>
+    <section id="summary" aria-labelledby="summary-h" className="rounded-2xl border border-accent/25 bg-accent-tint p-5 shadow-sm sm:p-6">
+      <h2 id="summary-h" className="text-xl font-semibold tracking-tight text-ink">In plain language</h2>
       <p className="sr-only" role="status">
         {state.status === "loading" ? "Writing the summary." : state.status === "ready" ? "The summary is ready." : ""}
       </p>
@@ -133,7 +133,7 @@ export function ChecklistPanel({ address }: { address: string }) {
     window.print();
   }
 
-  const button = "rounded-md border-2 border-accent px-3 py-1 text-[15px] font-semibold text-accent hover:bg-accent hover:text-accent-ink";
+  const button = "rounded-lg border border-accent px-3 py-1 text-sm font-semibold text-accent transition hover:bg-accent hover:text-accent-ink";
   return (
     <Section id="checklist" title="Questions for the viewing"
       subtitle="Based on what the records flag. Take them to the viewing and tick them off as you ask."

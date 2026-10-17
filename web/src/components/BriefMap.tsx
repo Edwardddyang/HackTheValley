@@ -110,7 +110,7 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
   ];
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-xl border border-border bg-surface-2">
+    <div className="relative h-full w-full overflow-hidden rounded-2xl border border-hairline bg-surface-2 shadow-sm">
       <Map
         key={brief.address.address_point_id}
         initialViewState={{ bounds, fitBoundsOptions: { padding: 28 } }}

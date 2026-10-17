@@ -5,18 +5,18 @@ import { num } from "@/lib/format";
 
 import { Cite } from "./Cite";
 
-/** A brief section: an anchor target with one h2 over a heavy rule. */
+/** A brief section: an anchor-target card (panel frame from Satwik's feature/frontend). */
 export function Section({ id, title, subtitle, actions, children }: {
   id: string; title: string; subtitle?: ReactNode; actions?: ReactNode; children: ReactNode;
 }) {
   return (
-    <section id={id} aria-labelledby={`${id}-h`}>
-      <header className="mb-4">
-        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2 border-b-2 border-ink pb-1.5">
-          <h2 id={`${id}-h`} className="plate text-[1.75rem] font-bold text-ink sm:text-[2rem]">{title}</h2>
+    <section id={id} aria-labelledby={`${id}-h`} className="rounded-2xl border border-hairline bg-surface p-5 shadow-sm sm:p-6">
+      <header className="mb-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+          <h2 id={`${id}-h`} className="text-xl font-semibold tracking-tight text-ink">{title}</h2>
           {actions}
         </div>
-        {subtitle ? <p className="mt-2 max-w-[68ch] text-[15px] text-ink-2">{subtitle}</p> : null}
+        {subtitle ? <p className="mt-2 max-w-[68ch] text-sm leading-6 text-ink-2">{subtitle}</p> : null}
       </header>
       {children}
     </section>
@@ -91,7 +91,7 @@ export function CompareBar({ value, compare, max, valueLabel, compareLabel }: {
 
 export function Pill({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-border bg-surface px-2.5 py-0.5 text-sm text-ink-2">
+    <span className="inline-flex items-center rounded-full bg-surface-2 px-2.5 py-0.5 text-sm text-ink-2">
       {children}
     </span>
   );

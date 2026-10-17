@@ -12,8 +12,8 @@ export const LIMITS: readonly string[] = [
 
 export function LimitsPanel() {
   return (
-    <section id="limits" aria-labelledby="limits-h" className="rounded-lg border-2 border-ink bg-surface p-4 sm:p-6">
-      <h2 id="limits-h" className="plate text-[1.75rem] font-bold text-ink sm:text-[2rem]">What this data can&apos;t tell you</h2>
+    <section id="limits" aria-labelledby="limits-h" className="rounded-2xl border border-hairline bg-surface-2 p-5 shadow-sm sm:p-6">
+      <h2 id="limits-h" className="text-xl font-semibold tracking-tight text-ink">What this data can&apos;t tell you</h2>
       <ul className="mt-3 flex max-w-[68ch] flex-col gap-2.5 text-[15px] text-ink">
         {LIMITS.map((l) => (
           <li key={l} className="flex gap-3">

@@ -120,7 +120,7 @@ function Landing() {
 
 function Notice({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mx-auto mt-10 max-w-xl rounded-lg border border-border bg-surface p-6" role="alert">
+    <div className="mx-auto mt-10 max-w-xl rounded-2xl border border-hairline bg-surface p-6 shadow-sm" role="alert">
       <h1 className="plate text-[1.6rem] font-bold text-ink">{title}</h1>
       <p className="mt-1 text-[15px] text-ink-2">{children}</p>
     </div>
@@ -131,10 +131,10 @@ function BriefSkeleton() {
   return (
     <div className="grid gap-6 lg:grid-cols-2" aria-busy="true">
       <p className="sr-only" role="status">Loading the brief…</p>
-      <div className="skeleton h-[45vh] rounded-xl lg:h-[calc(100vh-112px)]" />
+      <div className="skeleton h-[45vh] rounded-2xl lg:h-[calc(100vh-112px)]" />
       <div className="space-y-4">
         {[120, 220, 180, 240].map((h, i) => (
-          <div key={i} className="skeleton rounded-xl" style={{ height: h }} />
+          <div key={i} className="skeleton rounded-2xl" style={{ height: h }} />
         ))}
       </div>
     </div>

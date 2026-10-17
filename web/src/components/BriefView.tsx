@@ -51,7 +51,7 @@ export function BriefView({ brief, extras, alternatives, radius, listing, fixtur
           <MapPanel brief={brief} typeLabels={typeLabels} />
         </div>
 
-        <div className="min-w-0 space-y-12 lg:col-start-2">
+        <div className="min-w-0 space-y-5 lg:col-start-2">
           {hasListing && <ListingCard rent={listing.rent} beds={listing.beds} benchmark={extras?.rent_benchmark ?? null} />}
           <SummaryPanel />
           <BuildingSection brief={brief} extras={extras} asOfYear={asOfYear} />
@@ -77,7 +77,7 @@ export function BriefView({ brief, extras, alternatives, radius, listing, fixtur
 
 function FixtureBanner() {
   return (
-    <p role="note" className="mb-4 rounded-md border-l-4 border-amber bg-amber-tint px-4 py-3 text-[15px] text-ink">
+    <p role="note" className="mb-4 rounded-xl border-l-4 border-amber bg-amber-tint px-4 py-3 text-[15px] text-ink">
       <strong>Development data.</strong> No Supabase key is set, so every search shows the saved brief for 375 Brunswick
       Ave. Add <code>web/.env.local</code> (see <code>.env.example</code>) for live data.
     </p>
@@ -91,7 +91,7 @@ function Header({ brief, alternatives, radius, nav, listing }: {
   const keep = `${listing.rent != null ? `&rent=${listing.rent}` : ""}${listing.beds != null ? `&beds=${listing.beds}` : ""}`;
   return (
     <div>
-      <p className="text-[15px] text-ink-2">Before-you-sign brief</p>
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Before-you-sign brief</p>
       <h1 className="plate mt-1 break-words text-[clamp(2.4rem,8vw,3.75rem)] font-bold text-ink">
         {address.address}
         <Cite cite={address.cite} />
@@ -199,7 +199,7 @@ function ConstructionSection({ brief }: { brief: Brief }) {
           <BarList color="var(--series-permit)" items={c.by_type.map((t) => ({ label: t.type, count: t.count }))} />
         ) : null}
       </div>
-      <h3 className="plate mt-8 text-[1.35rem] font-bold text-ink">Major projects</h3>
+      <h3 className="mt-8 text-base font-semibold text-ink">Major projects</h3>
       <p className="mb-2 mt-1 text-sm text-ink-2">{c.notable_definition}. Marked P on the map.</p>
       {c.notable.length === 0 ? (
         <Empty>None in this radius.</Empty>
