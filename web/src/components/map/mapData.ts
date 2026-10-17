@@ -85,15 +85,47 @@ export function briefLocations(brief: Brief, typeLabels: Record<string, string>)
   ];
 }
 
-export function sr311Points(brief: Brief): FeatureCollection<Point> {
-  return {
-    type: "FeatureCollection",
-    features: brief.service_requests_311.nearby.points.map((p) => ({
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [p.lon, p.lat] },
-      properties: { type: p.type, status: p.status, date: p.date },
-    })),
+export type Sr311Group = {
+  count: number;
+  /** The three most common request types, with counts. */
+  top: { type: string; count: number }[];
+  latest: string;
+  /** The dataset's own status strings (Completed, In Progress, New, Cancelled, …), most common first. */
+  statuses: { status: string; count: number }[];
+};
+
+/** From integrate/best-of-both: the City snaps every 311 request to its nearest intersection, so identical
+ *  coordinates are the data's real granularity. One circle per intersection, sized and labelled by how many
+ *  requests landed there; `i` indexes `groups` for the popup. */
+export function sr311Intersections(brief: Brief): { fc: FeatureCollection<Point>; groups: Sr311Group[]; total: number } {
+  // Plain objects, not Map: NeighbourhoodMap imports react-map-gl's <Map> under that name.
+  const by: Record<string, Brief["service_requests_311"]["nearby"]["points"]> = {};
+  for (const p of brief.service_requests_311.nearby.points) {
+    if (!isValidLocation({ lat: p.lat, lng: p.lon })) continue;
+    (by[`${p.lon.toFixed(6)},${p.lat.toFixed(6)}`] ??= []).push(p);
+  }
+  const tally = (xs: string[]) => {
+    const n: Record<string, number> = {};
+    for (const x of xs) n[x] = (n[x] ?? 0) + 1;
+    return Object.entries(n).sort((a, b) => b[1] - a[1]);
   };
+  const groups: Sr311Group[] = [];
+  const features: Feature<Point>[] = [];
+  for (const group of Object.values(by)) {
+    const count = group.length;
+    groups.push({
+      count,
+      top: tally(group.map((p) => p.type)).slice(0, 3).map(([type, c]) => ({ type, count: c })),
+      latest: group.reduce((a, p) => (p.date > a ? p.date : a), group[0].date),
+      statuses: tally(group.map((p) => p.status)).map(([status, c]) => ({ status, count: c })),
+    });
+    features.push({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [group[0].lon, group[0].lat] },
+      properties: { i: groups.length - 1, count, label: count >= 3 ? String(count) : "" },
+    });
+  }
+  return { fc: { type: "FeatureCollection", features }, groups, total: groups.reduce((n, g) => n + g.count, 0) };
 }
 
 // Essentials (integrate/best-of-both): subway, groceries, pharmacies and hospitals near the address, from a

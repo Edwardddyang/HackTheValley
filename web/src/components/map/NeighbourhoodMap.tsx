@@ -11,18 +11,19 @@ import type { FeatureCollection, Polygon } from "geojson";
 
 import { type AmenityResult, fetchAmenities } from "@/lib/amenities";
 import type { Brief } from "@/lib/brief";
-import { metres, month } from "@/lib/format";
+import { date, metres, month, num } from "@/lib/format";
 
 import { FlyoverButton } from "./Flyover";
 import { SHADE_ORDER, SHADES, shadeFill, shadeGradient } from "./hoodShades";
 import type { HoodsFile, HoodValues, Shade } from "./hoodShades";
 import MapLayerControls from "./MapLayerControls";
-import { amenityLocations, briefCenter, briefLocations, defaultLayers, isValidLocation, layerLabels, radiusCircle, sr311Points } from "./mapData";
+import { amenityLocations, briefCenter, briefLocations, defaultLayers, isValidLocation, layerLabels, radiusCircle, sr311Intersections } from "./mapData";
 import type { LayerId, MapLocation } from "./mapData";
 
 // From feature/frontend (Satwik): expandable map with layer controls and an accessible location
 // list. Changes for real data: OpenFreeMap vector tiles, a radius that follows the search, RentSafeTO
-// buildings labelled with their score, and 311 requests drawn as a plain layer (there can be 800).
+// buildings labelled with their score, and 311 requests drawn as a plain layer (there can be 800), one circle per
+// intersection.
 
 const STYLE = "https://tiles.openfreemap.org/styles/positron";
 
@@ -126,18 +127,20 @@ function MapExplorer({ brief, typeLabels }: Props) {
   const [shade, setShade] = useState<Shade>("none");
   const [hoods, setHoods] = useState<HoodsFile | "error" | null>(null);
   const [hood, setHood] = useState<HoodPick | null>(null);
-  const sr311 = useMemo(() => sr311Points(brief), [brief]);
+  const sr311 = useMemo(() => sr311Intersections(brief), [brief]);
+  const [pick311, setPick311] = useState<{ lng: number; lat: number; i: number } | null>(null);
+  const [hovering, setHovering] = useState(false);
   const shadeDomain = shade !== "none" && hoods && hoods !== "error" ? hoods.domains[shade] ?? null : null;
   const plotted = locations.filter((location) => isValidLocation(location.location));
   const counts: Partial<Record<LayerId, number>> = {
     rentsafe: plotted.filter((l) => l.layer === "rentsafe").length,
     building_permit: plotted.filter((l) => l.layer === "building_permit").length,
     development_application: plotted.filter((l) => l.layer === "development_application").length,
-    sr311: sr311.features.length,
+    sr311: sr311.total,
     amenity: plotted.filter((l) => l.layer === "amenity").length,
   };
   const available = (Object.keys(layerLabels) as LayerId[]).filter((layer) =>
-    layer === "radius" ? hasCenter : layer === "sr311" ? sr311.features.length > 0 : plotted.some((location) => location.layer === layer));
+    layer === "radius" ? hasCenter : layer === "sr311" ? sr311.fc.features.length > 0 : plotted.some((location) => location.layer === layer));
   const [visible, setVisible] = useState({ ...defaultLayers });
   const [expanded, setExpanded] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -189,7 +192,13 @@ function MapExplorer({ brief, typeLabels }: Props) {
 
   function onMapClick(event: MapLayerMouseEvent) {
     setSelectedId(null);
+    setPick311(null);
     const f = event.features?.[0];
+    if (f?.layer.id === "sr311-points" && f.geometry.type === "Point") {
+      setHood(null);
+      const [lng, lat] = f.geometry.coordinates;
+      return setPick311({ lng, lat, i: Number(f.properties?.i) });
+    }
     if (f?.layer.id !== "hoods-fill") return setHood(null);
     const p = f.properties as HoodValues & { id?: number; name?: string };
     setHood({
@@ -343,7 +352,10 @@ function MapExplorer({ brief, typeLabels }: Props) {
                 minZoom={9} maxZoom={19}
                 attributionControl={false}
                 scrollZoom={expanded}
-                interactiveLayerIds={shadeDomain ? ["hoods-fill"] : []}
+                interactiveLayerIds={[...(visible.sr311 ? ["sr311-points"] : []), ...(shadeDomain ? ["hoods-fill"] : [])]}
+                cursor={hovering ? "pointer" : "grab"}
+                onMouseEnter={() => setHovering(true)}
+                onMouseLeave={() => setHovering(false)}
                 onLoad={(event) => {
                   if (attempt !== activeAttempt.current) return;
                   markMapReady();
@@ -408,12 +420,19 @@ function MapExplorer({ brief, typeLabels }: Props) {
                   <Layer id="radius-fill" type="fill" paint={{ "fill-color": "#0D9488", "fill-opacity": 0.08 }} />
                   <Layer id="radius-outline" type="line" paint={{ "line-color": "#0D9488", "line-width": 2, "line-dasharray": [3, 2] }} />
                 </Source>}
-                {visible.sr311 && <Source id="sr311" type="geojson" data={sr311}>
+                {visible.sr311 && <Source id="sr311" type="geojson" data={sr311.fc}>
                   <Layer id="sr311-points" type="circle"
-                    paint={{ "circle-radius": 4, "circle-color": "#0284c7", "circle-opacity": 0.55, "circle-stroke-width": 1, "circle-stroke-color": "#ffffff" }} />
+                    paint={{
+                      "circle-radius": ["interpolate", ["linear"], ["get", "count"], 1, 4, 5, 8, 15, 12, 40, 15],
+                      "circle-color": "#0284c7", "circle-opacity": 0.85, "circle-stroke-width": 1, "circle-stroke-color": "#ffffff",
+                    }} />
+                  <Layer id="sr311-count" type="symbol"
+                    layout={{ "text-field": ["get", "label"], "text-size": 10, "text-font": ["Noto Sans Bold"],
+                      "text-allow-overlap": true, "text-ignore-placement": true }}
+                    paint={{ "text-color": "#ffffff" }} />
                 </Source>}
                 {visiblePoints.map((location) => <Marker key={location.id} latitude={location.location.lat} longitude={location.location.lng} anchor="center">
-                  <button type="button" aria-label={`${location.name}: ${layerLabels[location.layer]}`} onClick={(event) => { event.stopPropagation(); setSelectedId(location.id); }}
+                  <button type="button" aria-label={`${location.name}: ${layerLabels[location.layer]}`} onClick={(event) => { event.stopPropagation(); setPick311(null); setSelectedId(location.id); }}
                     className={`flex items-center justify-center rounded-full border-2 border-white font-bold text-white shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#142D4E] ${MARKER_CLASS[location.layer]}`}>
                     <span aria-hidden="true">{location.label ?? MARKER_TEXT[location.layer]}</span>
                   </button>
@@ -427,7 +446,20 @@ function MapExplorer({ brief, typeLabels }: Props) {
                     {selected.url && <a href={selected.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs font-medium text-teal-800 underline">City application page</a>}
                   </div>
                 </Popup>}
-                {hood && !selected && <Popup latitude={hood.lat} longitude={hood.lng} onClose={() => setHood(null)} closeOnClick={false} focusAfterOpen={false} offset={8} maxWidth="280px">
+                {pick311 && !selected && visible.sr311 && sr311.groups[pick311.i] && (() => {
+                  const g = sr311.groups[pick311.i];
+                  return <Popup latitude={pick311.lat} longitude={pick311.lng} onClose={() => setPick311(null)} closeOnClick={false} focusAfterOpen={false} offset={10} maxWidth="280px">
+                    <div className="p-1 text-[#142D4E]">
+                      <p className="font-semibold">{g.count === 1 ? "One 311 request" : `${num(g.count)} 311 requests`} at this intersection</p>
+                      <ul className="mt-1 space-y-0.5 text-xs leading-5">
+                        {g.top.map((t) => <li key={t.type}>{t.type}{g.count > 1 && <span className="tabular-nums text-slate-500"> ({num(t.count)})</span>}</li>)}
+                      </ul>
+                      <p className="mt-1 text-xs leading-5">Most recent {date(g.latest)}.</p>
+                      <p className="text-xs leading-5">Status: {g.count === 1 ? g.statuses[0].status : g.statuses.map((s) => `${num(s.count)} ${s.status}`).join(", ")}.</p>
+                    </div>
+                  </Popup>;
+                })()}
+                {hood && !selected && !pick311 && <Popup latitude={hood.lat} longitude={hood.lng} onClose={() => setHood(null)} closeOnClick={false} focusAfterOpen={false} offset={8} maxWidth="280px">
                   <div className="p-1 text-[#142D4E]">
                     <p className="font-semibold">{hood.name}</p>
                     {/* The shaded figure first, then the rest for comparison. */}
@@ -454,7 +486,7 @@ function MapExplorer({ brief, typeLabels }: Props) {
       )}
       <details className="rounded-xl border border-slate-200 bg-white p-4" open={expanded || undefined}>
         <summary className="cursor-pointer rounded text-sm font-semibold focus-visible:outline-2 focus-visible:outline-teal-700">Map locations — accessible list ({locations.length})</summary>
-        <p className="mt-3 text-xs leading-5 text-slate-500">All marked locations are listed here, including hidden layers. The {sr311.features.length} 311 points are summarised by type in the 311 panel instead.</p>
+        <p className="mt-3 text-xs leading-5 text-slate-500">All marked locations are listed here, including hidden layers. The {num(sr311.total)} 311 requests (at {num(sr311.fc.features.length)} intersections) are summarised by type in the 311 panel instead.</p>
         <ul className="mt-3 max-h-72 space-y-3 overflow-y-auto text-sm">
           {locations.map((location) => <li key={location.id} className="border-t border-slate-100 pt-3">
             <p className="font-medium">{location.name}</p><p className="mt-1 line-clamp-2 text-xs text-slate-600">{layerLabels[location.layer]} · {location.description}</p>
