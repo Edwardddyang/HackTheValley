@@ -1,10 +1,10 @@
-"""bb - ReadReceipt data tool.
+"""bb - RentReceipts data tool.
 
   bb folders            create data/raw/<dataset>/ folders with a README saying what to put there
   bb status             which datasets have files dropped in
   bb check  <ds|all>    clean/transform the files and print a preview (no database needed)
   bb init-db            create tables in Supabase (runs supabase/migrations/*.sql)
-  bb reset-db --yes     drop all ReadReceipt tables and recreate them empty (after schema changes)
+  bb reset-db --yes     drop all RentReceipts tables and recreate them empty (after schema changes)
   bb load   <ds|all>    transform and load into Supabase (replaces that dataset's rows)
   bb near   "<address>" [--radius 500]   smoke test: what's loaded near an address
 """
@@ -97,7 +97,7 @@ PROJECT_TABLES = [
 
 def cmd_reset_db(args):
     if not args.yes:
-        raise SystemExit("This drops every ReadReceipt table and its data. Re-run with --yes to confirm.")
+        raise SystemExit("This drops every RentReceipts table and its data. Re-run with --yes to confirm.")
     with db.connect() as conn:
         conn.execute("drop table if exists " + ", ".join(PROJECT_TABLES) + " cascade")
         conn.commit()

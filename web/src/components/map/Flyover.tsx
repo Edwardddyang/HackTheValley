@@ -109,7 +109,7 @@ function withTimeout<T>(p: Promise<T>, ms: number, onLate: (v: T) => void): Prom
 
 const DOWNLOAD_FAILED = "Couldn't download the 3D viewer — check the connection. The brief isn't affected.";
 const TILES_SLOW = "The 3D tiles took too long to load — the connection may be slow. The brief isn't affected.";
-const TILES_FAILED = "ReadReceipt couldn't start the flyover. The Google Maps key may be invalid, over quota, or missing the Map Tiles API — or this area has no 3D coverage. The brief isn't affected.";
+const TILES_FAILED = "RentReceipts couldn't start the flyover. The Google Maps key may be invalid, over quota, or missing the Map Tiles API — or this area has no 3D coverage. The brief isn't affected.";
 
 /** Only renders when a Google Maps key was set at build time. */
 export function FlyoverButton({ lat, lon, address }: { lat: number; lon: number; address: string }) {

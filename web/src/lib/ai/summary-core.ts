@@ -681,7 +681,7 @@ export function toSummary(
 // Prompt and response schema ------------------------------------------------------------------------------------
 
 export function summarySystemInstruction(radiusM: number): string {
-  return `You pick what to flag about one Toronto address for the "What to flag" panel at the top of ReadReceipt, a tool for renters checking a building before they sign.
+  return `You pick what to flag about one Toronto address for the "What to flag" panel at the top of RentReceipts, a tool for renters checking a building before they sign.
 You receive EVIDENCE as JSON: "items", each with an "id" (like "f3"), what it is "about", and "facts" from City of Toronto open data, the Toronto Police Service and CMHC, plus "notes" that explain the data. You may also receive LISTING: the asking rent and bedrooms the renter gave, with the difference from the cited CMHC average already computed.
 
 Write two things:

@@ -1,4 +1,4 @@
-# ReadReceipt on one server: the Next.js app behind Caddy, which serves the domain and gets
+# RentReceipts on one server: the Next.js app behind Caddy, which serves the domain and gets
 # HTTPS certificates automatically. Run from this folder: docker compose up -d --build
 # Values come from deploy/.env (copy .env.example).
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time setup of a fresh Vultr Ubuntu 24.04 server for ReadReceipt. Run as root:
+# One-time setup of a fresh Vultr Ubuntu 24.04 server for RentReceipts. Run as root:
 #   curl -fsSL https://raw.githubusercontent.com/Edwardddyang/HackTheValley/main/deploy/setup.sh -o setup.sh
 #   less setup.sh   # read it first
 #   bash setup.sh
@@ -8,7 +8,7 @@ set -euo pipefail
 
 REPO=https://github.com/Edwardddyang/HackTheValley.git
 BRANCH=${BRANCH:-main}
-APP_DIR=/opt/readreceipt
+APP_DIR=/opt/rentreceipts
 
 echo "==> Swap (next build needs more than 1 GB of RAM)"
 if ! swapon --show | grep -q /swapfile; then

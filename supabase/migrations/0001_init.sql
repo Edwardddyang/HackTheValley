@@ -1,4 +1,4 @@
--- ReadReceipt: base schema for Toronto open data.
+-- RentReceipts: base schema for Toronto open data.
 --
 -- Conventions
 --   * Citations: every data row has (source_id, source_row_id). source_id points to `sources`

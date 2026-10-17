@@ -369,7 +369,7 @@ function MapExplorer({ brief, typeLabels }: Props) {
                 }}
                 onError={(event) => {
                   if (attempt !== activeAttempt.current) return;
-                  console.error("ReadReceipt map error:", event.error);
+                  console.error("RentReceipts map error:", event.error);
                   if (/webgl|gpu|graphics context/i.test(event.error.message)) {
                     setMapIssue({ kind: "graphics", message: "Your browser could not create the WebGL graphics context needed to display the map." });
                     return;

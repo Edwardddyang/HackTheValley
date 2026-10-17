@@ -1,4 +1,4 @@
--- ReadReceipt: building registration and area rents, served next to the brief.
+-- RentReceipts: building registration and area rents, served next to the brief.
 --
 --   bb_extras(address_point_id)  -> {"registration": {...} | null, "rent_benchmark": {...} | null}
 --

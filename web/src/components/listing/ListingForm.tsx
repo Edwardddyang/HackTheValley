@@ -106,12 +106,12 @@ export function ListingForm({ onSearchInstead }: { onSearchInstead: (address: st
       setState({ kind: "error", message: "Paste the listing text or add a screenshot first.", searchInstead: false });
       return;
     }
-    // A bare link can't be read: ReadReceipt never visits listing sites. Ask for the ad itself.
+    // A bare link can't be read: RentReceipts never visits listing sites. Ask for the ad itself.
     const linkOnly = isLinkOnly(text);
     if (linkOnly && !shot) {
       setState({
         kind: "error",
-        message: "That looks like a link, not the ad. ReadReceipt never visits listing sites — open the listing and paste the ad's text here, or add a screenshot of it.",
+        message: "That looks like a link, not the ad. RentReceipts never visits listing sites — open the listing and paste the ad's text here, or add a screenshot of it.",
         searchInstead: true,
       });
       return;
@@ -125,7 +125,7 @@ export function ListingForm({ onSearchInstead }: { onSearchInstead: (address: st
     try {
       res = await fetch("/api/listing", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
     } catch {
-      setState({ kind: "error", message: "ReadReceipt couldn't be reached. Check your connection and try again.", searchInstead: false });
+      setState({ kind: "error", message: "RentReceipts couldn't be reached. Check your connection and try again.", searchInstead: false });
       return;
     }
     const json = (await res.json().catch(() => null)) as ListingResponse | ApiError | null;

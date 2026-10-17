@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ReadReceipt",
+  title: "RentReceipts",
   description:
     "Look up a Toronto address and see the building's condition and what's happening around it, from City of Toronto open data.",
 };

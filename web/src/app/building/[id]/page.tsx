@@ -101,6 +101,11 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
           </p>
         )}
       </header>
+      {/* The map sits above the tabs, so it's the first thing seen and stays put whichever tab is open. */}
+      <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6" aria-labelledby="map-title">
+        <h2 id="map-title" className="text-xl font-semibold">Around the block</h2>
+        <NeighbourhoodMap brief={brief} typeLabels={typeLabels} />
+      </section>
       <div className="mt-8">
         {/* One /api/summary call feeds both What to flag and the viewing questions. */}
         <SummaryProvider key={`${brief.address.address_point_id}-${radius}-${listing.rent}-${listing.beds}`}
@@ -111,10 +116,6 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
               <SummaryPanel />
               <BuildingSummaryPanel brief={brief} extras={extras} />
               <InspectionPanel brief={brief} stats={stats} />
-              <section className="rounded-2xl border border-slate-200 bg-white p-6 md:col-span-2" aria-labelledby="map-title">
-                <h2 id="map-title" className="text-xl font-semibold">Around the block</h2>
-                <NeighbourhoodMap brief={brief} typeLabels={typeLabels} />
-              </section>
               <ChecklistPanel address={brief.address.address} />
             </Grid>
           ) },

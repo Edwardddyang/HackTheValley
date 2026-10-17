@@ -1,4 +1,4 @@
-# ReadReceipt web app
+# RentReceipts web app
 
 Next.js app: the address search, the brief page (map + cited sections) and the API routes.
 Setup, the data pipeline and how the brief is built are in the [root README](../README.md).

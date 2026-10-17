@@ -27,9 +27,9 @@ it usually updates within minutes (can take a few hours).
 ssh root@<server-ip>
 curl -fsSL https://raw.githubusercontent.com/Edwardddyang/HackTheValley/main/deploy/setup.sh -o setup.sh
 less setup.sh          # read what it does
-bash setup.sh          # first run creates /opt/readreceipt/deploy/.env and stops
-nano /opt/readreceipt/deploy/.env   # paste NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-cd /opt/readreceipt/deploy && docker compose up -d --build
+bash setup.sh          # first run creates /opt/rentreceipts/deploy/.env and stops
+nano /opt/rentreceipts/deploy/.env   # paste NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+cd /opt/rentreceipts/deploy && docker compose up -d --build
 ```
 
 The first build takes a few minutes. Then open https://readreceipt.work. If DNS wasn't
@@ -37,12 +37,12 @@ pointing at the server yet when Caddy started, it retries the certificate on its
 
 ## Updating
 
-After pushing to `main`: `ssh root@<server-ip> bash /opt/readreceipt/deploy/update.sh`
+After pushing to `main`: `ssh root@<server-ip> bash /opt/rentreceipts/deploy/update.sh`
 
 ## Checking on it
 
 ```sh
-cd /opt/readreceipt/deploy
+cd /opt/rentreceipts/deploy
 docker compose ps            # both containers "running"
 docker compose logs -f web   # app logs
 docker compose logs -f caddy # certificate / proxy logs
