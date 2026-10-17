@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Redeploy the latest main (or BRANCH=...) on the server. Run as root from anywhere:
-#   bash /opt/blockbrief/deploy/update.sh
+#   bash /opt/readreceipt/deploy/update.sh
 set -euo pipefail
-APP_DIR=/opt/blockbrief
+APP_DIR=/opt/readreceipt
 BRANCH=${BRANCH:-main}
 
 git -C "$APP_DIR" fetch origin "$BRANCH"

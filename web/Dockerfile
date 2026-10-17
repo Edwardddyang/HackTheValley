@@ -1,4 +1,4 @@
-# Block Brief web app. Built and run by deploy/docker-compose.yml.
+# ReadReceipt web app. Built and run by deploy/docker-compose.yml.
 #
 # NEXT_PUBLIC_* values are inlined into the bundle by `next build`, so they are build
 # arguments, not just runtime variables.

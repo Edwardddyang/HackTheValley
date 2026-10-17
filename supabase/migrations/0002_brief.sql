@@ -1,4 +1,4 @@
--- Block Brief: read access + the functions that build an address briefing.
+-- ReadReceipt: read access + the functions that build an address briefing.
 --
 --   bb_geocode(q)                  -> candidate address points for a typed address
 --   bb_brief(address_point_id, r)  -> one jsonb document with every section of the brief

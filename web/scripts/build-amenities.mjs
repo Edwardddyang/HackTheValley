@@ -36,7 +36,7 @@ async function download() {
       try {
         const res = await fetch(url, {
           method: "POST",
-          headers: { "User-Agent": "RentReceipts-hackathon/1.0" },
+          headers: { "User-Agent": "ReadReceipt-hackathon/1.0" },
           body: new URLSearchParams({ data: QUERY }),
           signal: AbortSignal.timeout(120_000),
         });
