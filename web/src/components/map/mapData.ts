@@ -131,7 +131,7 @@ export function sr311Intersections(brief: Brief): { fc: FeatureCollection<Point>
 // Essentials (integrate/best-of-both): subway, groceries, pharmacies and hospitals near the address, from a
 // static OpenStreetMap extract (public/amenities-toronto.json). Pharmacies are "Rx" here because "D" already
 // marks development applications on this map.
-const AMENITY_MARK: Record<Amenity["category"], string> = { subway: "T", grocery: "G", pharmacy: "Rx", hospital: "H" };
+export const AMENITY_MARK: Record<Amenity["category"], string> = { subway: "T", grocery: "G", pharmacy: "Rx", hospital: "H" };
 
 export function amenityLocations(items: Amenity[]): MapLocation[] {
   return items.map((a, i) => ({

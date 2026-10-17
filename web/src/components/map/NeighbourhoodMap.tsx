@@ -9,7 +9,7 @@ import { AttributionControl, Layer, Marker, NavigationControl, Popup, Source } f
 import type { MapLayerMouseEvent, MapRef } from "react-map-gl/maplibre";
 import type { FeatureCollection, Polygon } from "geojson";
 
-import { type AmenityResult, fetchAmenities } from "@/lib/amenities";
+import { AMENITY_CATEGORIES, AMENITY_LABELS, AMENITY_RADIUS_M, type AmenityResult, fetchAmenities } from "@/lib/amenities";
 import type { Brief } from "@/lib/brief";
 import { date, metres, month, num } from "@/lib/format";
 
@@ -17,7 +17,7 @@ import { FlyoverButton } from "./Flyover";
 import { SHADE_ORDER, SHADES, shadeFill, shadeGradient } from "./hoodShades";
 import type { HoodsFile, HoodValues, Shade } from "./hoodShades";
 import MapLayerControls from "./MapLayerControls";
-import { amenityLocations, briefCenter, briefLocations, defaultLayers, isValidLocation, layerLabels, radiusCircle, sr311Intersections } from "./mapData";
+import { AMENITY_MARK, amenityLocations, briefCenter, briefLocations, defaultLayers, isValidLocation, layerLabels, radiusCircle, sr311Intersections } from "./mapData";
 import type { LayerId, MapLocation } from "./mapData";
 
 // From feature/frontend (Satwik): expandable map with layer controls and an accessible location
@@ -122,6 +122,11 @@ function MapExplorer({ brief, typeLabels }: Props) {
     ...briefLocations(brief, typeLabels),
     ...(typeof amen === "object" ? amenityLocations(amen.items) : []),
   ], [brief, typeLabels, amen]);
+  // Items are sorted by distance, so the first of each category is its nearest; amenityLocations ids by index.
+  const nearestAmen = typeof amen !== "object" ? [] : AMENITY_CATEGORIES.map((category) => {
+    const i = amen.items.findIndex((a) => a.category === category);
+    return { category, item: i < 0 ? null : amen.items[i], location: locations.find((l) => l.id === `amenity-${category}-${i}`) };
+  });
   const ghosts = useMemo(() => ghostTowers(brief.development_applications.open), [brief]);
   const [three, setThree] = useState(false);
   const [shade, setShade] = useState<Shade>("none");
@@ -288,6 +293,31 @@ function MapExplorer({ brief, typeLabels }: Props) {
     <div className="space-y-4">
       <MapLayerControls available={available} visible={visible} counts={counts}
         onToggle={(layer) => setVisible((current) => ({ ...current, [layer]: !current[layer] }))}>
+        {visible.amenity && nearestAmen.length > 0 && (
+          <div className="mt-3 border-t border-slate-200 pt-3">
+            <p className="text-xs font-semibold text-slate-700">Nearest essentials</p>
+            <ul className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-slate-700">
+              {nearestAmen.map(({ category, item, location }) => {
+                const mark = <span aria-hidden className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-800 text-[9px] font-bold text-white">{AMENITY_MARK[category]}</span>;
+                const label = AMENITY_LABELS[category];
+                return <li key={category}>
+                  {item && location ? (
+                    <button type="button" onClick={() => focusLocation(location)}
+                      className="flex min-h-7 items-center gap-2 rounded text-left hover:text-[#142D4E] focus-visible:outline-2 focus-visible:outline-teal-700">
+                      {mark}
+                      <span>{item.name === label ? label : <>{label} · <span className="font-medium text-[#142D4E]">{item.name}</span></>}</span>
+                      <span className="tabular-nums text-slate-500">{metres(item.distance_m)}</span>
+                      <span className="sr-only">, show on the map</span>
+                    </button>
+                  ) : (
+                    <span className="flex min-h-7 items-center gap-2 text-slate-500">{mark}{label} · none within {metres(AMENITY_RADIUS_M[category])}</span>
+                  )}
+                </li>;
+              })}
+            </ul>
+            {typeof amen === "object" && amen.asof && <p className="mt-1 text-xs text-slate-500">OpenStreetMap extract, {month(amen.asof)}. Distances are straight-line.</p>}
+          </div>
+        )}
         <div className="mt-3 flex flex-wrap items-start gap-x-8 gap-y-3 border-t border-slate-200 pt-3 text-sm text-slate-700">
           <div>
             <label className="flex min-h-8 cursor-pointer items-center gap-2">
@@ -331,7 +361,7 @@ function MapExplorer({ brief, typeLabels }: Props) {
             {shade !== "none" && hoods && hoods !== "error" && !shadeDomain && <p className="text-xs text-slate-500">This shading isn&apos;t in the map data yet.</p>}
           </div>
           {amen === "error" && <p className="text-xs text-slate-500">The essentials list didn&apos;t load.</p>}
-          {typeof amen === "object" && amen.asof && <p className="text-xs leading-8 text-slate-500">Essentials: OpenStreetMap extract, {month(amen.asof)}. Distances are straight-line.</p>}
+          {typeof amen === "object" && amen.asof && !visible.amenity && <p className="text-xs leading-8 text-slate-500">Essentials: OpenStreetMap extract, {month(amen.asof)}. Distances are straight-line.</p>}
         </div>
       </MapLayerControls>
       {!hasCenter ? <p role="status" className="rounded-xl bg-slate-100 p-6 text-sm">This address has no valid coordinates, so the map and radius are unavailable. See the location list below.</p> : (
