@@ -121,3 +121,10 @@ completed since 2025 (`CLEARED_SINCE` in `sources/building_permits.py`) and 311 
   is "202510"; impossible years are stored as null (its evaluation date is intact). Shared fields are columns;
   the per-category scores are in `item_scores` (JSON).
 - Staff contact details (development applications) and builder names (permits) are not loaded.
+
+## Future ideas
+
+- **Compare other homes nearby.** Click any nearby address with a live listing and open its brief in a new tab,
+  for the renter whose chosen unit is overpriced, poorly rated or badly managed but who likes the area. It needs
+  listing data for any building (not only RentSafeTO's 3+ storey, 10+ unit buildings), which the open data
+  doesn't have, so it is out of scope for now.
