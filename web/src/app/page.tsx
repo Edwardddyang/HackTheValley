@@ -1,123 +1,86 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { BriefView } from "@/components/BriefView";
-import { SearchBox } from "@/components/SearchBox";
-import { DEFAULT_RADIUS_M, MAX_RADIUS_M, MIN_RADIUS_M } from "@/lib/brief";
-import { loadBrief } from "@/lib/load";
+import AddressSearch from "@/components/search/AddressSearch";
+import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
+import { resolveAddress } from "@/lib/load";
 
-const EXAMPLES = ["200 Elm St", "326 Avenue Rd", "100 Queen St W", "2000 Eglinton Ave E"];
+// Landing page from feature/frontend (Satwik), with real address search and real examples.
+const EXAMPLES = ["200 Elm St", "326 Avenue Rd", "100 Queen St W", "2000 Eglinton Ave E", "5000 Yonge St"];
 
-export default function Page(props: PageProps<"/">) {
-  return (
-    <Suspense fallback={<Shell search={<SearchBox />}>{null}</Shell>}>
-      <Content searchParams={props.searchParams} />
-    </Suspense>
-  );
-}
-
-function first(v: string | string[] | undefined) {
-  return Array.isArray(v) ? v[0] : v;
-}
-
-async function Content({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
-  const sp = await searchParams;
-  const address = first(sp.address)?.trim() || null;
-  const idRaw = first(sp.id);
-  const id = idRaw && /^\d+$/.test(idRaw) ? Number(idRaw) : null;
-  const rRaw = Number(first(sp.r) ?? DEFAULT_RADIUS_M);
-  const radius = Number.isInteger(rRaw) && rRaw >= MIN_RADIUS_M && rRaw <= MAX_RADIUS_M ? rRaw : DEFAULT_RADIUS_M;
-
-  if (!address && id == null) {
-    return <Landing />;
-  }
-  return (
-    <Shell search={<SearchBox key={`${id}-${address}`} initialAddress={address ?? ""} initialRadius={radius} />}>
-      <Suspense key={`${id}-${address}-${radius}`} fallback={<BriefSkeleton />}>
-        <Results address={address} id={id} radius={radius} />
-      </Suspense>
-    </Shell>
-  );
-}
-
-async function Results({ address, id, radius }: { address: string | null; id: number | null; radius: number }) {
-  let result;
+async function ExampleChoices() {
+  let rows: { label: string; id: number | null }[];
   try {
-    result = await loadBrief(address, id, radius);
-  } catch (err) {
-    console.error(err);
-    return <Notice title="Couldn't build the brief">The data service didn&apos;t respond in time. Try again in a moment.</Notice>;
+    rows = await Promise.all(EXAMPLES.map(async (label) => {
+      const [match] = await resolveAddress(label);
+      return { label: match?.address ?? label, id: match?.address_point_id ?? null };
+    }));
+  } catch {
+    return <div role="alert" className="p-6"><p className="text-sm text-slate-600">Examples are unavailable right now. Search for an address above.</p></div>;
   }
-  if (result.kind === "not_found") {
-    return <Notice title="Address not found">{result.message}</Notice>;
-  }
-  return <BriefView brief={result.brief} alternatives={result.alternatives} radius={radius} />;
-}
-
-function Shell({ search, children }: { search?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-20 border-b border-border bg-page/90 backdrop-blur">
-        <div className="mx-auto flex max-w-[1400px] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-6">
-          <Link href="/" className="shrink-0 text-[15px] font-semibold tracking-tight text-ink">
-            Block Brief <span className="font-normal text-ink-3">Toronto</span>
+    <ul className="divide-y divide-slate-200">
+      {rows.filter((r) => r.id != null).map((r) => (
+        <li key={r.id}>
+          <Link href={`/building/${r.id}`} className="flex min-h-16 items-center justify-between gap-4 px-6 py-4 transition hover:bg-teal-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-teal-700">
+            <span className="font-medium">{r.label}</span><span aria-hidden="true" className="text-xl text-teal-700">↗</span>
           </Link>
-          <div className="w-full max-w-2xl">{search}</div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Old links (/?address=… or /?id=…) from the first version of the app still work. */
+async function LegacyRedirect({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
+  const sp = await searchParams;
+  const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+  const id = first(sp.id);
+  const address = first(sp.address);
+  const r = first(sp.r);
+  const suffix = r ? `?r=${encodeURIComponent(r)}` : "";
+  if (id && /^\d+$/.test(id)) redirect(`/building/${id}${suffix}`);
+  if (address?.trim()) {
+    const [match] = await resolveAddress(address.trim());
+    if (match) redirect(`/building/${match.address_point_id}${suffix}`);
+  }
+  return null;
+}
+
+export default function Home(props: PageProps<"/">) {
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] text-[#142D4E]">
+      <Suspense fallback={null}><LegacyRedirect searchParams={props.searchParams} /></Suspense>
+      <a href="#search" className="sr-only rounded bg-white p-3 focus:not-sr-only focus:absolute focus:z-10">Skip to address search</a>
+      <SiteHeader>
+        <a href="#how-it-works" className="rounded text-sm font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-teal-700">How it works</a>
+      </SiteHeader>
+      <main className="mx-auto max-w-6xl px-6 pb-20 pt-14 sm:pt-24">
+        <div className="grid gap-12 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+          <section aria-labelledby="hero-title" className="lg:pt-5">
+            <p className="mb-6 text-xs font-bold tracking-[0.18em] text-teal-700 uppercase">A little context. A better move.</p>
+            <h1 id="hero-title" className="max-w-xl text-5xl leading-[1.08] font-semibold tracking-tight sm:text-6xl">Know your building before you sign.</h1>
+            <p className="mt-7 max-w-lg text-lg leading-8 text-slate-600">See a Toronto building&apos;s City inspection score, construction and development nearby, 311 requests, crime and neighbourhood rents, all from City of Toronto open data.</p>
+            <p className="mt-6 max-w-md text-sm leading-6 text-slate-600">Every figure links back to the dataset row it came from. Nothing is estimated or made up.</p>
+          </section>
+          <section id="search" aria-labelledby="search-title" className="scroll-mt-6 self-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-200/40">
+            <div className="border-b border-slate-200 px-6 py-6"><h2 id="search-title" className="text-xl font-semibold">Look up an address</h2><p className="mt-2 text-sm leading-6 text-slate-600">Any of Toronto&apos;s 525,000 address points. Apartment buildings also get their RentSafeTO inspection.</p></div>
+            <AddressSearch />
+            <p className="px-6 pt-5 pb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">Try an example</p>
+            <Suspense fallback={<p role="status" className="p-6 text-slate-600">Loading examples…</p>}><ExampleChoices /></Suspense>
+          </section>
         </div>
-      </header>
-      <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-5">{search ? children : null}</main>
-    </div>
-  );
-}
-
-function Landing() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-4 py-16">
-      <div className="w-full max-w-2xl">
-        <p className="text-[13px] font-medium uppercase tracking-wider text-ink-3">Block Brief · Toronto</p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight text-ink sm:text-5xl">
-          What&apos;s happening on your street?
-        </h1>
-        <p className="mt-4 text-[17px] leading-relaxed text-ink-2">
-          Look up a rental before you sign. See the building&apos;s City inspection score, construction and
-          development nearby, 311 complaints, crime and neighbourhood rents, every figure linked to the open-data
-          row it came from.
-        </p>
-        <div className="mt-8">
-          <SearchBox autoFocus />
-        </div>
-        <p className="mt-4 text-[13px] text-ink-3">
-          Try{" "}
-          {EXAMPLES.map((e, i) => (
-            <span key={e}>
-              {i > 0 ? ", " : ""}
-              <Link className="text-accent hover:underline" href={`/?address=${encodeURIComponent(e)}`}>{e}</Link>
-            </span>
-          ))}
-        </p>
-      </div>
-    </main>
-  );
-}
-
-function Notice({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="mx-auto mt-10 max-w-xl rounded-xl border border-border bg-surface p-6">
-      <h2 className="text-[15px] font-semibold text-ink">{title}</h2>
-      <p className="mt-1 text-sm text-ink-2">{children}</p>
-    </div>
-  );
-}
-
-function BriefSkeleton() {
-  return (
-    <div className="grid gap-5 lg:grid-cols-2" aria-busy="true" aria-label="Loading brief">
-      <div className="h-[55vh] animate-pulse rounded-xl border border-border bg-surface-2 lg:h-[calc(100vh-112px)]" />
-      <div className="space-y-4">
-        {[96, 220, 180, 240].map((h, i) => (
-          <div key={i} className="animate-pulse rounded-xl border border-border bg-surface" style={{ height: h }} />
-        ))}
-      </div>
+        <section id="how-it-works" aria-labelledby="how-title" className="mt-20 border-t border-slate-200 pt-10">
+          <h2 id="how-title" className="text-2xl font-semibold tracking-tight">Get to know the building. Then the block.</h2>
+          <div className="mt-7 grid gap-7 sm:grid-cols-3">{[
+            ["01", "Start with an address", "Search any Toronto address, or pick an example, to open its brief."],
+            ["02", "See the wider picture", "Inspections, permits, development applications, 311 requests, crime and census figures within walking distance."],
+            ["03", "Know the limits", "Each panel says what its dataset can and can't tell you, and cites the rows it used."],
+          ].map(([number, title, description]) => <div key={number}><p className="text-sm font-semibold text-teal-700">{number}</p><h3 className="mt-3 font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-600">{description}</p></div>)}</div>
+        </section>
+      </main>
+      <SiteFooter />
     </div>
   );
 }

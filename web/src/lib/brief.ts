@@ -132,3 +132,10 @@ export async function geocode(query: string, maxResults = 5): Promise<AddressMat
 export async function getBrief(addressPointId: number, radiusM = DEFAULT_RADIUS_M): Promise<Brief | null> {
   return rpc<Brief | null>("bb_brief", { p_address_point_id: addressPointId, p_radius_m: radiusM });
 }
+
+export type RentSafeStats = { median_score: number | null; buildings: number; scoring: "2023+"; note: string };
+
+/** City-wide RentSafeTO context (median of each building's latest 2023+ evaluation). */
+export async function getRentSafeStats(): Promise<RentSafeStats | null> {
+  return rpc<RentSafeStats | null>("bb_rentsafe_stats", {});
+}

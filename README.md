@@ -16,7 +16,8 @@ Two parts so far:
 data/raw/<dataset>/      drop downloaded files here (each folder's README says which file)
 etl/                     Python loader (`bb` command)
   blockbrief_etl/sources/  one module per dataset: how its file is read and cleaned
-supabase/migrations/     0001 tables, 0002 read-only API access + brief functions
+supabase/migrations/     0001 tables, 0002 read-only API access + brief functions,
+                         0004 RentSafeTO city stats (0003 is taken by the integrate/best-of-both branch)
 web/                     Next.js app (API routes for now)
 ```
 
@@ -28,6 +29,8 @@ cp .env.example .env.local     # add the Supabase publishable key
 npm install
 npm run dev
 ```
+
+Pages: `/` (search) and `/building/<address_point_id>?r=500` (the brief).
 
 - `GET /api/brief?address=100 Queen St W&radius=500` (radius 100–1000 m, default 500), or
   `?id=<address_point_id>` to pick one of the returned `alternatives`.

@@ -21,7 +21,7 @@ export function Cite({ cite }: { cite: CiteData | null | undefined }) {
         {name.short}
       </button>
       <span className="cite-tip" role="tooltip">
-        <span className="block font-medium">{name.long}</span>
+        <span className="block font-semibold">{name.long}</span>
         <span className="block opacity-80">{cite.file}</span>
         <span className="block opacity-80">{where}</span>
       </span>

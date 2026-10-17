@@ -13,7 +13,7 @@ export const money = (n: number | null | undefined) => (n == null ? "—" : mone
 export const compactMoney = (n: number | null | undefined) => (n == null ? "—" : compactMoneyFmt.format(n));
 export const date = (d: string | null | undefined) => (d ? dateFmt.format(new Date(d)) : "—");
 export const month = (d: string | null | undefined) => (d ? monthFmt.format(new Date(d)) : "—");
-export const metres = (m: number) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`);
+export const metres = (m: number) => (m < 1000 ? `${Math.round(m)} m` : `${Number((m / 1000).toFixed(1))} km`);
 
 /** "326 AVENUE RD" -> "326 Avenue Rd" (RentSafeTO, permits and applications are upper case). */
 export function titleCase(s: string | null | undefined) {
