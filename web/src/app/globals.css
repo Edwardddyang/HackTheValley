@@ -1,26 +1,155 @@
 @import "tailwindcss";
 
+/* Colour roles. Series/status values come from the validated reference palette
+   (dataviz skill): the first three categorical slots are safe together on a map. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --surface-2: #f0efec;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --ink-3: #898781;
+  --hairline: #e1e0d9;
+  --border: rgba(11, 11, 11, 0.1);
+  --baseline: #c3c2b7;
+  --accent: #2a78d6;
+  --series-311: #2a78d6;
+  --series-devapp: #eb6834;
+  --series-permit: #1baf7a;
+  --building: #0b0b0b;
+  --tooltip-bg: #0b0b0b;
+  --tooltip-ink: #f0efec;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --surface-2: #232321;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --ink-3: #898781;
+    --hairline: #2c2c2a;
+    --border: rgba(255, 255, 255, 0.1);
+    --baseline: #383835;
+    --accent: #3987e5;
+    --series-311: #3987e5;
+    --series-devapp: #d95926;
+    --series-permit: #199e70;
+    --building: #f0efec;
+    --tooltip-bg: #f0efec;
+    --tooltip-ink: #0b0b0b;
   }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --surface-2: #232321;
+  --ink: #f0efec;
+  --ink-2: #c3c2b7;
+  --ink-3: #898781;
+  --hairline: #2c2c2a;
+  --border: rgba(255, 255, 255, 0.1);
+  --baseline: #383835;
+  --accent: #3987e5;
+  --series-311: #3987e5;
+  --series-devapp: #d95926;
+  --series-permit: #199e70;
+  --building: #f0efec;
+  --tooltip-bg: #f0efec;
+  --tooltip-ink: #0b0b0b;
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-hairline: var(--hairline);
+  --color-border: var(--border);
+  --color-baseline: var(--baseline);
+  --color-accent: var(--accent);
+  --color-series-311: var(--series-311);
+  --color-series-devapp: var(--series-devapp);
+  --color-series-permit: var(--series-permit);
+  --color-building: var(--building);
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--page);
+  color: var(--ink);
+}
+
+/* Citation tag: the tooltip opens on hover and on keyboard focus. */
+.cite {
+  position: relative;
+  display: inline-flex;
+  vertical-align: super;
+  margin-left: 0.2em;
+}
+.cite > button {
+  font-size: 0.625rem;
+  line-height: 1;
+  padding: 0.15em 0.35em;
+  border-radius: 0.25rem;
+  border: 1px solid var(--border);
+  color: var(--ink-3);
+  background: var(--surface);
+  cursor: help;
+}
+.cite > button:hover,
+.cite > button:focus-visible {
+  color: var(--ink);
+  border-color: var(--ink-3);
+  outline: none;
+}
+.cite > .cite-tip {
+  display: none;
+  position: absolute;
+  z-index: 30;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 18rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.375rem;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-ink);
+  font-size: 0.75rem;
+  line-height: 1.35;
+  vertical-align: baseline;
+  text-align: left;
+  white-space: normal;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+.cite:hover > .cite-tip,
+.cite:focus-within > .cite-tip {
+  display: block;
+}
+
+/* MapLibre popups inherit the app's colours. */
+.maplibregl-popup-content {
+  background: var(--surface) !important;
+  color: var(--ink);
+  border-radius: 0.5rem !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+  padding: 0.75rem 0.875rem !important;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+.maplibregl-popup-tip {
+  border-top-color: var(--surface) !important;
+  border-bottom-color: var(--surface) !important;
+}
+.maplibregl-popup-close-button {
+  color: var(--ink-3);
+  font-size: 1rem;
+  padding: 0 0.4rem;
 }

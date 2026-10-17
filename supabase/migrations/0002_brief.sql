@@ -185,6 +185,22 @@ begin
       into v;
     result := result || jsonb_build_object('building', v);
 
+    -- Other RentSafeTO-evaluated buildings nearby (latest evaluation each) -----------
+    select coalesce(jsonb_agg(jsonb_build_object(
+               'rsn', r.rsn, 'address', r.site_address, 'score', r.score,
+               'evaluation_date', r.evaluation_date, 'scoring', r.schema_version,
+               'storeys', r.storeys, 'units', r.units, 'distance_m', round(r.dist),
+               'lat', st_y(r.geom), 'lon', st_x(r.geom),
+               'cite', bb_cite(r.source_id, r.source_row_id)) order by r.dist), '[]')
+      into v
+      from (select e.*, st_distance(e.geom::geography, pt) as dist
+              from rentsafe_evaluations e
+             where e.is_latest and st_dwithin(e.geom::geography, pt, p_radius_m)
+             order by dist limit 60) r;
+    result := result || jsonb_build_object('rentsafe_nearby', jsonb_build_object(
+        'note', 'Latest RentSafeTO evaluation of each apartment building (3+ storeys, 10+ units) within the radius. Scores are 0-100; evaluations before 2023 used a different scoring.',
+        'buildings', v));
+
     -- Permits at this exact address (GEO_ID = address point) --------------------
     select coalesce(jsonb_agg(jsonb_build_object(
                'permit_num', p.permit_num, 'group', p.permit_group, 'type', p.permit_type,
@@ -218,6 +234,7 @@ begin
                         'address', street_address, 'distance_m', round(dist),
                         'issued_date', issued_date, 'description', description,
                         'est_const_cost', est_const_cost, 'dwelling_units_created', dwelling_units_created,
+                        'lat', st_y(geom), 'lon', st_x(geom),
                         'cite', bb_cite(source_id, source_row_id))
                         order by coalesce(est_const_cost, 0) desc, dist), '[]')
                       from (select * from near
@@ -230,16 +247,25 @@ begin
     result := result || jsonb_build_object('construction_nearby', v);
 
     -- Development applications within the radius --------------------------------
+    -- The City's file has one row per (application, street address): 26,648 rows are 8,622
+    -- applications. Rows are grouped by application number; the nearest address gives the
+    -- distance and map point, and the others are listed.
     -- Status groups (from the City's status values): closed = Closed/Refused/Inactive;
     -- approved = approval granted (incl. by the OMB/OLT); otherwise in review or appeal.
-    with near as (
-        select d.*, st_distance(d.geom::geography, pt) as dist,
-               case when d.status in ('Closed', 'Refused', 'Inactive') then 'closed'
-                    when d.status in ('Council Approved', 'OMB Approved', 'Approved', 'Draft Plan Approved',
-                                      'Final Approval Completed', 'NOAC Issued', 'Amend Drft Plan App') then 'approved'
-                    else 'in_review' end as status_group
+    with near_rows as (
+        select d.*, st_distance(d.geom::geography, pt) as dist
           from development_applications d
          where st_dwithin(d.geom::geography, pt, p_radius_m)
+    ), near as (
+        select distinct on (r.application_number) r.*,
+               (select array_agg(distinct r2.street_address order by r2.street_address)
+                  from near_rows r2 where r2.application_number = r.application_number) as addresses,
+               case when r.status in ('Closed', 'Refused', 'Inactive') then 'closed'
+                    when r.status in ('Council Approved', 'OMB Approved', 'Approved', 'Draft Plan Approved',
+                                      'Final Approval Completed', 'NOAC Issued', 'Amend Drft Plan App') then 'approved'
+                    else 'in_review' end as status_group
+          from near_rows r
+         order by r.application_number, r.dist
     )
     select jsonb_build_object(
         'counts', (select jsonb_object_agg(status_group, n)
@@ -250,9 +276,11 @@ begin
         'open', (select coalesce(jsonb_agg(jsonb_build_object(
                      'application_number', application_number, 'type', application_type,
                      'status', status, 'status_group', status_group, 'address', street_address,
+                     'other_addresses', to_jsonb(array_remove(addresses, street_address)),
                      'distance_m', round(dist), 'date_submitted', date_submitted,
                      'description', description, 'url', application_url,
                      'community_meeting_date', community_meeting_date,
+                     'lat', st_y(geom), 'lon', st_x(geom),
                      'cite', bb_cite(source_id, source_row_id))
                      order by date_submitted desc nulls last), '[]')
                    from (select * from near where status_group <> 'closed'
@@ -276,6 +304,11 @@ begin
         'nearby', jsonb_build_object(
             'note', 'Only requests reported at a street intersection have a location; requests reported by postal code are not included here.',
             'count', (select count(*) from near),
+            'points', (select coalesce(jsonb_agg(jsonb_build_object(
+                           'lat', round(st_y(geom)::numeric, 6), 'lon', round(st_x(geom)::numeric, 6),
+                           'type', request_type, 'status', status, 'date', created_at::date,
+                           'row', source_row_id)), '[]')
+                         from (select * from near order by created_at desc limit 800) x),
             'top_types', (select coalesce(jsonb_agg(jsonb_build_object(
                               'type', request_type, 'count', n, 'still_open', open_n,
                               'cite', bb_cite_many(sid, rows)) order by n desc), '[]')

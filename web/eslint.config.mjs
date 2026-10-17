@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Minified MapLibre worker, copied from node_modules by the postinstall script.
+    "public/maplibre-gl-worker.mjs",
   ]),
 ]);
 

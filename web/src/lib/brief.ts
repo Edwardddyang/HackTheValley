@@ -19,6 +19,7 @@ export type AddressMatch = {
 };
 
 type Count = { type: string; count: number };
+type LatLon = { lat: number; lon: number };
 type RequestCount = Count & { still_open: number; cite: Cite };
 
 export type Brief = {
@@ -42,6 +43,14 @@ export type Brief = {
         };
         history: { date: string | null; score: number | null; cite: Cite }[];
       };
+  rentsafe_nearby: {
+    note: string;
+    buildings: (LatLon & {
+      rsn: number; address: string; score: number | null; evaluation_date: string | null;
+      scoring: "2023+" | "pre-2023"; storeys: number | null; units: number | null;
+      distance_m: number; cite: Cite;
+    })[];
+  };
   permits_at_address: {
     note: string;
     items: {
@@ -55,26 +64,31 @@ export type Brief = {
     active_permit_count: number;
     by_type: Count[];
     notable_definition: string;
-    notable: {
+    notable: (LatLon & {
       permit_num: string; type: string; status: string; address: string | null; distance_m: number;
       issued_date: string | null; description: string | null; est_const_cost: number | null;
       dwelling_units_created: number | null; cite: Cite;
-    }[];
+    })[];
     cite: Cite | null;
   };
   development_applications: {
     counts: Partial<Record<"in_review" | "approved" | "closed", number>> | null;
     type_labels: Record<string, string>;
-    open: {
+    open: (LatLon & {
       application_number: string; type: string; status: string;
       status_group: "in_review" | "approved"; address: string | null; distance_m: number;
+      /** Other street addresses the same application covers (the City lists one row per address). */
+      other_addresses: string[] | null;
       date_submitted: string | null; description: string | null; url: string | null;
       community_meeting_date: string | null; cite: Cite;
-    }[];
+    })[];
   };
   service_requests_311: {
     period: { from: string | null; to: string | null };
-    nearby: { note: string; count: number; top_types: RequestCount[] };
+    nearby: {
+      note: string; count: number; top_types: RequestCount[];
+      points: (LatLon & { type: string; status: string; date: string; row: number })[];
+    };
     ward: { ward_number: number | null; count: number; top_types: RequestCount[] };
   };
   crime: {
