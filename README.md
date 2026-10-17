@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Block Brief (working name)
 
-## Getting Started
+Before you sign a lease in Toronto, see what the City already knows about the building and the block: RentSafeTO inspection scores, building age and likely rent-control status, construction coming nearby, renter-relevant 311 complaints in the area, and your ward, in one plain-language brief that cites its sources.
 
-First, run the development server:
+Built at **Hack the Valley 11** (UTSC, Oct 16–18, 2026). The plan, demo script and data notes are in [docs/BRIEF.md](docs/BRIEF.md).
+
+## Run it locally
+
+Requires Node 24.
 
 ```bash
+npm ci
+cp .env.example .env.local   # fill in the Supabase and Gemini values
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Load or refresh the Toronto open data in Supabase (downloads go to `etl/.cache/`, which is gitignored):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run etl -- all                  # or one dataset, e.g. npm run etl -- building_evaluations
+npm run etl -- all --download-only  # fetch and pre-aggregate without touching the database
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`npm run check` runs lint, typecheck and build; CI runs it on every pull request.
 
-## Learn More
+## Data sources
 
-To learn more about Next.js, take a look at the following resources:
+All City data is from [Toronto Open Data](https://open.toronto.ca/) under the Open Government Licence – Toronto: Apartment Building Evaluations (RentSafeTO), Apartment Building Registration, Development Applications, Building Permits – Active Permits, 311 Service Requests – Customer Initiated, Address Points, City Wards, Neighbourhoods, Parks and Recreation Facilities, and Toronto Public Library branches.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## AI tools we used
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+MLH asks teams to be open about AI use.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Ariaz: Claude Code (scaffolding, data loaders, SQL)
+- Edward: Claude (idea research, dataset survey)
+- Satwik: _fill in_
+- 4th member: _fill in_
