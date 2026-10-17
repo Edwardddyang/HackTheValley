@@ -115,8 +115,12 @@ export function ListingForm({ onSearchInstead }: { onSearchInstead: (address: st
       return;
     }
     setState({ kind: "result", listing: json.listing, matches: json.matches });
-    if (json.matches.length === 1 && json.listing.confidence !== "low") {
-      open(json.matches[0], json.listing);
+    // bb_geocode also returns fuzzy near-misses (375 Brock Ave for 375 Brunswick Ave); an exact
+    // top match (similarity 1) is unambiguous, so open it directly unless the extraction was unsure.
+    const [top, next] = json.matches;
+    const exact = top && top.similarity >= 0.99 && (!next || next.similarity < 0.99);
+    if ((json.matches.length === 1 || exact) && json.listing.confidence !== "low") {
+      open(top, json.listing);
     } else {
       requestAnimationFrame(() => resultHeading.current?.focus());
     }
