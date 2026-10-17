@@ -131,7 +131,7 @@ function Header({ brief, alternatives, radius, nav, listing }: {
           {nav.map(([id, label]) => (
             <li key={id}>
               <a href={`#${id}`}
-                className="inline-block rounded-full border border-border bg-surface px-3 py-1 text-sm text-ink-2 hover:border-ink hover:text-ink">
+                className="inline-block rounded-full border border-hairline bg-surface px-3 py-1 text-sm font-medium text-ink-2 shadow-sm transition hover:border-accent/40 hover:bg-accent-tint hover:text-accent">
                 {label}
               </a>
             </li>

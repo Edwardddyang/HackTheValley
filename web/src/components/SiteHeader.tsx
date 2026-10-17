@@ -15,8 +15,8 @@ export function SiteHeader({ search, sticky = false }: { search?: ReactNode; sti
         {search ? <div className="order-3 w-full sm:order-none sm:w-auto sm:min-w-0 sm:flex-1 sm:max-w-2xl">{search}</div> : null}
         <nav aria-label="Site" className="ml-auto">
           <ul className="flex items-center gap-5 text-[15px] font-semibold">
-            <li><Link href="/" className="text-ink hover:underline">New search</Link></li>
-            <li><Link href="/sources" className="text-ink hover:underline">Sources</Link></li>
+            <li><Link href="/" className="rounded text-ink underline-offset-4 transition hover:text-accent hover:underline">New search</Link></li>
+            <li><Link href="/sources" className="rounded text-ink underline-offset-4 transition hover:text-accent hover:underline">Sources</Link></li>
           </ul>
         </nav>
       </div>
