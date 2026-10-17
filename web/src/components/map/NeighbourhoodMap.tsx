@@ -11,9 +11,11 @@ import type { FeatureCollection, Polygon } from "geojson";
 
 import { type AmenityResult, fetchAmenities } from "@/lib/amenities";
 import type { Brief } from "@/lib/brief";
-import { metres, money, month, num } from "@/lib/format";
+import { metres, month } from "@/lib/format";
 
 import { FlyoverButton } from "./Flyover";
+import { SHADE_ORDER, SHADES, shadeFill, shadeGradient } from "./hoodShades";
+import type { HoodsFile, HoodValues, Shade } from "./hoodShades";
 import MapLayerControls from "./MapLayerControls";
 import { amenityLocations, briefCenter, briefLocations, defaultLayers, isValidLocation, layerLabels, radiusCircle, sr311Points } from "./mapData";
 import type { LayerId, MapLocation } from "./mapData";
@@ -68,12 +70,8 @@ const MARKER_TEXT: Record<MapLocation["layer"], string> = { building: "B", rents
 
 // --- From integrate/best-of-both (Ariaz): 3D buildings, ghost towers and neighbourhood shading -----------------
 
-/** public/hoods-toronto.json: simplified City boundaries carrying each neighbourhood's values. */
-type Shade = "none" | "rent" | "assault";
-type HoodsFile = { domains: Record<"rent" | "assault", [number, number]>; fc: FeatureCollection };
-const SHADE_DEEP: Record<"rent" | "assault", string> = { rent: "#13724f", assault: "#a62e1c" };
-const SHADE_LIGHT = "#f3f0e8";
-type HoodPick = { lng: number; lat: number; name: string; rent: number | null; assault: number | null; own: boolean };
+/** A clicked neighbourhood: public/hoods-toronto.json carries simplified City boundaries with each one's values. */
+type HoodPick = { lng: number; lat: number; name: string; values: HoodValues; own: boolean };
 
 // Ghost towers: a block for each open application whose description states a height ("NN-storey"); only that
 // conservative phrasing counts. The tallest stated height wins, since one description often names several.
@@ -129,6 +127,7 @@ function MapExplorer({ brief, typeLabels }: Props) {
   const [hoods, setHoods] = useState<HoodsFile | "error" | null>(null);
   const [hood, setHood] = useState<HoodPick | null>(null);
   const sr311 = useMemo(() => sr311Points(brief), [brief]);
+  const shadeDomain = shade !== "none" && hoods && hoods !== "error" ? hoods.domains[shade] ?? null : null;
   const plotted = locations.filter((location) => isValidLocation(location.location));
   const counts: Partial<Record<LayerId, number>> = {
     rentsafe: plotted.filter((l) => l.layer === "rentsafe").length,
@@ -192,10 +191,9 @@ function MapExplorer({ brief, typeLabels }: Props) {
     setSelectedId(null);
     const f = event.features?.[0];
     if (f?.layer.id !== "hoods-fill") return setHood(null);
-    const p = f.properties as { id?: number; name?: string; rent?: number; assault?: number };
+    const p = f.properties as HoodValues & { id?: number; name?: string };
     setHood({
-      lng: event.lngLat.lng, lat: event.lngLat.lat, name: p.name ?? "Neighbourhood",
-      rent: p.rent ?? null, assault: p.assault ?? null,
+      lng: event.lngLat.lng, lat: event.lngLat.lat, name: p.name ?? "Neighbourhood", values: p,
       own: p.id != null && Number(p.id) === brief.area.neighbourhood?.hood_id,
     });
   }
@@ -308,20 +306,20 @@ function MapExplorer({ brief, typeLabels }: Props) {
                 }}
                 className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-[#142D4E] focus-visible:outline-2 focus-visible:outline-teal-700">
                 <option value="none">off</option>
-                <option value="rent">by renters&apos; shelter cost (2021)</option>
-                <option value="assault">by assault rate (2025)</option>
+                {SHADE_ORDER.map((m) => <option key={m} value={m}>by {SHADES[m].option}</option>)}
               </select>
             </label>
             {shade !== "none" && hoods === null && <p role="status" className="text-xs text-slate-500">Loading shading…</p>}
             {shade !== "none" && hoods === "error" && <p className="text-xs text-slate-500">The shading didn&apos;t load. Switch it off and on to retry.</p>}
-            {shade !== "none" && hoods && hoods !== "error" && (
-              <p className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
-                <span className="tabular-nums">≤ {shade === "rent" ? money(hoods.domains.rent[0]) : num(Math.round(hoods.domains.assault[0]))}</span>
-                <span aria-hidden className="inline-block h-2 w-16 rounded-sm" style={{ background: `linear-gradient(to right, ${SHADE_LIGHT}, ${SHADE_DEEP[shade]})` }} />
-                <span className="tabular-nums">≥ {shade === "rent" ? money(hoods.domains.rent[1]) : `${num(Math.round(hoods.domains.assault[1]))} per 100k`}</span>
-                <span>· click an area for its figures · City boundaries, 2021 Census, TPS 2025</span>
+            {shadeDomain && shade !== "none" && (
+              <p className="flex max-w-md flex-wrap items-center gap-1.5 text-xs text-slate-500">
+                <span className="tabular-nums">≤ {SHADES[shade].low(shadeDomain[0])}</span>
+                <span aria-hidden className="inline-block h-2 w-16 rounded-sm" style={{ background: shadeGradient(shade) }} />
+                <span className="tabular-nums">≥ {SHADES[shade].high(shadeDomain[1])}</span>
+                <span>· {SHADES[shade].source} · click an area for its figures</span>
               </p>
             )}
+            {shade !== "none" && hoods && hoods !== "error" && !shadeDomain && <p className="text-xs text-slate-500">This shading isn&apos;t in the map data yet.</p>}
           </div>
           {amen === "error" && <p className="text-xs text-slate-500">The essentials list didn&apos;t load.</p>}
           {typeof amen === "object" && amen.asof && <p className="text-xs leading-8 text-slate-500">Essentials: OpenStreetMap extract, {month(amen.asof)}. Distances are straight-line.</p>}
@@ -345,7 +343,7 @@ function MapExplorer({ brief, typeLabels }: Props) {
                 minZoom={9} maxZoom={19}
                 attributionControl={false}
                 scrollZoom={expanded}
-                interactiveLayerIds={shade !== "none" && hoods && hoods !== "error" ? ["hoods-fill"] : []}
+                interactiveLayerIds={shadeDomain ? ["hoods-fill"] : []}
                 onLoad={(event) => {
                   if (attempt !== activeAttempt.current) return;
                   markMapReady();
@@ -381,15 +379,11 @@ function MapExplorer({ brief, typeLabels }: Props) {
               >
                 <NavigationControl position="top-right" showCompass />
                 <AttributionControl position="bottom-right" compact={!expanded} />
-                {shade !== "none" && hoods && hoods !== "error" && (
+                {shadeDomain && shade !== "none" && hoods && hoods !== "error" && (
                   /* beforeId slots the tint under the style's roads and labels. */
                   <Source id="hoods" type="geojson" data={hoods.fc}>
                     <Layer id="hoods-fill" type="fill" beforeId="highway_path"
-                      paint={{
-                        "fill-color": ["interpolate", ["linear"], ["coalesce", ["get", shade], hoods.domains[shade][0]],
-                          hoods.domains[shade][0], SHADE_LIGHT, hoods.domains[shade][1], SHADE_DEEP[shade]],
-                        "fill-opacity": 0.55,
-                      }} />
+                      paint={{ "fill-color": shadeFill(shade, shadeDomain), "fill-opacity": 0.55 }} />
                     <Layer id="hoods-line" type="line" beforeId="highway_path"
                       paint={{ "line-color": "#142D4E", "line-opacity": 0.25, "line-width": 0.5 }} />
                   </Source>
@@ -436,10 +430,13 @@ function MapExplorer({ brief, typeLabels }: Props) {
                 {hood && !selected && <Popup latitude={hood.lat} longitude={hood.lng} onClose={() => setHood(null)} closeOnClick={false} focusAfterOpen={false} offset={8} maxWidth="280px">
                   <div className="p-1 text-[#142D4E]">
                     <p className="font-semibold">{hood.name}</p>
-                    <p className="mt-1 text-xs leading-5">
-                      Renters&apos; median shelter cost {hood.rent != null ? `${money(hood.rent)}/mo` : "—"} (2021 Census) · assault {hood.assault != null ? num(Math.round(hood.assault)) : "—"} per 100k (Toronto Police, 2025).
-                    </p>
-                    {hood.own && <p className="mt-1 text-xs text-teal-800">This is the address&apos;s neighbourhood; the Crime and Neighbourhood tabs cite both figures.</p>}
+                    {/* The shaded figure first, then the rest for comparison. */}
+                    <ul className="mt-1 space-y-0.5 text-xs leading-5">
+                      {[...(shade === "none" ? [] : [shade]), ...SHADE_ORDER.filter((m) => m !== shade)].map((m) => (
+                        <li key={m} className={m === shade ? "font-semibold" : undefined}>{SHADES[m].line(hood.values)}</li>
+                      ))}
+                    </ul>
+                    {hood.own && <p className="mt-1 text-xs text-teal-800">This is the address&apos;s neighbourhood; the Crime and Neighbourhood tabs cite its police and Census figures.</p>}
                   </div>
                 </Popup>}
               </Map>
