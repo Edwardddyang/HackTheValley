@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { AdCheckPanel } from "@/components/ai/AdCheckPanel";
+import { AskPanel } from "@/components/ai/AskPanel";
 import { ChecklistPanel, SummaryPanel, SummaryProvider } from "@/components/ai/SummaryPanels";
 import { BriefTabs } from "@/components/BriefTabs";
 import { Cite } from "@/components/Cite";
@@ -21,6 +22,7 @@ import { ReviewsSection } from "@/components/reviews/ReviewsSection";
 import AddressSearch from "@/components/search/AddressSearch";
 import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { DEFAULT_RADIUS_M } from "@/lib/brief";
+import { suggestedQuestions } from "@/lib/ai/ask-core";
 import { bedroomsLabel, metres, money, num } from "@/lib/format";
 import { buildingHref, hasListing, listingQuery, parseListingHints } from "@/lib/listing-params";
 import { loadBrief } from "@/lib/load";
@@ -116,6 +118,12 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
               <BuildingSummaryPanel brief={brief} extras={extras} />
               <InspectionPanel brief={brief} stats={stats} />
               <ChecklistPanel address={brief.address.address} />
+            </Grid>
+          ) },
+          { id: "ask", label: "Ask", content: (
+            <Grid>
+              <AskPanel addressPointId={brief.address.address_point_id} radius={brief.address.radius_m}
+                rent={listing.rent} beds={listing.beds} suggestions={suggestedQuestions(brief, extras)} />
             </Grid>
           ) },
           ...(listing.claims.length > 0 ? [{ id: "adcheck", label: "Ad check", badge: num(listing.claims.length), content: (
