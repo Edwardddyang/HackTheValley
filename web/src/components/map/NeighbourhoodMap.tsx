@@ -445,7 +445,12 @@ function MapExplorer({ brief, typeLabels }: Props) {
               </Map>
             </MapBoundary>
             <FlyoverButton lat={center.lat} lon={center.lng} address={brief.address.address} />
-            {!loaded && !mapIssue && <p role="status" className="pointer-events-none absolute top-3 left-3 rounded bg-white px-3 py-2 text-xs shadow-sm">Loading street map…</p>}
+            {/* Hidden rather than unmounted while expanded: closing the dialog returns focus to this element. */}
+            <button ref={expandRef} type="button" onClick={() => setExpanded(true)} hidden={expanded}
+              className="absolute top-2.5 left-2.5 rounded-lg border border-slate-300 bg-white/95 px-3 py-1.5 text-xs font-semibold text-[#142D4E] shadow-sm backdrop-blur hover:border-[#142D4E] focus-visible:outline-2 focus-visible:outline-teal-700">
+              Expand map
+            </button>
+            {!loaded && !mapIssue && <p role="status" className="pointer-events-none absolute bottom-3 left-3 rounded bg-white px-3 py-2 text-xs shadow-sm">Loading street map…</p>}
           </div>
           <p className="text-xs leading-5 text-slate-500">{expanded ? "Drag to pan; scroll or use the zoom controls. Keyboard: focus the map, then use arrow keys to pan and +/− to zoom." : "Drag to pan and use +/− to zoom. Expand the map to enable scroll zoom."}</p>
         </>
@@ -466,10 +471,6 @@ function MapExplorer({ brief, typeLabels }: Props) {
 
   return (
     <div className="mt-4 text-[#142D4E]">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-600">Explore the address and its surroundings.</p>
-        <button ref={expandRef} type="button" onClick={() => setExpanded(true)} className="rounded-lg bg-[#142D4E] px-4 py-3 text-sm font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">Expand map</button>
-      </div>
       {expanded && <div aria-hidden="true" className="h-96 rounded-xl bg-slate-100 lg:h-[30rem] 2xl:h-[36rem]" />}
       <dialog ref={dialogRef} open role={expanded ? "dialog" : "region"} aria-modal={expanded || undefined} aria-label={expanded ? undefined : "Neighbourhood map"} aria-labelledby={expanded ? `${id}-dialog-title` : undefined} onCancel={(event) => { event.preventDefault(); setExpanded(false); }} className={expanded ? "fixed inset-0 m-auto max-h-[96dvh] w-[96vw] max-w-7xl overflow-y-auto rounded-2xl border border-slate-200 bg-[#F8FAFC] p-4 text-[#142D4E] shadow-2xl backdrop:bg-slate-950/65 sm:p-6" : "relative m-0 w-full max-w-none overflow-visible border-0 bg-transparent p-0 text-[#142D4E]"}>
         {expanded && <div className="mb-5 flex items-start justify-between gap-4"><div><h2 id={`${id}-dialog-title`} className="text-xl font-semibold">Neighbourhood explorer</h2><p className="mt-1 text-sm text-slate-600">{brief.address.address}</p></div><button ref={closeRef} type="button" onClick={() => setExpanded(false)} className="shrink-0 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-teal-700">Close map</button></div>}

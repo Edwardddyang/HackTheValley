@@ -6,28 +6,16 @@ import { DashboardPanel, SCORE_RULE, STATUS_COLOR, StatusLegend, StatusTag, Unav
 
 type Building = Brief["rentsafe_nearby"]["buildings"][number];
 
-const SHOWN = 5;
-
 export default function NearbyBuildingsPanel({ brief, stats }: { brief: Brief; stats: RentSafeStats | null }) {
   const median = stats?.median_score ?? null;
   const list = brief.rentsafe_nearby.buildings.filter((b) => b.distance_m > 0 || !brief.building.in_rentsafe);
-  const rest = list.length - SHOWN;
   return (
     <DashboardPanel wide id="nearby-buildings" title="Evaluated buildings nearby"
       subtitle={`RentSafeTO apartment buildings within ${metres(brief.address.radius_m)}, nearest first. Useful for comparing options on the same block.`}>
       {list.length === 0 ? <Unavailable>No RentSafeTO-evaluated buildings in this radius.</Unavailable> : (
         <>
         {median != null && <div className="mb-4"><StatusLegend good={`At or above the city median (${median})`} fair="Up to 10 points below" poor="More than 10 below" /></div>}
-        <BuildingTable buildings={list.slice(0, SHOWN)} median={median} caption="RentSafeTO scores of the nearest buildings" head />
-        {rest > 0 && (
-          <details className="group mt-4">
-            <summary className="cursor-pointer list-none rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-center text-sm font-medium text-teal-800 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-teal-700">
-              <span className="group-open:hidden">Show {rest} more building{rest === 1 ? "" : "s"}</span>
-              <span className="hidden group-open:inline">Show fewer</span>
-            </summary>
-            <div className="mt-4"><BuildingTable buildings={list.slice(SHOWN)} median={median} caption="RentSafeTO scores of more buildings nearby" /></div>
-          </details>
-        )}
+        <BuildingTable buildings={list} median={median} />
         </>
       )}
       <p className="mt-4 text-xs leading-5 text-slate-500">Scores are each building&apos;s latest evaluation. <a href="#overview" className="underline">What the score means</a>.</p>
@@ -35,16 +23,12 @@ export default function NearbyBuildingsPanel({ brief, stats }: { brief: Brief; s
   );
 }
 
-/** Fixed column widths, so the collapsed rows line up with the table above them. */
-function BuildingTable({ buildings, median, caption, head = false }: {
-  buildings: Building[]; median: number | null; caption: string; head?: boolean;
-}) {
+function BuildingTable({ buildings, median }: { buildings: Building[]; median: number | null }) {
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200">
-      <table className="w-full table-fixed text-left text-sm">
-        <caption className="sr-only">{caption}</caption>
-        <colgroup><col className="w-1/2" /><col className="w-1/3" /><col /></colgroup>
-        <thead className={head ? "bg-slate-50 text-xs text-slate-500" : "sr-only"}>
+      <table className="w-full text-left text-sm">
+        <caption className="sr-only">RentSafeTO scores of nearby buildings</caption>
+        <thead className="bg-slate-50 text-xs text-slate-500">
           <tr><th scope="col" className="px-4 py-3 font-medium">Address</th><th scope="col" className="px-4 py-3 font-medium">Score</th><th scope="col" className="px-4 py-3 text-right font-medium">Distance</th></tr>
         </thead>
         <tbody className="divide-y divide-slate-100">

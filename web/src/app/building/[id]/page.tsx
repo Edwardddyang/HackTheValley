@@ -127,8 +127,13 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
           { id: "rent", label: "Rent", badge: listing.rent != null ? "Your listing" : null, content: (
             <Grid><RentPanel benchmark={extras?.rent_benchmark ?? null} listing={listing} /></Grid>
           ) },
-          { id: "buildings", label: "Nearby buildings", badge: count(brief.rentsafe_nearby.buildings.length), content: (
-            <Grid><NearbyBuildingsPanel brief={brief} stats={stats} /></Grid>
+          // Ordered by how much each tab bears on the decision: the area's cost and safety, then disruption
+          // nearby, then other buildings to compare, then the noisiest signal (311).
+          { id: "neighbourhood", label: "Neighbourhood", content: (
+            <Grid><NeighbourhoodPanel brief={brief} /></Grid>
+          ) },
+          { id: "crime", label: "Crime", badge: crimeAbove ? `${crimeAbove} above city` : null, content: (
+            <Grid><CrimePanel brief={brief} /></Grid>
           ) },
           { id: "construction", label: "Construction", badge: count(brief.construction_nearby.active_permit_count), content: (
             <Grid>
@@ -137,14 +142,11 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
               <AddressPermitsPanel brief={brief} />
             </Grid>
           ) },
+          { id: "buildings", label: "Nearby buildings", badge: count(brief.rentsafe_nearby.buildings.length), content: (
+            <Grid><NearbyBuildingsPanel brief={brief} stats={stats} /></Grid>
+          ) },
           { id: "311", label: "311 requests", badge: count(brief.service_requests_311.nearby.count), content: (
             <Grid><AreaComplaintsPanel brief={brief} /></Grid>
-          ) },
-          { id: "crime", label: "Crime", badge: crimeAbove ? `${crimeAbove} above city` : null, content: (
-            <Grid><CrimePanel brief={brief} /></Grid>
-          ) },
-          { id: "neighbourhood", label: "Neighbourhood", content: (
-            <Grid><NeighbourhoodPanel brief={brief} /></Grid>
           ) },
           { id: "reviews", label: "Reviews", badge: "Soon", content: (
             <Grid><ReviewsSection /></Grid>

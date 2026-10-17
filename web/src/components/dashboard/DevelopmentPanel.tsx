@@ -1,7 +1,7 @@
 import type { Brief } from "@/lib/brief";
 import { date, metres, num, titleCase } from "@/lib/format";
 
-import { DashboardPanel, ShowMore, SourceNote, Unavailable } from "./DashboardPanel";
+import { DashboardPanel, ItemList, SourceNote, Unavailable } from "./DashboardPanel";
 
 // Card layout from feature/frontend's NearbyConstructionPanel; applications from bb_brief
 // (grouped by application number: the City lists one row per street address).
@@ -19,7 +19,7 @@ export default function DevelopmentPanel({ brief }: { brief: Brief }) {
         ))}
       </div>
       {d.open.length === 0 ? <div className="mt-4"><Unavailable>No open applications in this radius.</Unavailable></div> : (
-        <div className="mt-4"><ShowMore noun="applications" items={d.open.map((a) => (
+        <div className="mt-4"><ItemList items={d.open.map((a) => (
             <li key={a.application_number} className="rounded-xl border border-slate-200 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs font-semibold text-teal-800">{d.type_labels[a.type] ?? a.type}</p>

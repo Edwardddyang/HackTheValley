@@ -157,21 +157,7 @@ export function CompareBar({ value, compare, max, title, status = null }: {
   );
 }
 
-/** Shows the first `initial` items; the rest open from a "Show more" toggle (no JavaScript needed). */
-export function ShowMore({ items, initial = 3, noun }: { items: ReactNode[]; initial?: number; noun: string }) {
-  const rest = items.length - initial;
-  return (
-    <>
-      <ul className="space-y-4">{items.slice(0, initial)}</ul>
-      {rest > 0 && (
-        <details className="group mt-4">
-          <summary className="cursor-pointer list-none rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-center text-sm font-medium text-teal-800 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-teal-700">
-            <span className="group-open:hidden">Show {rest} more {noun}</span>
-            <span className="hidden group-open:inline">Show fewer</span>
-          </summary>
-          <ul className="mt-4 space-y-4">{items.slice(initial)}</ul>
-        </details>
-      )}
-    </>
-  );
+/** A panel's list of records, shown in full: each list already has a tab of its own. */
+export function ItemList({ items }: { items: ReactNode[] }) {
+  return <ul className="space-y-4">{items}</ul>;
 }

@@ -2,7 +2,7 @@ import { Cite } from "@/components/Cite";
 import type { Brief } from "@/lib/brief";
 import { compactMoney, date, metres, num, titleCase } from "@/lib/format";
 
-import { BarList, DashboardPanel, ShowMore, SourceNote, Unavailable } from "./DashboardPanel";
+import { BarList, DashboardPanel, ItemList, SourceNote, Unavailable } from "./DashboardPanel";
 
 // Card layout from feature/frontend's NearbyConstructionPanel; permits from bb_brief.
 export default function NearbyConstructionPanel({ brief }: { brief: Brief }) {
@@ -21,7 +21,7 @@ export default function NearbyConstructionPanel({ brief }: { brief: Brief }) {
       <h3 className="mt-7 text-sm font-semibold text-[#142D4E]">Major projects</h3>
       <p className="mt-1 text-xs leading-5 text-slate-500">{c.notable_definition}.</p>
       {c.notable.length === 0 ? <div className="mt-3"><Unavailable>No major projects in this radius. This does not confirm that no construction is planned.</Unavailable></div> : (
-        <div className="mt-4"><ShowMore noun="projects" items={c.notable.map((p) => (
+        <div className="mt-4"><ItemList items={c.notable.map((p) => (
             <li key={p.permit_num + p.type} className="rounded-xl border border-slate-200 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs font-semibold text-teal-800">Building permit · {p.type}</p>
