@@ -33,6 +33,8 @@ export type MapLocation = {
   distanceM: number | null;
   label?: string; // short text drawn on the marker
   url?: string | null;
+  /** Essentials only: subway, grocery, pharmacy or hospital. */
+  category?: Amenity["category"];
 };
 
 export function isValidLocation(location: LatLng | null | undefined): location is LatLng {
@@ -85,26 +87,80 @@ export function briefLocations(brief: Brief, typeLabels: Record<string, string>)
   ];
 }
 
-export function sr311Points(brief: Brief): FeatureCollection<Point> {
-  return {
-    type: "FeatureCollection",
-    features: brief.service_requests_311.nearby.points.map((p) => ({
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [p.lon, p.lat] },
-      properties: { type: p.type, status: p.status, date: p.date },
-    })),
+export type Sr311Group = {
+  count: number;
+  /** The three most common request types, with counts. */
+  top: { type: string; count: number }[];
+  latest: string;
+  /** The dataset's own status strings (Completed, In Progress, New, Cancelled, …), most common first. */
+  statuses: { status: string; count: number }[];
+};
+
+/** From integrate/best-of-both: the City snaps every 311 request to its nearest intersection, so identical
+ *  coordinates are the data's real granularity. One circle per intersection, sized and labelled by how many
+ *  requests landed there; `i` indexes `groups` for the popup. */
+export function sr311Intersections(brief: Brief): { fc: FeatureCollection<Point>; groups: Sr311Group[]; total: number } {
+  // Plain objects, not Map: NeighbourhoodMap imports react-map-gl's <Map> under that name.
+  const by: Record<string, Brief["service_requests_311"]["nearby"]["points"]> = {};
+  for (const p of brief.service_requests_311.nearby.points) {
+    if (!isValidLocation({ lat: p.lat, lng: p.lon })) continue;
+    (by[`${p.lon.toFixed(6)},${p.lat.toFixed(6)}`] ??= []).push(p);
+  }
+  const tally = (xs: string[]) => {
+    const n: Record<string, number> = {};
+    for (const x of xs) n[x] = (n[x] ?? 0) + 1;
+    return Object.entries(n).sort((a, b) => b[1] - a[1]);
   };
+  const groups: Sr311Group[] = [];
+  const features: Feature<Point>[] = [];
+  for (const group of Object.values(by)) {
+    const count = group.length;
+    groups.push({
+      count,
+      top: tally(group.map((p) => p.type)).slice(0, 3).map(([type, c]) => ({ type, count: c })),
+      latest: group.reduce((a, p) => (p.date > a ? p.date : a), group[0].date),
+      statuses: tally(group.map((p) => p.status)).map(([status, c]) => ({ status, count: c })),
+    });
+    features.push({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [group[0].lon, group[0].lat] },
+      properties: { i: groups.length - 1, count, label: count >= 3 ? String(count) : "" },
+    });
+  }
+  return { fc: { type: "FeatureCollection", features }, groups, total: groups.reduce((n, g) => n + g.count, 0) };
 }
 
 // Essentials (integrate/best-of-both): subway, groceries, pharmacies and hospitals near the address, from a
 // static OpenStreetMap extract (public/amenities-toronto.json). Pharmacies are "Rx" here because "D" already
 // marks development applications on this map.
-const AMENITY_MARK: Record<Amenity["category"], string> = { subway: "T", grocery: "G", pharmacy: "Rx", hospital: "H" };
+export const AMENITY_MARK: Record<Amenity["category"], string> = { subway: "T", grocery: "G", pharmacy: "Rx", hospital: "H" };
 
 export function amenityLocations(items: Amenity[]): MapLocation[] {
   return items.map((a, i) => ({
-    id: `amenity-${a.category}-${i}`, name: a.name, layer: "amenity" as const,
+    id: `amenity-${a.category}-${i}`, name: a.name, layer: "amenity" as const, category: a.category,
     location: { lat: a.lat, lng: a.lon }, distanceM: a.distance_m, label: AMENITY_MARK[a.category],
     description: `${AMENITY_LABELS[a.category]} · ${metres(a.distance_m)} straight-line · OpenStreetMap`,
   }));
+}
+
+// Location search: plain words match the name, layer and description; these words also find a kind of place
+// whose own text may not say so ("metro" finds subway stations as well as Metro supermarkets).
+const SEARCH_SYNONYMS: Record<string, string[]> = {
+  grocery: ["grocery", "groceries", "supermarket", "food"],
+  subway: ["transit", "subway", "metro", "ttc", "station", "train"],
+  pharmacy: ["pharmacy", "drugstore", "rx"],
+  hospital: ["hospital", "er", "emergency"],
+  building_permit: ["permit", "permits", "construction"],
+  development_application: ["development", "application", "applications"],
+  rentsafe: ["rentsafeto", "rentsafe", "building", "buildings", "apartment", "apartments"],
+};
+
+/** True when every word of the query matches the location's text or one of its kind's synonyms. */
+export function matchesQuery(location: MapLocation, query: string): boolean {
+  const words = query.toLowerCase().replace(/drug store/g, "drugstore").split(/\s+/).filter(Boolean);
+  if (!words.length) return true;
+  const text = `${location.name} ${layerLabels[location.layer]} ${location.description}`.toLowerCase();
+  const synonyms = SEARCH_SYNONYMS[location.category ?? location.layer] ?? [];
+  // A synonym matches whole, or as a prefix once three letters are typed ("groc", "pharm").
+  return words.every((w) => text.includes(w) || synonyms.some((s) => s === w || (w.length >= 3 && s.startsWith(w))));
 }

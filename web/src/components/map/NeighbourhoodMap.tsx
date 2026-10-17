@@ -9,18 +9,21 @@ import { AttributionControl, Layer, Marker, NavigationControl, Popup, Source } f
 import type { MapLayerMouseEvent, MapRef } from "react-map-gl/maplibre";
 import type { FeatureCollection, Polygon } from "geojson";
 
-import { type AmenityResult, fetchAmenities } from "@/lib/amenities";
+import { AMENITY_CATEGORIES, AMENITY_LABELS, AMENITY_RADIUS_M, type AmenityResult, fetchAmenities } from "@/lib/amenities";
 import type { Brief } from "@/lib/brief";
-import { metres, money, month, num } from "@/lib/format";
+import { date, metres, month, num } from "@/lib/format";
 
 import { FlyoverButton } from "./Flyover";
+import { SHADE_ORDER, SHADES, shadeFill, shadeGradient } from "./hoodShades";
+import type { HoodsFile, HoodValues, Shade } from "./hoodShades";
 import MapLayerControls from "./MapLayerControls";
-import { amenityLocations, briefCenter, briefLocations, defaultLayers, isValidLocation, layerLabels, radiusCircle, sr311Points } from "./mapData";
+import { AMENITY_MARK, amenityLocations, briefCenter, briefLocations, defaultLayers, isValidLocation, layerLabels, matchesQuery, radiusCircle, sr311Intersections } from "./mapData";
 import type { LayerId, MapLocation } from "./mapData";
 
 // From feature/frontend (Satwik): expandable map with layer controls and an accessible location
 // list. Changes for real data: OpenFreeMap vector tiles, a radius that follows the search, RentSafeTO
-// buildings labelled with their score, and 311 requests drawn as a plain layer (there can be 800).
+// buildings labelled with their score, and 311 requests drawn as a plain layer (there can be 800), one circle per
+// intersection.
 
 const STYLE = "https://tiles.openfreemap.org/styles/positron";
 
@@ -68,12 +71,8 @@ const MARKER_TEXT: Record<MapLocation["layer"], string> = { building: "B", rents
 
 // --- From integrate/best-of-both (Ariaz): 3D buildings, ghost towers and neighbourhood shading -----------------
 
-/** public/hoods-toronto.json: simplified City boundaries carrying each neighbourhood's values. */
-type Shade = "none" | "rent" | "assault";
-type HoodsFile = { domains: Record<"rent" | "assault", [number, number]>; fc: FeatureCollection };
-const SHADE_DEEP: Record<"rent" | "assault", string> = { rent: "#13724f", assault: "#a62e1c" };
-const SHADE_LIGHT = "#f3f0e8";
-type HoodPick = { lng: number; lat: number; name: string; rent: number | null; assault: number | null; own: boolean };
+/** A clicked neighbourhood: public/hoods-toronto.json carries simplified City boundaries with each one's values. */
+type HoodPick = { lng: number; lat: number; name: string; values: HoodValues; own: boolean };
 
 // Ghost towers: a block for each open application whose description states a height ("NN-storey"); only that
 // conservative phrasing counts. The tallest stated height wins, since one description often names several.
@@ -123,22 +122,30 @@ function MapExplorer({ brief, typeLabels }: Props) {
     ...briefLocations(brief, typeLabels),
     ...(typeof amen === "object" ? amenityLocations(amen.items) : []),
   ], [brief, typeLabels, amen]);
+  // Items are sorted by distance, so the first of each category is its nearest; amenityLocations ids by index.
+  const nearestAmen = typeof amen !== "object" ? [] : AMENITY_CATEGORIES.map((category) => {
+    const i = amen.items.findIndex((a) => a.category === category);
+    return { category, item: i < 0 ? null : amen.items[i], location: locations.find((l) => l.id === `amenity-${category}-${i}`) };
+  });
   const ghosts = useMemo(() => ghostTowers(brief.development_applications.open), [brief]);
   const [three, setThree] = useState(false);
   const [shade, setShade] = useState<Shade>("none");
   const [hoods, setHoods] = useState<HoodsFile | "error" | null>(null);
   const [hood, setHood] = useState<HoodPick | null>(null);
-  const sr311 = useMemo(() => sr311Points(brief), [brief]);
+  const sr311 = useMemo(() => sr311Intersections(brief), [brief]);
+  const [pick311, setPick311] = useState<{ lng: number; lat: number; i: number } | null>(null);
+  const [hovering, setHovering] = useState(false);
+  const shadeDomain = shade !== "none" && hoods && hoods !== "error" ? hoods.domains[shade] ?? null : null;
   const plotted = locations.filter((location) => isValidLocation(location.location));
   const counts: Partial<Record<LayerId, number>> = {
     rentsafe: plotted.filter((l) => l.layer === "rentsafe").length,
     building_permit: plotted.filter((l) => l.layer === "building_permit").length,
     development_application: plotted.filter((l) => l.layer === "development_application").length,
-    sr311: sr311.features.length,
+    sr311: sr311.total,
     amenity: plotted.filter((l) => l.layer === "amenity").length,
   };
   const available = (Object.keys(layerLabels) as LayerId[]).filter((layer) =>
-    layer === "radius" ? hasCenter : layer === "sr311" ? sr311.features.length > 0 : plotted.some((location) => location.layer === layer));
+    layer === "radius" ? hasCenter : layer === "sr311" ? sr311.fc.features.length > 0 : plotted.some((location) => location.layer === layer));
   const [visible, setVisible] = useState({ ...defaultLayers });
   const [expanded, setExpanded] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -159,6 +166,11 @@ function MapExplorer({ brief, typeLabels }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const expandRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const [query, setQuery] = useState("");
+  const searching = query.trim() !== "";
+  const matching = useMemo(() => new Set(locations.filter((l) => matchesQuery(l, query)).map((l) => l.id)), [locations, query]);
+  const listed = searching ? locations.filter((l) => matching.has(l.id)) : locations;
+  const hiddenMatches = searching ? listed.filter((l) => isValidLocation(l.location) && !visible[l.layer]).length : 0;
   const visiblePoints = plotted.filter((location) => visible[location.layer]);
   const selected = visiblePoints.find((location) => location.id === selectedId);
   const circle = useMemo(() => (hasCenter ? radiusCircle(center, brief.address.radius_m) : null),
@@ -190,12 +202,17 @@ function MapExplorer({ brief, typeLabels }: Props) {
 
   function onMapClick(event: MapLayerMouseEvent) {
     setSelectedId(null);
+    setPick311(null);
     const f = event.features?.[0];
+    if (f?.layer.id === "sr311-points" && f.geometry.type === "Point") {
+      setHood(null);
+      const [lng, lat] = f.geometry.coordinates;
+      return setPick311({ lng, lat, i: Number(f.properties?.i) });
+    }
     if (f?.layer.id !== "hoods-fill") return setHood(null);
-    const p = f.properties as { id?: number; name?: string; rent?: number; assault?: number };
+    const p = f.properties as HoodValues & { id?: number; name?: string };
     setHood({
-      lng: event.lngLat.lng, lat: event.lngLat.lat, name: p.name ?? "Neighbourhood",
-      rent: p.rent ?? null, assault: p.assault ?? null,
+      lng: event.lngLat.lng, lat: event.lngLat.lat, name: p.name ?? "Neighbourhood", values: p,
       own: p.id != null && Number(p.id) === brief.area.neighbourhood?.hood_id,
     });
   }
@@ -281,6 +298,31 @@ function MapExplorer({ brief, typeLabels }: Props) {
     <div className="space-y-4">
       <MapLayerControls available={available} visible={visible} counts={counts}
         onToggle={(layer) => setVisible((current) => ({ ...current, [layer]: !current[layer] }))}>
+        {visible.amenity && nearestAmen.length > 0 && (
+          <div className="mt-3 border-t border-slate-200 pt-3">
+            <p className="text-xs font-semibold text-slate-700">Nearest essentials</p>
+            <ul className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-slate-700">
+              {nearestAmen.map(({ category, item, location }) => {
+                const mark = <span aria-hidden className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-800 text-[9px] font-bold text-white">{AMENITY_MARK[category]}</span>;
+                const label = AMENITY_LABELS[category];
+                return <li key={category}>
+                  {item && location ? (
+                    <button type="button" onClick={() => focusLocation(location)}
+                      className="flex min-h-7 items-center gap-2 rounded text-left hover:text-[#142D4E] focus-visible:outline-2 focus-visible:outline-teal-700">
+                      {mark}
+                      <span>{item.name === label ? label : <>{label} · <span className="font-medium text-[#142D4E]">{item.name}</span></>}</span>
+                      <span className="tabular-nums text-slate-500">{metres(item.distance_m)}</span>
+                      <span className="sr-only">, show on the map</span>
+                    </button>
+                  ) : (
+                    <span className="flex min-h-7 items-center gap-2 text-slate-500">{mark}{label} · none within {metres(AMENITY_RADIUS_M[category])}</span>
+                  )}
+                </li>;
+              })}
+            </ul>
+            {typeof amen === "object" && amen.asof && <p className="mt-1 text-xs text-slate-500">OpenStreetMap extract, {month(amen.asof)}. Distances are straight-line.</p>}
+          </div>
+        )}
         <div className="mt-3 flex flex-wrap items-start gap-x-8 gap-y-3 border-t border-slate-200 pt-3 text-sm text-slate-700">
           <div>
             <label className="flex min-h-8 cursor-pointer items-center gap-2">
@@ -308,23 +350,23 @@ function MapExplorer({ brief, typeLabels }: Props) {
                 }}
                 className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-[#142D4E] focus-visible:outline-2 focus-visible:outline-teal-700">
                 <option value="none">off</option>
-                <option value="rent">by renters&apos; shelter cost (2021)</option>
-                <option value="assault">by assault rate (2025)</option>
+                {SHADE_ORDER.map((m) => <option key={m} value={m}>by {SHADES[m].option}</option>)}
               </select>
             </label>
             {shade !== "none" && hoods === null && <p role="status" className="text-xs text-slate-500">Loading shading…</p>}
             {shade !== "none" && hoods === "error" && <p className="text-xs text-slate-500">The shading didn&apos;t load. Switch it off and on to retry.</p>}
-            {shade !== "none" && hoods && hoods !== "error" && (
-              <p className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
-                <span className="tabular-nums">≤ {shade === "rent" ? money(hoods.domains.rent[0]) : num(Math.round(hoods.domains.assault[0]))}</span>
-                <span aria-hidden className="inline-block h-2 w-16 rounded-sm" style={{ background: `linear-gradient(to right, ${SHADE_LIGHT}, ${SHADE_DEEP[shade]})` }} />
-                <span className="tabular-nums">≥ {shade === "rent" ? money(hoods.domains.rent[1]) : `${num(Math.round(hoods.domains.assault[1]))} per 100k`}</span>
-                <span>· click an area for its figures · City boundaries, 2021 Census, TPS 2025</span>
+            {shadeDomain && shade !== "none" && (
+              <p className="flex max-w-md flex-wrap items-center gap-1.5 text-xs text-slate-500">
+                <span className="tabular-nums">≤ {SHADES[shade].low(shadeDomain[0])}</span>
+                <span aria-hidden className="inline-block h-2 w-16 rounded-sm" style={{ background: shadeGradient(shade) }} />
+                <span className="tabular-nums">≥ {SHADES[shade].high(shadeDomain[1])}</span>
+                <span>· {SHADES[shade].source} · click an area for its figures</span>
               </p>
             )}
+            {shade !== "none" && hoods && hoods !== "error" && !shadeDomain && <p className="text-xs text-slate-500">This shading isn&apos;t in the map data yet.</p>}
           </div>
           {amen === "error" && <p className="text-xs text-slate-500">The essentials list didn&apos;t load.</p>}
-          {typeof amen === "object" && amen.asof && <p className="text-xs leading-8 text-slate-500">Essentials: OpenStreetMap extract, {month(amen.asof)}. Distances are straight-line.</p>}
+          {typeof amen === "object" && amen.asof && !visible.amenity && <p className="text-xs leading-8 text-slate-500">Essentials: OpenStreetMap extract, {month(amen.asof)}. Distances are straight-line.</p>}
         </div>
       </MapLayerControls>
       {!hasCenter ? <p role="status" className="rounded-xl bg-slate-100 p-6 text-sm">This address has no valid coordinates, so the map and radius are unavailable. See the location list below.</p> : (
@@ -345,7 +387,10 @@ function MapExplorer({ brief, typeLabels }: Props) {
                 minZoom={9} maxZoom={19}
                 attributionControl={false}
                 scrollZoom={expanded}
-                interactiveLayerIds={shade !== "none" && hoods && hoods !== "error" ? ["hoods-fill"] : []}
+                interactiveLayerIds={[...(visible.sr311 ? ["sr311-points"] : []), ...(shadeDomain ? ["hoods-fill"] : [])]}
+                cursor={hovering ? "pointer" : "grab"}
+                onMouseEnter={() => setHovering(true)}
+                onMouseLeave={() => setHovering(false)}
                 onLoad={(event) => {
                   if (attempt !== activeAttempt.current) return;
                   markMapReady();
@@ -381,15 +426,11 @@ function MapExplorer({ brief, typeLabels }: Props) {
               >
                 <NavigationControl position="top-right" showCompass />
                 <AttributionControl position="bottom-right" compact={!expanded} />
-                {shade !== "none" && hoods && hoods !== "error" && (
+                {shadeDomain && shade !== "none" && hoods && hoods !== "error" && (
                   /* beforeId slots the tint under the style's roads and labels. */
                   <Source id="hoods" type="geojson" data={hoods.fc}>
                     <Layer id="hoods-fill" type="fill" beforeId="highway_path"
-                      paint={{
-                        "fill-color": ["interpolate", ["linear"], ["coalesce", ["get", shade], hoods.domains[shade][0]],
-                          hoods.domains[shade][0], SHADE_LIGHT, hoods.domains[shade][1], SHADE_DEEP[shade]],
-                        "fill-opacity": 0.55,
-                      }} />
+                      paint={{ "fill-color": shadeFill(shade, shadeDomain), "fill-opacity": 0.55 }} />
                     <Layer id="hoods-line" type="line" beforeId="highway_path"
                       paint={{ "line-color": "#142D4E", "line-opacity": 0.25, "line-width": 0.5 }} />
                   </Source>
@@ -414,13 +455,22 @@ function MapExplorer({ brief, typeLabels }: Props) {
                   <Layer id="radius-fill" type="fill" paint={{ "fill-color": "#0D9488", "fill-opacity": 0.08 }} />
                   <Layer id="radius-outline" type="line" paint={{ "line-color": "#0D9488", "line-width": 2, "line-dasharray": [3, 2] }} />
                 </Source>}
-                {visible.sr311 && <Source id="sr311" type="geojson" data={sr311}>
+                {visible.sr311 && <Source id="sr311" type="geojson" data={sr311.fc}>
                   <Layer id="sr311-points" type="circle"
-                    paint={{ "circle-radius": 4, "circle-color": "#0284c7", "circle-opacity": 0.55, "circle-stroke-width": 1, "circle-stroke-color": "#ffffff" }} />
+                    paint={{
+                      "circle-radius": ["interpolate", ["linear"], ["get", "count"], 1, 4, 5, 8, 15, 12, 40, 15],
+                      "circle-color": "#0284c7", "circle-opacity": searching ? 0.2 : 0.85, "circle-stroke-width": 1, "circle-stroke-color": "#ffffff",
+                    }} />
+                  <Layer id="sr311-count" type="symbol"
+                    layout={{ "text-field": ["get", "label"], "text-size": 10, "text-font": ["Noto Sans Bold"],
+                      "text-allow-overlap": true, "text-ignore-placement": true }}
+                    paint={{ "text-color": "#ffffff", "text-opacity": searching ? 0.3 : 1 }} />
                 </Source>}
-                {visiblePoints.map((location) => <Marker key={location.id} latitude={location.location.lat} longitude={location.location.lng} anchor="center">
-                  <button type="button" aria-label={`${location.name}: ${layerLabels[location.layer]}`} onClick={(event) => { event.stopPropagation(); setSelectedId(location.id); }}
-                    className={`flex items-center justify-center rounded-full border-2 border-white font-bold text-white shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#142D4E] ${MARKER_CLASS[location.layer]}`}>
+                {/* While a search is active, matches get a ring and sit on top; everything but the address fades back. */}
+                {visiblePoints.map((location) => <Marker key={location.id} latitude={location.location.lat} longitude={location.location.lng} anchor="center"
+                  style={searching && matching.has(location.id) ? { zIndex: 2 } : undefined}>
+                  <button type="button" aria-label={`${location.name}: ${layerLabels[location.layer]}`} onClick={(event) => { event.stopPropagation(); setPick311(null); setSelectedId(location.id); }}
+                    className={`flex items-center justify-center rounded-full border-2 border-white font-bold text-white shadow-md transition-opacity focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#142D4E] ${MARKER_CLASS[location.layer]} ${!searching ? "" : matching.has(location.id) ? "ring-4 ring-amber-400" : location.layer === "building" ? "" : "opacity-25"}`}>
                     <span aria-hidden="true">{location.label ?? MARKER_TEXT[location.layer]}</span>
                   </button>
                 </Marker>)}
@@ -433,13 +483,29 @@ function MapExplorer({ brief, typeLabels }: Props) {
                     {selected.url && <a href={selected.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs font-medium text-teal-800 underline">City application page</a>}
                   </div>
                 </Popup>}
-                {hood && !selected && <Popup latitude={hood.lat} longitude={hood.lng} onClose={() => setHood(null)} closeOnClick={false} focusAfterOpen={false} offset={8} maxWidth="280px">
+                {pick311 && !selected && visible.sr311 && sr311.groups[pick311.i] && (() => {
+                  const g = sr311.groups[pick311.i];
+                  return <Popup latitude={pick311.lat} longitude={pick311.lng} onClose={() => setPick311(null)} closeOnClick={false} focusAfterOpen={false} offset={10} maxWidth="280px">
+                    <div className="p-1 text-[#142D4E]">
+                      <p className="font-semibold">{g.count === 1 ? "One 311 request" : `${num(g.count)} 311 requests`} at this intersection</p>
+                      <ul className="mt-1 space-y-0.5 text-xs leading-5">
+                        {g.top.map((t) => <li key={t.type}>{t.type}{g.count > 1 && <span className="tabular-nums text-slate-500"> ({num(t.count)})</span>}</li>)}
+                      </ul>
+                      <p className="mt-1 text-xs leading-5">Most recent {date(g.latest)}.</p>
+                      <p className="text-xs leading-5">Status: {g.count === 1 ? g.statuses[0].status : g.statuses.map((s) => `${num(s.count)} ${s.status}`).join(", ")}.</p>
+                    </div>
+                  </Popup>;
+                })()}
+                {hood && !selected && !pick311 && <Popup latitude={hood.lat} longitude={hood.lng} onClose={() => setHood(null)} closeOnClick={false} focusAfterOpen={false} offset={8} maxWidth="280px">
                   <div className="p-1 text-[#142D4E]">
                     <p className="font-semibold">{hood.name}</p>
-                    <p className="mt-1 text-xs leading-5">
-                      Renters&apos; median shelter cost {hood.rent != null ? `${money(hood.rent)}/mo` : "—"} (2021 Census) · assault {hood.assault != null ? num(Math.round(hood.assault)) : "—"} per 100k (Toronto Police, 2025).
-                    </p>
-                    {hood.own && <p className="mt-1 text-xs text-teal-800">This is the address&apos;s neighbourhood; the Crime and Neighbourhood tabs cite both figures.</p>}
+                    {/* The shaded figure first, then the rest for comparison. */}
+                    <ul className="mt-1 space-y-0.5 text-xs leading-5">
+                      {[...(shade === "none" ? [] : [shade]), ...SHADE_ORDER.filter((m) => m !== shade)].map((m) => (
+                        <li key={m} className={m === shade ? "font-semibold" : undefined}>{SHADES[m].line(hood.values)}</li>
+                      ))}
+                    </ul>
+                    {hood.own && <p className="mt-1 text-xs text-teal-800">This is the address&apos;s neighbourhood; the Crime and Neighbourhood tabs cite its police and Census figures.</p>}
                   </div>
                 </Popup>}
               </Map>
@@ -455,11 +521,22 @@ function MapExplorer({ brief, typeLabels }: Props) {
           <p className="text-xs leading-5 text-slate-500">{expanded ? "Drag to pan; scroll or use the zoom controls. Keyboard: focus the map, then use arrow keys to pan and +/− to zoom." : "Drag to pan and use +/− to zoom. Expand the map to enable scroll zoom."}</p>
         </>
       )}
-      <details className="rounded-xl border border-slate-200 bg-white p-4" open={expanded || undefined}>
-        <summary className="cursor-pointer rounded text-sm font-semibold focus-visible:outline-2 focus-visible:outline-teal-700">Map locations — accessible list ({locations.length})</summary>
-        <p className="mt-3 text-xs leading-5 text-slate-500">All marked locations are listed here, including hidden layers. The {sr311.features.length} 311 points are summarised by type in the 311 panel instead.</p>
+      <div className="rounded-xl border border-slate-200 bg-white p-4">
+        <label htmlFor={`${id}-search`} className="text-sm font-semibold">Search map locations</label>
+        <input id={`${id}-search`} type="search" value={query} onChange={(e) => setQuery(e.target.value)}
+          placeholder="grocery, transit, pharmacy, permit, RentSafeTO, a street…" aria-describedby={`${id}-search-count`}
+          className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-[#142D4E] placeholder:text-slate-400 focus-visible:outline-2 focus-visible:outline-teal-700" />
+        <p id={`${id}-search-count`} role="status" className="mt-2 text-xs leading-5 text-slate-500">
+          {!searching ? `${locations.length} locations; matches are highlighted on the map as you type.`
+            : listed.length === 0 ? "No locations match. Try grocery, transit, pharmacy, hospital, permit or RentSafeTO."
+            : `${listed.length} of ${locations.length} locations match, highlighted on the map${hiddenMatches ? `; ${hiddenMatches} ${hiddenMatches === 1 ? "is" : "are"} on a hidden layer` : ""}.`}
+        </p>
+      </div>
+      <details className="rounded-xl border border-slate-200 bg-white p-4" open={expanded || searching || undefined}>
+        <summary className="cursor-pointer rounded text-sm font-semibold focus-visible:outline-2 focus-visible:outline-teal-700">Map locations — accessible list ({searching ? `${listed.length} of ${locations.length}` : locations.length})</summary>
+        <p className="mt-3 text-xs leading-5 text-slate-500">All marked locations are listed here, including hidden layers. The {num(sr311.total)} 311 requests (at {num(sr311.fc.features.length)} intersections) are summarised by type in the 311 panel instead.</p>
         <ul className="mt-3 max-h-72 space-y-3 overflow-y-auto text-sm">
-          {locations.map((location) => <li key={location.id} className="border-t border-slate-100 pt-3">
+          {listed.map((location) => <li key={location.id} className="border-t border-slate-100 pt-3">
             <p className="font-medium">{location.name}</p><p className="mt-1 line-clamp-2 text-xs text-slate-600">{layerLabels[location.layer]} · {location.description}</p>
             {distanceLabel(location) && <p className="mt-1 text-xs text-slate-600">{distanceLabel(location)}</p>}
             {hasCenter && isValidLocation(location.location) ? <button type="button" onClick={() => focusLocation(location)} className="mt-2 rounded text-xs font-medium text-teal-800 underline focus-visible:outline-2 focus-visible:outline-teal-700">Show on map</button> : <p className="mt-1 text-xs text-slate-500">Coordinates unavailable; no marker plotted.</p>}
