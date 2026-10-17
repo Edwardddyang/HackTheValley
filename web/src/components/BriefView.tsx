@@ -10,6 +10,7 @@ import { Cite } from "./Cite";
 import { LimitsPanel } from "./LimitsPanel";
 import { ListingCard } from "./ListingCard";
 import { MapPanel } from "./MapPanel";
+import { ReviewsSection } from "./Reviews";
 import { scoreLevel } from "./ScoreRuler";
 import { BarList, CompareBar, Empty, Note, Pill, Section, Stat, StatusLegend, StatusTag, rate } from "./ui";
 
@@ -35,6 +36,7 @@ export function BriefView({ brief, extras, alternatives, radius, listing, fixtur
     ["requests", "311 in the area"],
     ["crime", "Crime"],
     ["census", "Neighbourhood"],
+    ["reviews", "Reviews"],
     ["limits", "Limits"],
   ];
 
@@ -64,6 +66,7 @@ export function BriefView({ brief, extras, alternatives, radius, listing, fixtur
           <CrimeSection brief={brief} />
           <CensusSection brief={brief} />
           <AddressPermitsSection brief={brief} />
+          <ReviewsSection />
           <LimitsPanel />
           <p className="pb-4 text-sm leading-relaxed text-ink-2">
             Facts come from City of Toronto open data, Toronto Police Service data and CMHC&apos;s Rental Market Survey.

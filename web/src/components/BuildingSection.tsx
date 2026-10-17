@@ -164,32 +164,41 @@ function ItemScore({ score, max }: { score: number; max: number }) {
   );
 }
 
-/** Ontario exempts units first occupied after Nov 15, 2018 from the rent-increase guideline; year built is only a proxy. */
+/** Ontario exempts units first occupied after Nov 15, 2018 from the rent-increase guideline; year built is only a proxy.
+ *  Presented as a label-plus-verdict-pill card, a treatment from Daniel's feature/frontend-ui; the verdict stays "likely". */
 function RentControlNote({ yearBuilt, cite }: { yearBuilt: number | null; cite: CiteData }) {
   const c =
     yearBuilt != null && yearBuilt <= 2017
       ? {
           title: "Likely rent-controlled",
+          pill: { color: "var(--moss)", background: "var(--moss-tint)" },
           body: `Built in ${yearBuilt}, so yearly increases for sitting tenants are likely capped by Ontario's rent-increase guideline. This is an estimate from the year built: confirm with the landlord.`,
         }
       : yearBuilt != null && yearBuilt >= 2019
         ? {
             title: "Likely exempt from rent control",
+            pill: { color: "var(--amber)", background: "var(--amber-tint)" },
             body: `Built in ${yearBuilt}. Units first occupied after November 15, 2018 are generally exempt from Ontario's rent-increase guideline, so increases may not be capped. Confirm with the landlord before you sign.`,
           }
         : {
-            title: "Rent control: can't tell",
+            title: "Can't tell",
+            pill: { color: "var(--ink-2)", background: "var(--surface)" },
             body: yearBuilt === 2018
               ? "Built in 2018, the year the rule changed, so it depends on when units were first occupied. Ask the landlord whether the unit is covered by the rent-increase guideline."
               : "The year built isn't on file. Ask the landlord whether the unit is covered by Ontario's rent-increase guideline.",
           };
   return (
-    <div className="mt-8 rounded-lg border-2 border-ink bg-surface p-4 sm:p-5">
-      <h3 className="plate text-[1.35rem] font-bold text-ink">
-        {c.title}
-        {yearBuilt != null ? <Cite cite={cite} /> : null}
-      </h3>
-      <p className="mt-1 max-w-[62ch] text-[15px] text-ink">{c.body}</p>
+    <div className="mt-8 rounded-xl border border-hairline bg-surface-2 p-4 sm:p-5">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <h3 className="text-base font-semibold text-ink">
+          Rent control
+          {yearBuilt != null ? <Cite cite={cite} /> : null}
+        </h3>
+        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-semibold" style={c.pill}>
+          {c.title}
+        </span>
+      </div>
+      <p className="mt-2 max-w-[62ch] text-[15px] text-ink">{c.body}</p>
     </div>
   );
 }
