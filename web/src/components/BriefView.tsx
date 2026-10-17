@@ -12,6 +12,7 @@ import { ListingCard } from "./ListingCard";
 import { MapPanel } from "./MapPanel";
 import { ReviewsSection } from "./Reviews";
 import { scoreLevel } from "./ScoreRuler";
+import { ShowOnMap } from "./ShowOnMap";
 import { BarList, CompareBar, Empty, Note, Pill, Section, Stat, StatusLegend, StatusTag, rate } from "./ui";
 
 export type ListingHints = { rent: number | null; beds: number | null };
@@ -70,6 +71,9 @@ export function BriefView({ brief, extras, alternatives, radius, listing, fixtur
           <LimitsPanel />
           <p className="pb-4 text-sm leading-relaxed text-ink-2">
             Facts come from City of Toronto open data, Toronto Police Service data and CMHC&apos;s Rental Market Survey.
+            The map&apos;s essentials (subway, groceries, pharmacies, hospitals) come from OpenStreetMap (ODbL)
+            {/* The flyover only exists when a Maps key was set at build time (see Flyover.tsx). */}
+            {process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ? ", and the flyover shows Google Photorealistic 3D Tiles" : ""}.
             Hover or focus a source tag to see the dataset, file and row. Only the plain-language summary and the
             viewing questions are written by AI, and they cite the same records.
           </p>
@@ -187,6 +191,7 @@ function NearbyBuildingsSection({ brief }: { brief: Brief }) {
                   <th scope="row" className="py-2 pr-3 text-left font-normal text-ink">
                     {titleCase(b.address)}
                     <Cite cite={b.cite} />
+                    <ShowOnMap lon={b.lon} lat={b.lat} layer="rentsafe" id={String(b.rsn)} label={titleCase(b.address)} />
                   </th>
                   <td className="w-2/5 py-2 pr-3">
                     <div className="flex items-center gap-2">
@@ -233,6 +238,8 @@ function ConstructionSection({ brief }: { brief: Brief }) {
                 <span className="font-semibold text-ink">
                   {titleCase(p.address)}
                   <Cite cite={p.cite} />
+                  <ShowOnMap lon={p.lon} lat={p.lat} layer="permits" id={`${p.permit_num}|${p.type}`}
+                    label={p.address ? titleCase(p.address) : "this project"} />
                 </span>
                 <span className="num text-sm text-ink-2">{metres(p.distance_m)}</span>
               </div>
@@ -275,6 +282,8 @@ function DevelopmentSection({ brief }: { brief: Brief }) {
                     </span>
                   ) : null}
                   <Cite cite={a.cite} />
+                  <ShowOnMap lon={a.lon} lat={a.lat} layer="devapps" id={`${a.application_number}|${a.type}`}
+                    label={a.address ? titleCase(a.address) : "this application"} />
                 </span>
                 <span className="num text-sm text-ink-2">{metres(a.distance_m)}</span>
               </div>
