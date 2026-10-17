@@ -5,14 +5,18 @@ import { num } from "@/lib/format";
 
 import { Cite } from "./Cite";
 
-export function Section({ id, title, subtitle, children }: {
-  id: string; title: string; subtitle?: ReactNode; children: ReactNode;
+/** A brief section: an anchor target with one h2 over a heavy rule. */
+export function Section({ id, title, subtitle, actions, children }: {
+  id: string; title: string; subtitle?: ReactNode; actions?: ReactNode; children: ReactNode;
 }) {
   return (
-    <section id={id} aria-labelledby={`${id}-h`} className="scroll-mt-24 rounded-xl border border-border bg-surface p-5">
+    <section id={id} aria-labelledby={`${id}-h`}>
       <header className="mb-4">
-        <h2 id={`${id}-h`} className="text-[15px] font-semibold text-ink">{title}</h2>
-        {subtitle ? <p className="mt-0.5 text-[13px] text-ink-3">{subtitle}</p> : null}
+        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2 border-b-2 border-ink pb-1.5">
+          <h2 id={`${id}-h`} className="plate text-[1.75rem] font-bold text-ink sm:text-[2rem]">{title}</h2>
+          {actions}
+        </div>
+        {subtitle ? <p className="mt-2 max-w-[68ch] text-[15px] text-ink-2">{subtitle}</p> : null}
       </header>
       {children}
     </section>
@@ -22,17 +26,22 @@ export function Section({ id, title, subtitle, children }: {
 export function Stat({ value, label, cite }: { value: ReactNode; label: ReactNode; cite?: CiteData | null }) {
   return (
     <div>
-      <div className="text-3xl font-semibold tracking-tight text-ink">
+      <div className="plate num text-[2.4rem] font-bold text-ink">
         {value}
         {cite ? <Cite cite={cite} /> : null}
       </div>
-      <div className="mt-0.5 text-[13px] text-ink-2">{label}</div>
+      <div className="mt-1 text-[15px] text-ink-2">{label}</div>
     </div>
   );
 }
 
 export function Empty({ children }: { children: ReactNode }) {
-  return <p className="text-[13px] text-ink-3">{children}</p>;
+  return <p className="text-[15px] text-ink-2">{children}</p>;
+}
+
+/** A small "how to read this" or "where this came from" line under a block of facts. */
+export function Note({ children }: { children: ReactNode }) {
+  return <p className="mt-3 max-w-[68ch] text-sm text-ink-3">{children}</p>;
 }
 
 /** Horizontal bars for counts by category (one series, so one colour; no legend needed). */
@@ -45,18 +54,18 @@ export function BarList({ items, color, max }: {
   return (
     <ul className="space-y-2.5">
       {items.map((i) => (
-        <li key={i.label} className="text-[13px]">
+        <li key={i.label} className="text-[15px]">
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-ink">
               {i.label}
               {i.cite ? <Cite cite={i.cite} /> : null}
             </span>
-            <span className="shrink-0 tabular-nums text-ink-2">
+            <span className="num shrink-0 text-ink">
               {num(i.count)}
-              {i.note ? <span className="ml-1.5 text-ink-3">{i.note}</span> : null}
+              {i.note ? <span className="ml-1.5 text-sm text-ink-3">{i.note}</span> : null}
             </span>
           </div>
-          <div className="mt-1 h-1.5 rounded-full bg-surface-2" title={`${i.label}: ${num(i.count)}`}>
+          <div className="mt-1 h-1.5 rounded-full bg-surface-2" aria-hidden="true">
             <div className="h-1.5 rounded-full" style={{ width: `${(100 * i.count) / top}%`, background: color }} />
           </div>
         </li>
@@ -65,16 +74,16 @@ export function BarList({ items, color, max }: {
   );
 }
 
-/** This place's value as a bar, with a tick at the comparison value (city or median). */
+/** This place's value as a bar, with a tick at the comparison value (city or median). The numbers are written beside it. */
 export function CompareBar({ value, compare, max, valueLabel, compareLabel }: {
   value: number | null; compare: number | null; max: number; valueLabel: string; compareLabel: string;
 }) {
   const pct = (n: number) => `${Math.min(100, Math.max(0, (100 * n) / (max || 1)))}%`;
   return (
-    <div className="relative mt-1.5 h-1.5 rounded-full bg-surface-2" title={`${valueLabel} · ${compareLabel}`}>
+    <div className="relative mt-1.5 h-1.5 rounded-full bg-surface-2" title={`${valueLabel}; ${compareLabel}`} aria-hidden="true">
       {value != null ? <div className="h-1.5 rounded-full bg-accent" style={{ width: pct(value) }} /> : null}
       {compare != null ? (
-        <div className="absolute -top-1 h-3.5 w-0.5 rounded-full bg-ink-2" style={{ left: `calc(${pct(compare)} - 1px)` }} />
+        <div className="absolute -top-1 h-3.5 w-0.5 rounded-full bg-ink" style={{ left: `calc(${pct(compare)} - 1px)` }} />
       ) : null}
     </div>
   );
@@ -82,7 +91,7 @@ export function CompareBar({ value, compare, max, valueLabel, compareLabel }: {
 
 export function Pill({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-border bg-surface-2 px-2 py-0.5 text-[12px] text-ink-2">
+    <span className="inline-flex items-center rounded-full border border-border bg-surface px-2.5 py-0.5 text-sm text-ink-2">
       {children}
     </span>
   );
