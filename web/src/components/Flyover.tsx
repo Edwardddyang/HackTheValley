@@ -17,6 +17,7 @@ interface CesiumCamera {
     complete?: () => void;
   }): void;
   lookAt(target: Cartesian3, offset: object): void;
+  lookAtTransform(transform: object): void;
 }
 
 interface CesiumViewer {
@@ -33,6 +34,7 @@ interface CesiumNS {
   Viewer: new (container: HTMLElement, opts: object) => CesiumViewer;
   Cartesian3: { fromDegrees(lon: number, lat: number, height: number): Cartesian3 };
   HeadingPitchRange: new (heading: number, pitch: number, range: number) => object;
+  Matrix4: { IDENTITY: object };
   Math: { toRadians(deg: number): number };
   GoogleMaps: { defaultApiKey?: string };
   createGooglePhotorealistic3DTileset(options?: object): Promise<object>;
@@ -142,6 +144,18 @@ function FlyoverModal({ apiKey, lat, lon, address, onClose }: {
               camera.lookAt(target, new Cesium.HeadingPitchRange(heading, pitch, 480));
             };
             viewer.scene.postUpdate.addEventListener(orbit);
+            // The orbit repositions the camera every frame, so it would swallow all input:
+            // the first drag, scroll or touch hands the camera to Cesium's own controls.
+            const container = containerRef.current;
+            const stopOrbit = () => {
+              if (orbit && viewer && !viewer.isDestroyed()) {
+                viewer.scene.postUpdate.removeEventListener(orbit);
+                camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+                orbit = null;
+              }
+              for (const ev of ["pointerdown", "wheel", "touchstart"]) container?.removeEventListener(ev, stopOrbit);
+            };
+            for (const ev of ["pointerdown", "wheel", "touchstart"]) container?.addEventListener(ev, stopOrbit);
           },
         });
       } catch (err) {
@@ -172,7 +186,7 @@ function FlyoverModal({ apiKey, lat, lon, address, onClose }: {
         <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5">
           <div className="min-w-0">
             <h2 className="truncate text-[15px] font-semibold text-ink">Flyover — {address}</h2>
-            <p className="text-xs text-ink-2">Google Photorealistic 3D Tiles, streamed live. Imagery can lag reality by months.</p>
+            <p className="text-xs text-ink-2">Google Photorealistic 3D Tiles, streamed live — drag, scroll or pinch to explore. Imagery can lag reality by months.</p>
           </div>
           <button ref={closeRef} type="button" onClick={onClose}
             className="shrink-0 rounded-md border border-border px-2.5 py-1 text-sm text-ink-2 hover:border-ink hover:text-ink">
