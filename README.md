@@ -1,0 +1,74 @@
+# Block Brief
+
+Look up a Toronto rental address and see the building's condition and what's going on around it,
+built only from City of Toronto open data, with every fact traceable to a source row.
+
+This repo currently holds the **data layer**: drop the City's files into `data/raw/`, check them,
+and load them into Supabase (Postgres + PostGIS). UI and briefing logic come next.
+
+## Layout
+
+```
+data/raw/<dataset>/      drop downloaded files here (each folder's README says which file)
+etl/                     Python loader (`bb` command)
+  blockbrief_etl/sources/  one module per dataset: how its file is read and cleaned
+supabase/migrations/     table definitions
+```
+
+## Setup (once)
+
+Needs [uv](https://docs.astral.sh/uv/). It installs Python 3.12 for this project by itself.
+
+```sh
+cd etl
+uv sync
+cp ../.env.example ../.env     # then paste your Supabase session pooler URL into ../.env
+uv run bb init-db              # creates the tables (safe to re-run)
+```
+
+## Workflow
+
+```sh
+uv run bb status                    # which folders have files
+uv run bb check rentsafe            # clean the files and preview the result (no database needed)
+uv run bb load address_points       # load into Supabase; replaces that dataset's rows
+uv run bb load all                  # everything, in dependency order
+uv run bb near "100 Queen St W"     # smoke test: what's loaded around an address
+```
+
+Load `address_points` before `building_permits`. Permits have no coordinates of their own and
+get them by matching `GEO_ID` to the address point.
+
+## Datasets
+
+| Folder | Dataset | Table(s) |
+|---|---|---|
+| `address_points` | Address Points (Municipal) | `address_points` |
+| `wards` | City Wards, 25-ward model | `wards` |
+| `neighbourhoods` | Neighbourhoods, 158 model | `neighbourhoods` |
+| `rentsafe` | Apartment Building Evaluations (RentSafeTO) | `rentsafe_evaluations` |
+| `building_permits` | Building Permits, active + cleared since 2017 | `building_permits` |
+| `development_applications` | Development Applications | `development_applications` |
+| `service_requests_311` | 311 Service Requests, customer initiated (one year only) | `service_requests_311` |
+| `crime_rates` | Neighbourhood Crime Rates (TPS) | `crime_rates`, `neighbourhood_population` |
+| `neighbourhood_profiles` | Neighbourhood Profiles, 2021 Census | `neighbourhood_profiles` |
+| `ward_profiles` | Ward Profiles, 2021 Census | `ward_profiles` |
+
+Every row stores `source_file` and `source_row_id` (the file's `_id`, or its row number when it
+has none), so the AI can cite exactly which record a claim came from.
+
+## Things the data does and doesn't contain
+
+- **311 requests have no coordinates and no closed date.** Location is a postal FSA (e.g. `M4L`),
+  an intersection, or the ward. "Within 500 m" and "time to resolve" can't come from this file.
+  The 2026 file is Windows-1252 encoded, and about 9% of its rows have an unquoted comma
+  ("Environment, Climate & Forestry"). The loader repairs both and prints any row it can't.
+- **Building permits have no coordinates.** They are placed via `GEO_ID` = Address Points
+  `ADDRESS_POINT_ID`.
+- **Development applications use X/Y in EPSG:7991** (NAD27 / MTM zone 10). Checked against
+  RentSafeTO rows that have both: median error ~10 m.
+- **Crime is per neighbourhood per year**, not per incident. Rates per 100k are TPS's own.
+  Blank cells mean no incidents (the file never contains a literal 0) and are stored as 0.
+- **RentSafeTO** has two files with different scoring categories. Shared fields are columns;
+  the per-category scores are in `item_scores` (JSON).
+- Staff contact details (development applications) and builder names (permits) are not loaded.

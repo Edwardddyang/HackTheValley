@@ -1,0 +1,15 @@
+# secrets
+.env
+
+# python
+.venv/
+__pycache__/
+*.pyc
+
+# raw data files (keep the folder READMEs)
+data/raw/**/*
+!data/raw/**/
+!data/raw/**/README.md
+!data/raw/**/.gitkeep
+
+.DS_Store
