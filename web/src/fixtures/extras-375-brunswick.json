@@ -1,0 +1,48 @@
+{
+  "registration": {
+    "rsn": 4153185,
+    "heating_type": "HOT WATER",
+    "heating_equipment_status": "REPLACED",
+    "heating_equipment_year": 2005,
+    "air_conditioning_type": "NONE",
+    "has_cooling_room": false,
+    "pets_allowed": "YES",
+    "property_manager": null,
+    "elevators": 1,
+    "laundry_room": "YES",
+    "cite": {
+      "dataset": "apartment_registrations",
+      "file": "apartment-building-registration-data.csv",
+      "row": 194581
+    }
+  },
+  "rent_benchmark": {
+    "area": "Former City of Toronto (Zones 1-4)",
+    "survey": "CMHC Rental Market Survey, October 2025",
+    "survey_year": 2025,
+    "by_bedrooms": {
+      "studio": {
+        "vacant_units": 1713,
+        "all_units": 1526
+      },
+      "one": {
+        "vacant_units": 2092,
+        "all_units": 1914
+      },
+      "two": {
+        "vacant_units": 2857,
+        "all_units": 2457
+      },
+      "three_plus": {
+        "vacant_units": null,
+        "all_units": 3195
+      }
+    },
+    "note": "Purpose-built private apartments. vacant_units = units vacant in October (closest to a new lease); all_units includes long-time tenants.",
+    "cite": {
+      "dataset": "cmhc_rents",
+      "file": "rmr-toronto-2025-en.xlsx",
+      "row": 12
+    }
+  }
+}

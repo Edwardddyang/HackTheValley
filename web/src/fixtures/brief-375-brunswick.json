@@ -1,0 +1,4524 @@
+{
+  "area": {
+    "ward": {
+      "cite": {
+        "row": 4,
+        "file": "city-wards-data-4326.geojson",
+        "dataset": "wards"
+      },
+      "name": "University-Rosedale",
+      "ward_number": 11
+    },
+    "neighbourhood": {
+      "cite": {
+        "row": 63,
+        "file": "neighbourhoods-4326.geojson",
+        "dataset": "neighbourhoods"
+      },
+      "name": "Annex",
+      "hood_id": 95,
+      "classification": "Not an NIA or Emerging Neighbourhood"
+    }
+  },
+  "crime": {
+    "note": "Rates are incidents per 100,000 people, published by Toronto Police Service per neighbourhood.",
+    "year": 2025,
+    "offences": [
+      {
+        "cite": {
+          "row": 63,
+          "file": "neighbourhood-crime-rates-4326.csv",
+          "dataset": "crime_rates"
+        },
+        "count": 416,
+        "offence": "ASSAULT",
+        "rate_per_100k": 1080.9,
+        "city_rate_per_100k": 767.9,
+        "previous_year_rate": 1192.4
+      },
+      {
+        "cite": {
+          "row": 63,
+          "file": "neighbourhood-crime-rates-4326.csv",
+          "dataset": "crime_rates"
+        },
+        "count": 45,
+        "offence": "AUTOTHEFT",
+        "rate_per_100k": 116.9,
+        "city_rate_per_100k": 225.2,
+        "previous_year_rate": 173
+      },
+      {
+        "cite": {
+          "row": 63,
+          "file": "neighbourhood-crime-rates-4326.csv",
+          "dataset": "crime_rates"
+        },
+        "count": 81,
+        "offence": "BIKETHEFT",
+        "rate_per_100k": 210.5,
+        "city_rate_per_100k": 66,
+        "previous_year_rate": 266.2
+      },
+      {
+        "cite": {
+          "row": 63,
+          "file": "neighbourhood-crime-rates-4326.csv",
+          "dataset": "crime_rates"
+        },
+        "count": 149,
+        "offence": "BREAKENTER",
+        "rate_per_100k": 387.1,
+        "city_rate_per_100k": 189.5,
+        "previous_year_rate": 393.9
+      },
+      {
+        "cite": {
+          "row": 63,
+          "file": "neighbourhood-crime-rates-4326.csv",
+          "dataset": "crime_rates"
+        },
+        "count": 2,
+        "offence": "HOMICIDE",
+        "rate_per_100k": 5.2,
+        "city_rate_per_100k": 1.4,
+        "previous_year_rate": 0
+      },
+      {
+        "cite": {
+          "row": 63,
+          "file": "neighbourhood-crime-rates-4326.csv",
+          "dataset": "crime_rates"
+        },
+        "count": 31,
+        "offence": "ROBBERY",
+        "rate_per_100k": 80.5,
+        "city_rate_per_100k": 78.5,
+        "previous_year_rate": 117.1
+      },
+      {
+        "cite": {
+          "row": 63,
+          "file": "neighbourhood-crime-rates-4326.csv",
+          "dataset": "crime_rates"
+        },
+        "count": 2,
+        "offence": "SHOOTING",
+        "rate_per_100k": 5.2,
+        "city_rate_per_100k": 8.2,
+        "previous_year_rate": 5.3
+      },
+      {
+        "cite": {
+          "row": 63,
+          "file": "neighbourhood-crime-rates-4326.csv",
+          "dataset": "crime_rates"
+        },
+        "count": 85,
+        "offence": "THEFTFROMMV",
+        "rate_per_100k": 220.9,
+        "city_rate_per_100k": 211.6,
+        "previous_year_rate": 332.7
+      },
+      {
+        "cite": {
+          "row": 63,
+          "file": "neighbourhood-crime-rates-4326.csv",
+          "dataset": "crime_rates"
+        },
+        "count": 44,
+        "offence": "THEFTOVER",
+        "rate_per_100k": 114.3,
+        "city_rate_per_100k": 60.7,
+        "previous_year_rate": 199.6
+      }
+    ]
+  },
+  "census": {
+    "values": {
+      "commuters": {
+        "cite": {
+          "row": 2576,
+          "file": "nbhd_2021_census_profile_full_158model.xlsx",
+          "dataset": "neighbourhood_profiles",
+          "column_hood_id": 95
+        },
+        "label": "Total - Main mode of commuting for the employed labour force aged 15 years and over with a usual place of work or no fixed workplace address - 25% sample data",
+        "value": 7175,
+        "compared_as": "value",
+        "toronto_neighbourhood_median": 4587.5
+      },
+      "dwellings": {
+        "cite": {
+          "row": 217,
+          "file": "nbhd_2021_census_profile_full_158model.xlsx",
+          "dataset": "neighbourhood_profiles",
+          "column_hood_id": 95
+        },
+        "label": "Total - Occupied private dwellings by structural type of dwelling - 25% sample data",
+        "value": 16325,
+        "compared_as": "value",
+        "toronto_neighbourhood_median": 6895
+      },
+      "households": {
+        "cite": {
+          "row": 300,
+          "file": "nbhd_2021_census_profile_full_158model.xlsx",
+          "dataset": "neighbourhood_profiles",
+          "column_hood_id": 95
+        },
+        "label": "Total - Private households by tenure - 25% sample data",
+        "value": 16325,
+        "compared_as": "value",
+        "toronto_neighbourhood_median": 6897.5
+      },
+      "population": {
+        "cite": {
+          "row": 4,
+          "file": "nbhd_2021_census_profile_full_158model.xlsx",
+          "dataset": "neighbourhood_profiles",
+          "column_hood_id": 95
+        },
+        "label": "Total - Age groups of the population - 25% sample data",
+        "value": 29300,
+        "compared_as": "value",
+        "toronto_neighbourhood_median": 16812.5
+      },
+      "commute_walk": {
+        "cite": {
+          "row": 2581,
+          "file": "nbhd_2021_census_profile_full_158model.xlsx",
+          "dataset": "neighbourhood_profiles",
+          "total_row": 2576,
+          "column_hood_id": 95
+        },
+        "label": "Walked",
+        "value": 1715,
+        "percent": 23.9,
+        "of_total": 7175,
+        "compared_as": "percent",
+        "toronto_neighbourhood_median": 4.4
+      },
+      "commute_bicycle": {
+        "cite": {
+          "row": 2582,
+          "file": "nbhd_2021_census_profile_full_158model.xlsx",
+          "dataset": "neighbourhood_profiles",
+          "total_row": 2576,
+          "column_hood_id": 95
+        },
+        "label": "Bicycle",
+        "value": 615,
+        "percent": 8.6,
+        "of_total": 7175,
+        "compared_as": "percent",
+        "toronto_neighbourhood_median": 0.9
+      },
+      "commute_transit": {
+        "cite": {
+          "row": 2580,
+          "file": "nbhd_2021_census_profile_full_158model.xlsx",
+          "dataset": "neighbourhood_profiles",
+          "total_row": 2576,
+          "column_hood_id": 95
+        },
+        "label": "Public transit",
+        "value": 1760,
+        "percent": 24.5,
+        "of_total": 7175,
+        "compared_as": "percent",
+        "toronto_neighbourhood_median": 25.8
+      },
+      "renter_households": {
+        "cite": {
+          "row": 302,
+          "file": "nbhd_2021_census_profile_full_158model.xlsx",
+          "dataset": "neighbourhood_profiles",
+          "total_row": 300,
+          "column_hood_id": 95
+        },
+        "label": "Renter",
+        "value": 9655,
+        "percent": 59.1,
+        "of_total": 16325,
+        "compared_as": "percent",
+        "toronto_neighbourhood_median": 45.5
+      },
+      "median_rent_monthly": {
+        "cite": {
+          "row": 380,
+          "file": "nbhd_2021_census_profile_full_158model.xlsx",
+          "dataset": "neighbourhood_profiles",
+          "column_hood_id": 95
+        },
+        "label": "Median monthly shelter costs for rented dwellings ($)",
+        "value": 1740,
+        "compared_as": "value",
+        "toronto_neighbourhood_median": 1450
+      },
+      "pct_tenants_subsidized": {
+        "cite": {
+          "row": 377,
+          "file": "nbhd_2021_census_profile_full_158model.xlsx",
+          "dataset": "neighbourhood_profiles",
+          "column_hood_id": 95
+        },
+        "label": "% of tenant households in subsidized housing",
+        "value": 6.8,
+        "compared_as": "value",
+        "toronto_neighbourhood_median": 11.3
+      },
+      "dwellings_major_repairs": {
+        "cite": {
+          "row": 337,
+          "file": "nbhd_2021_census_profile_full_158model.xlsx",
+          "dataset": "neighbourhood_profiles",
+          "total_row": 335,
+          "column_hood_id": 95
+        },
+        "label": "Major repairs needed",
+        "value": 1010,
+        "percent": 6.2,
+        "of_total": 16325,
+        "compared_as": "percent",
+        "toronto_neighbourhood_median": 6.6
+      },
+      "median_household_income": {
+        "cite": {
+          "row": 245,
+          "file": "nbhd_2021_census_profile_full_158model.xlsx",
+          "dataset": "neighbourhood_profiles",
+          "column_hood_id": 95
+        },
+        "label": "Median total income of household in 2020 ($)",
+        "value": 85000,
+        "compared_as": "value",
+        "toronto_neighbourhood_median": 84500
+      },
+      "apartments_5plus_storeys": {
+        "cite": {
+          "row": 223,
+          "file": "nbhd_2021_census_profile_full_158model.xlsx",
+          "dataset": "neighbourhood_profiles",
+          "total_row": 217,
+          "column_hood_id": 95
+        },
+        "label": "Apartment in a building that has five or more storeys",
+        "value": 8895,
+        "percent": 54.5,
+        "of_total": 16325,
+        "compared_as": "percent",
+        "toronto_neighbourhood_median": 36.4
+      },
+      "pct_tenants_30pct_on_shelter": {
+        "cite": {
+          "row": 378,
+          "file": "nbhd_2021_census_profile_full_158model.xlsx",
+          "dataset": "neighbourhood_profiles",
+          "column_hood_id": 95
+        },
+        "label": "% of tenant households spending 30% or more of its income on shelter costs",
+        "value": 46.1,
+        "compared_as": "value",
+        "toronto_neighbourhood_median": 39.1
+      }
+    },
+    "source_note": "2021 Census, City of Toronto Neighbourhood Profiles (158 neighbourhoods). Shares are computed here from the published counts."
+  },
+  "address": {
+    "lat": 43.6684648390783,
+    "lon": -79.4080983047526,
+    "cite": {
+      "row": 96819,
+      "file": "address-points-4326.csv",
+      "dataset": "address_points"
+    },
+    "address": "375 Brunswick Ave",
+    "radius_m": 500,
+    "municipality": "former Toronto",
+    "address_point_id": 778448
+  },
+  "building": {
+    "rsn": 4153185,
+    "units": 63,
+    "history": [
+      {
+        "cite": {
+          "row": 5714,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "date": "2025-10-02",
+        "score": 70
+      },
+      {
+        "cite": {
+          "row": 5715,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "date": "2023-10-04",
+        "score": 81
+      },
+      {
+        "cite": {
+          "row": 2570,
+          "file": "pre-2023-apartment-building-evaluations.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "date": "2021-10-28",
+        "score": 72
+      },
+      {
+        "cite": {
+          "row": 5486,
+          "file": "pre-2023-apartment-building-evaluations.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "date": "2019-11-26",
+        "score": 70
+      },
+      {
+        "cite": {
+          "row": 8036,
+          "file": "pre-2023-apartment-building-evaluations.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "date": "2018-12-28",
+        "score": 63
+      },
+      {
+        "cite": {
+          "row": 9978,
+          "file": "pre-2023-apartment-building-evaluations.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "date": "2017-11-20",
+        "score": 54
+      }
+    ],
+    "storeys": 9,
+    "year_built": 1960,
+    "in_rentsafe": true,
+    "site_address": "375 BRUNSWICK AVE",
+    "property_type": "PRIVATE",
+    "latest_evaluation": {
+      "cite": {
+        "row": 5714,
+        "file": "apartment-building-evaluations-2023-current.csv",
+        "dataset": "rentsafe_evaluations"
+      },
+      "date": "2025-10-02",
+      "score": 70,
+      "score_scale": "0-100",
+      "lowest_items": [
+        {
+          "item": "BALCONY GUARDS",
+          "score": 1
+        },
+        {
+          "item": "BUILDING CLEANLINESS",
+          "score": 1
+        },
+        {
+          "item": "BUILDING EXTERIOR",
+          "score": 1
+        },
+        {
+          "item": "COMMON AREA VENTILATION",
+          "score": 1
+        },
+        {
+          "item": "ELECTRICAL SAFETY PLAN",
+          "score": 1
+        }
+      ],
+      "item_scale_max": 3,
+      "percent_of_buildings_scoring_lower": 0.9
+    }
+  },
+  "rentsafe_nearby": {
+    "note": "Latest RentSafeTO evaluation of each apartment building (3+ storeys, 10+ units) within the radius. Scores are 0-100; evaluations before 2023 used a different scoring.",
+    "buildings": [
+      {
+        "lat": 43.6684734257,
+        "lon": -79.4081015431,
+        "rsn": 4153185,
+        "cite": {
+          "row": 5714,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 70,
+        "units": 63,
+        "address": "375 BRUNSWICK AVE",
+        "scoring": "2023+",
+        "storeys": 9,
+        "distance_m": 1,
+        "evaluation_date": "2025-10-02"
+      },
+      {
+        "lat": 43.668393896,
+        "lon": -79.4086851275,
+        "rsn": 5367995,
+        "cite": {
+          "row": 5717,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 71,
+        "units": 13,
+        "address": "376 BRUNSWICK AVE",
+        "scoring": "2023+",
+        "storeys": 3,
+        "distance_m": 48,
+        "evaluation_date": "2026-07-15"
+      },
+      {
+        "lat": 43.668763043,
+        "lon": -79.406936141,
+        "rsn": 4153188,
+        "cite": {
+          "row": 824,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 90,
+        "units": 33,
+        "address": "40 WALMER RD",
+        "scoring": "2023+",
+        "storeys": 4,
+        "distance_m": 99,
+        "evaluation_date": "2025-09-11"
+      },
+      {
+        "lat": 43.669071979,
+        "lon": -79.406941997,
+        "rsn": 4153187,
+        "cite": {
+          "row": 826,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 98,
+        "units": 85,
+        "address": "44 WALMER RD",
+        "scoring": "2023+",
+        "storeys": 13,
+        "distance_m": 115,
+        "evaluation_date": "2026-08-07"
+      },
+      {
+        "lat": 43.668157441,
+        "lon": -79.406612526,
+        "rsn": 4153179,
+        "cite": {
+          "row": 820,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 99,
+        "units": 61,
+        "address": "34 WALMER RD",
+        "scoring": "2023+",
+        "storeys": 10,
+        "distance_m": 125,
+        "evaluation_date": "2026-08-06"
+      },
+      {
+        "lat": 43.669364101,
+        "lon": -79.407141875,
+        "rsn": 4153186,
+        "cite": {
+          "row": 828,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 90,
+        "units": 35,
+        "address": "50 WALMER RD",
+        "scoring": "2023+",
+        "storeys": 4,
+        "distance_m": 126,
+        "evaluation_date": "2025-09-11"
+      },
+      {
+        "lat": 43.6678896371,
+        "lon": -79.406592558,
+        "rsn": 4153180,
+        "cite": {
+          "row": 818,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 79,
+        "units": 40,
+        "address": "30 WALMER RD",
+        "scoring": "2023+",
+        "storeys": 3,
+        "distance_m": 137,
+        "evaluation_date": "2025-09-10"
+      },
+      {
+        "lat": 43.6676622013,
+        "lon": -79.4064427031,
+        "rsn": 4153181,
+        "cite": {
+          "row": 814,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 91,
+        "units": 71,
+        "address": "22 WALMER RD",
+        "scoring": "2023+",
+        "storeys": 8,
+        "distance_m": 161,
+        "evaluation_date": "2026-08-15"
+      },
+      {
+        "lat": 43.6681530791,
+        "lon": -79.4056958125,
+        "rsn": 4153175,
+        "cite": {
+          "row": 816,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 99,
+        "units": 38,
+        "address": "27 WALMER RD",
+        "scoring": "2023+",
+        "storeys": 4,
+        "distance_m": 197,
+        "evaluation_date": "2026-08-07"
+      },
+      {
+        "lat": 43.669133539,
+        "lon": -79.405620062,
+        "rsn": 4153189,
+        "cite": {
+          "row": 822,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 86,
+        "units": 174,
+        "address": "35 WALMER RD",
+        "scoring": "2023+",
+        "storeys": 15,
+        "distance_m": 213,
+        "evaluation_date": "2025-09-02"
+      },
+      {
+        "lat": 43.666995001,
+        "lon": -79.406173702,
+        "rsn": 4221280,
+        "cite": {
+          "row": 807,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 90,
+        "units": 131,
+        "address": "6-10 WALMER RD",
+        "scoring": "2023+",
+        "storeys": 18,
+        "distance_m": 225,
+        "evaluation_date": "2025-08-18"
+      },
+      {
+        "lat": 43.6676214521,
+        "lon": -79.4054920342,
+        "rsn": 4153174,
+        "cite": {
+          "row": 812,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 94,
+        "units": 78,
+        "address": "15 WALMER RD",
+        "scoring": "2023+",
+        "storeys": 10,
+        "distance_m": 230,
+        "evaluation_date": "2026-08-21"
+      },
+      {
+        "lat": 43.6672444284,
+        "lon": -79.4054073649,
+        "rsn": 4153173,
+        "cite": {
+          "row": 809,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 98,
+        "units": 63,
+        "address": "11 WALMER RD",
+        "scoring": "2023+",
+        "storeys": 7,
+        "distance_m": 256,
+        "evaluation_date": "2025-09-02"
+      },
+      {
+        "lat": 43.669438916,
+        "lon": -79.405207226,
+        "rsn": 4255628,
+        "cite": {
+          "row": 369,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 92,
+        "units": 55,
+        "address": "50 SPADINA RD",
+        "scoring": "2023+",
+        "storeys": 7,
+        "distance_m": 257,
+        "evaluation_date": "2025-08-19"
+      },
+      {
+        "lat": 43.667834893,
+        "lon": -79.404953805,
+        "rsn": 4153176,
+        "cite": {
+          "row": 365,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 98,
+        "units": 103,
+        "address": "14 SPADINA RD",
+        "scoring": "2023+",
+        "storeys": 6,
+        "distance_m": 263,
+        "evaluation_date": "2026-10-06"
+      },
+      {
+        "lat": 43.670080063,
+        "lon": -79.405495723,
+        "rsn": 4153190,
+        "cite": {
+          "row": 373,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 91,
+        "units": 75,
+        "address": "66 SPADINA RD",
+        "scoring": "2023+",
+        "storeys": 11,
+        "distance_m": 276,
+        "evaluation_date": "2025-08-18"
+      },
+      {
+        "lat": 43.6703847733157,
+        "lon": -79.4057163418224,
+        "rsn": 4153192,
+        "cite": {
+          "row": 374,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 93,
+        "units": 157,
+        "address": "68-72 SPADINA RD",
+        "scoring": "2023+",
+        "storeys": 11,
+        "distance_m": 287,
+        "evaluation_date": "2026-10-06"
+      },
+      {
+        "lat": 43.6667874217,
+        "lon": -79.4051232115,
+        "rsn": 4221312,
+        "cite": {
+          "row": 6584,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 74,
+        "units": 170,
+        "address": "360 BLOOR ST W",
+        "scoring": "2023+",
+        "storeys": 20,
+        "distance_m": 304,
+        "evaluation_date": "2025-09-25"
+      },
+      {
+        "lat": 43.669553321,
+        "lon": -79.40462991,
+        "rsn": 4153217,
+        "cite": {
+          "row": 371,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 93,
+        "units": 57,
+        "address": "59 SPADINA RD",
+        "scoring": "2023+",
+        "storeys": 10,
+        "distance_m": 305,
+        "evaluation_date": "2026-08-25"
+      },
+      {
+        "lat": 43.668834904,
+        "lon": -79.404273749,
+        "rsn": 4155858,
+        "cite": {
+          "row": 367,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 76,
+        "units": 24,
+        "address": "41 SPADINA RD",
+        "scoring": "2023+",
+        "storeys": 4,
+        "distance_m": 311,
+        "evaluation_date": "2025-08-18"
+      },
+      {
+        "lat": 43.6714919471,
+        "lon": -79.4073443984,
+        "rsn": 4221313,
+        "cite": {
+          "row": 3191,
+          "file": "pre-2023-apartment-building-evaluations.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 70,
+        "units": 10,
+        "address": "110 WALMER RD",
+        "scoring": "pre-2023",
+        "storeys": 4,
+        "distance_m": 342,
+        "evaluation_date": "2021-04-27"
+      },
+      {
+        "lat": 43.671320039,
+        "lon": -79.405985424,
+        "rsn": 4155901,
+        "cite": {
+          "row": 377,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 91,
+        "units": 91,
+        "address": "88 SPADINA RD",
+        "scoring": "2023+",
+        "storeys": 5,
+        "distance_m": 360,
+        "evaluation_date": "2026-08-11"
+      },
+      {
+        "lat": 43.666740032,
+        "lon": -79.404199734,
+        "rsn": 4153178,
+        "cite": {
+          "row": 6581,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 99,
+        "units": 24,
+        "address": "334 BLOOR ST W",
+        "scoring": "2023+",
+        "storeys": 3,
+        "distance_m": 368,
+        "evaluation_date": "2026-08-21"
+      },
+      {
+        "lat": 43.66877501,
+        "lon": -79.412965543,
+        "rsn": 5367998,
+        "cite": {
+          "row": 213,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 93,
+        "units": 18,
+        "address": "922 BATHURST ST",
+        "scoring": "2023+",
+        "storeys": 3,
+        "distance_m": 394,
+        "evaluation_date": "2026-06-24"
+      },
+      {
+        "lat": 43.669877229,
+        "lon": -79.403530164,
+        "rsn": 5033221,
+        "cite": {
+          "row": 3920,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 58,
+        "units": 11,
+        "address": "51 MADISON AVE",
+        "scoring": "2023+",
+        "storeys": 3,
+        "distance_m": 400,
+        "evaluation_date": "2025-07-31"
+      },
+      {
+        "lat": 43.669993164,
+        "lon": -79.40358451,
+        "rsn": 4793995,
+        "cite": {
+          "row": 3923,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 85,
+        "units": 12,
+        "address": "55 MADISON AVE",
+        "scoring": "2023+",
+        "storeys": 4,
+        "distance_m": 402,
+        "evaluation_date": "2026-09-03"
+      },
+      {
+        "lat": 43.671869216,
+        "lon": -79.406368935,
+        "rsn": 4167462,
+        "cite": {
+          "row": 378,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 79,
+        "units": 216,
+        "address": "100 SPADINA RD",
+        "scoring": "2023+",
+        "storeys": 23,
+        "distance_m": 403,
+        "evaluation_date": "2025-08-19"
+      },
+      {
+        "lat": 43.6710026115859,
+        "lon": -79.4041066743916,
+        "rsn": 4153218,
+        "cite": {
+          "row": 3925,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 90,
+        "units": 17,
+        "address": "93-99 MADISON AVE",
+        "scoring": "2023+",
+        "storeys": 3,
+        "distance_m": 428,
+        "evaluation_date": "2025-08-01"
+      },
+      {
+        "lat": 43.668341436,
+        "lon": -79.402632539,
+        "rsn": 4153215,
+        "cite": {
+          "row": 3918,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 88,
+        "units": 12,
+        "address": "25 MADISON AVE",
+        "scoring": "2023+",
+        "storeys": 4,
+        "distance_m": 441,
+        "evaluation_date": "2025-12-02"
+      },
+      {
+        "lat": 43.668063591,
+        "lon": -79.413898107,
+        "rsn": 4153183,
+        "cite": {
+          "row": 200,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 76,
+        "units": 18,
+        "address": "38 BARTON AVE",
+        "scoring": "2023+",
+        "storeys": 4,
+        "distance_m": 470,
+        "evaluation_date": "2025-10-03"
+      },
+      {
+        "lat": 43.667957114,
+        "lon": -79.414124093,
+        "rsn": 4153184,
+        "cite": {
+          "row": 202,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 100,
+        "units": 24,
+        "address": "42 BARTON AVE",
+        "scoring": "2023+",
+        "storeys": 4,
+        "distance_m": 489,
+        "evaluation_date": "2026-07-28"
+      },
+      {
+        "lat": 43.67050446,
+        "lon": -79.41350556,
+        "rsn": 5858767,
+        "cite": {
+          "row": 214,
+          "file": "apartment-building-evaluations-2023-current.csv",
+          "dataset": "rentsafe_evaluations"
+        },
+        "score": 100,
+        "units": 14,
+        "address": "1000 BATHURST ST",
+        "scoring": "2023+",
+        "storeys": 5,
+        "distance_m": 491,
+        "evaluation_date": "2026-09-18"
+      }
+    ]
+  },
+  "permits_at_address": {
+    "note": "All active permits; cleared permits only if completed since 2025-01-01.",
+    "items": []
+  },
+  "construction_nearby": {
+    "cite": {
+      "file": "building-permits-active-permits.csv",
+      "dataset": "building_permits",
+      "row_count": 5,
+      "sample_rows": [
+        107215,
+        144794,
+        149443,
+        174225,
+        192308
+      ]
+    },
+    "by_type": [
+      {
+        "type": "Small Residential Projects",
+        "count": 221
+      },
+      {
+        "type": "Building Additions/Alterations",
+        "count": 203
+      },
+      {
+        "type": "Mechanical(MS)",
+        "count": 175
+      },
+      {
+        "type": "Plumbing(PS)",
+        "count": 154
+      },
+      {
+        "type": "Drain and Site Service",
+        "count": 52
+      },
+      {
+        "type": "Fire/Security Upgrade",
+        "count": 23
+      },
+      {
+        "type": "New Building",
+        "count": 9
+      },
+      {
+        "type": "New Houses",
+        "count": 7
+      }
+    ],
+    "notable": [
+      {
+        "lat": 43.6648561188729,
+        "lon": -79.4114809331797,
+        "cite": {
+          "row": 73298,
+          "file": "building-permits-active-permits.csv",
+          "dataset": "building_permits"
+        },
+        "type": "New Building",
+        "status": "Inspection",
+        "address": "571 BLOOR ST W",
+        "distance_m": 485,
+        "permit_num": "17 272672 BLD",
+        "description": "EAST BLOCK - Proposal to construct 5 residential rental towers (Building 2 - 24 storey, Building 3A - 25 storey, Building 3B - 26 storey, Building 4 - 14 storey, & Building 5 -17), 781 residential units (including 85 affordable units), commercial on levels P1, ground floor, & level 2, 5 levels of underground parking, and interior alterations to existing heritage buildings.  571-581 BLOOR ST W, 742-782 BATHURST ST (EXCLUDING 756 & 758 BATHURST), 26-34 LENNOX ST, 601-603 MARKHAM ST.",
+        "issued_date": "2022-08-24",
+        "est_const_cost": 330000000,
+        "dwelling_units_created": 737
+      },
+      {
+        "lat": 43.6683068320379,
+        "lon": -79.41280084012,
+        "cite": {
+          "row": 140016,
+          "file": "building-permits-active-permits.csv",
+          "dataset": "building_permits"
+        },
+        "type": "New Building",
+        "status": "Under Review",
+        "address": "914 BATHURST ST",
+        "distance_m": 380,
+        "permit_num": "26 103527 BLD",
+        "description": "Proposal to construct 13 storey building with 159 rental units, ground floor commercial use and 2 levels of underground parking",
+        "issued_date": null,
+        "est_const_cost": 100000000,
+        "dwelling_units_created": 159
+      },
+      {
+        "lat": 43.6688535263269,
+        "lon": -79.4082448914738,
+        "cite": {
+          "row": 192308,
+          "file": "building-permits-active-permits.csv",
+          "dataset": "building_permits"
+        },
+        "type": "New Building",
+        "status": "Inspection",
+        "address": "385 BRUNSWICK AVE",
+        "distance_m": 45,
+        "permit_num": "04 183546 BLD",
+        "description": "Proposed conversion of former Loretto College building into 36 residential units with 13 additional townhomes on site.bin 2067",
+        "issued_date": "2005-07-25",
+        "est_const_cost": 40000000,
+        "dwelling_units_created": 49
+      },
+      {
+        "lat": 43.6657260066713,
+        "lon": -79.4035892751265,
+        "cite": {
+          "row": 14873,
+          "file": "building-permits-active-permits.csv",
+          "dataset": "building_permits"
+        },
+        "type": "New Building",
+        "status": "Inspection",
+        "address": "732 SPADINA AVE",
+        "distance_m": 474,
+        "permit_num": "04 194912 BLD",
+        "description": "New mixed use building containing 273 residential dwelling units and 898 square metres of commercial space with below grade parking.",
+        "issued_date": "2006-05-29",
+        "est_const_cost": 35000000,
+        "dwelling_units_created": null
+      },
+      {
+        "lat": 43.6648561188729,
+        "lon": -79.4114809331797,
+        "cite": {
+          "row": 99643,
+          "file": "building-permits-active-permits.csv",
+          "dataset": "building_permits"
+        },
+        "type": "Building Additions/Alterations",
+        "status": "Inspection",
+        "address": "571 BLOOR ST W",
+        "distance_m": 485,
+        "permit_num": "17 230992 BLD",
+        "description": "Proposal for soil remediation/shoring  including vertical drilling, corner bracing and horizontal struts for future mixed use development - Mirvish Village RedevelopmentAddress includes 571, 581, 585, 593, 595, and 597 Bloor St W, 738, 740, 742, 744, 746, 754, and 760 Bathurst St, 28 lennox St, 581, 583, 585, 587, 589, 591, 593, 595, 597, 599, 601 and 603 Markahm St.",
+        "issued_date": "2018-05-16",
+        "est_const_cost": 27000000,
+        "dwelling_units_created": null
+      },
+      {
+        "lat": 43.6693390569389,
+        "lon": -79.4105143147346,
+        "cite": {
+          "row": 25811,
+          "file": "building-permits-active-permits.csv",
+          "dataset": "building_permits"
+        },
+        "type": "Building Additions/Alterations",
+        "status": "Inspection",
+        "address": "120 HOWLAND AVE",
+        "distance_m": 218,
+        "permit_num": "23 224209 BLD",
+        "description": "Proposed renovation of ground, second and third floors of existing college, including one elevator, three lifts and 163m2 glass enclosure - \"Royal St George College\".",
+        "issued_date": "2024-06-05",
+        "est_const_cost": 18000000,
+        "dwelling_units_created": 0
+      },
+      {
+        "lat": 43.6675885584559,
+        "lon": -79.4026810999006,
+        "cite": {
+          "row": 160756,
+          "file": "building-permits-active-permits.csv",
+          "dataset": "building_permits"
+        },
+        "type": "Building Additions/Alterations",
+        "status": "Inspection",
+        "address": "9 MADISON AVE",
+        "distance_m": 448,
+        "permit_num": "20 117552 BLD",
+        "description": "Proposal to construct a three-storey mixed-use building containing assembly (Estonian Centre) and office uses, which attaches to, retains, and re-uses the existing three-storey commercial building at 11 Madison Avenue.Do not issue untill 24 100310 ALT 00 issued",
+        "issued_date": "2025-08-13",
+        "est_const_cost": 18000000,
+        "dwelling_units_created": 0
+      },
+      {
+        "lat": 43.6672167324759,
+        "lon": -79.4024395283604,
+        "cite": {
+          "row": 156652,
+          "file": "building-permits-active-permits.csv",
+          "dataset": "building_permits"
+        },
+        "type": "Building Additions/Alterations",
+        "status": "Inspection",
+        "address": "310 BLOOR ST W",
+        "distance_m": 477,
+        "permit_num": "16 130591 BLD",
+        "description": "Renovation to part of floors 14, 12 and 11, student rooms, kitchens and washrooms. Renovation includes new mechanical, plumbing, electrical services and architectural partitions and finishes. occupant load will remain as per pre-renovation. Existing fire alarm system to remain.",
+        "issued_date": "2016-05-17",
+        "est_const_cost": 18000000,
+        "dwelling_units_created": 0
+      },
+      {
+        "lat": 43.6703881695113,
+        "lon": -79.4050669661341,
+        "cite": {
+          "row": 77879,
+          "file": "building-permits-active-permits.csv",
+          "dataset": "building_permits"
+        },
+        "type": "Building Additions/Alterations",
+        "status": "Inspection",
+        "address": "85 SPADINA RD",
+        "distance_m": 325,
+        "permit_num": "21 181573 BLD",
+        "description": "The purpose of Spadina Easier Access project is to built the barrier free vertical transportation between each level of the station. The design includes a new passaenger elevator in each platform (Northbound and Southbound), and mofication of the existing escalators and staircases layout",
+        "issued_date": "2021-10-05",
+        "est_const_cost": 16900000,
+        "dwelling_units_created": 0
+      },
+      {
+        "lat": 43.6675344123692,
+        "lon": -79.4032394761354,
+        "cite": {
+          "row": 200925,
+          "file": "building-permits-active-permits.csv",
+          "dataset": "building_permits"
+        },
+        "type": "Building Additions/Alterations",
+        "status": "Permit Issued",
+        "address": "10 MADISON AVE",
+        "distance_m": 405,
+        "permit_num": "23 182973 BLD",
+        "description": "Proposed addition to extend the TTC Spadina LRT Station platform and interior alterations to the concourse/LRT level of the Spadina station.  The proposed modification/addition to the existing station platform will be entirely underground and will encroach in the adjacent Paul Martel Park.  Note a separate permit has been applied for the portion of propsed tunnel located withing 316 Bloor St W.",
+        "issued_date": "2025-05-23",
+        "est_const_cost": 9860000,
+        "dwelling_units_created": 0
+      }
+    ],
+    "notable_definition": "New Building or Demolition permits, or estimated construction cost of $1,000,000 or more",
+    "active_permit_count": 864
+  },
+  "service_requests_311": {
+    "ward": {
+      "count": 23632,
+      "top_types": [
+        {
+          "cite": {
+            "file": "sr2026.zip",
+            "dataset": "service_requests_311",
+            "row_count": 5,
+            "sample_rows": [
+              430247,
+              428020,
+              425812,
+              424020,
+              423396
+            ]
+          },
+          "type": "Graffiti on Private Property",
+          "count": 910,
+          "still_open": 253
+        },
+        {
+          "cite": {
+            "file": "sr2026.zip",
+            "dataset": "service_requests_311",
+            "row_count": 5,
+            "sample_rows": [
+              430313,
+              430133,
+              429905,
+              428959,
+              428865
+            ]
+          },
+          "type": "Property Standards and Maintenance Violations",
+          "count": 900,
+          "still_open": 393
+        },
+        {
+          "cite": {
+            "file": "sr2026.zip",
+            "dataset": "service_requests_311",
+            "row_count": 5,
+            "sample_rows": [
+              430210,
+              429588,
+              428894,
+              428702,
+              427997
+            ]
+          },
+          "type": "Residential Bin Lid Damaged",
+          "count": 709,
+          "still_open": 13
+        },
+        {
+          "cite": {
+            "file": "sr2026.zip",
+            "dataset": "service_requests_311",
+            "row_count": 5,
+            "sample_rows": [
+              430008,
+              427732,
+              425422,
+              424630,
+              423639
+            ]
+          },
+          "type": "Road Pothole / Road Damage",
+          "count": 687,
+          "still_open": 9
+        },
+        {
+          "cite": {
+            "file": "sr2026.zip",
+            "dataset": "service_requests_311",
+            "row_count": 5,
+            "sample_rows": [
+              430204,
+              430156,
+              429967,
+              429778,
+              429202
+            ]
+          },
+          "type": "Injured - Wildlife",
+          "count": 667,
+          "still_open": 1
+        },
+        {
+          "cite": {
+            "file": "sr2026.zip",
+            "dataset": "service_requests_311",
+            "row_count": 5,
+            "sample_rows": [
+              429555,
+              428821,
+              426304,
+              424710,
+              424309
+            ]
+          },
+          "type": "Tree Emergency Clean-Up",
+          "count": 657,
+          "still_open": 97
+        },
+        {
+          "cite": {
+            "file": "sr2026.zip",
+            "dataset": "service_requests_311",
+            "row_count": 5,
+            "sample_rows": [
+              127210,
+              124129,
+              108488,
+              108398,
+              108351
+            ]
+          },
+          "type": "Sidewalk Snow Clearing Required",
+          "count": 615,
+          "still_open": 2
+        },
+        {
+          "cite": {
+            "file": "sr2026.zip",
+            "dataset": "service_requests_311",
+            "row_count": 5,
+            "sample_rows": [
+              430049,
+              429615,
+              429494,
+              429459,
+              429109
+            ]
+          },
+          "type": "Clean up Illegal Dumping on City Road Allowance",
+          "count": 533,
+          "still_open": 0
+        }
+      ],
+      "ward_number": 11
+    },
+    "nearby": {
+      "note": "Only requests reported at a street intersection have a location; requests reported by postal code are not included here.",
+      "count": 328,
+      "points": [
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 428844,
+          "date": "2026-09-29",
+          "type": "Clean up Illegal Dumping on City Road Allowance",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 427211,
+          "date": "2026-09-28",
+          "type": "Injured - Wildlife",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66946,
+          "lon": -79.40242,
+          "row": 425675,
+          "date": "2026-09-27",
+          "type": "Amplified or Musical Instrument Noise",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668905,
+          "lon": -79.408644,
+          "row": 425483,
+          "date": "2026-09-27",
+          "type": "Investigate Regulatory Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668905,
+          "lon": -79.408644,
+          "row": 425476,
+          "date": "2026-09-27",
+          "type": "General Pruning",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 424245,
+          "date": "2026-09-26",
+          "type": "Street Furniture Request",
+          "status": "Unknown"
+        },
+        {
+          "lat": 43.664091,
+          "lon": -79.409461,
+          "row": 423535,
+          "date": "2026-09-25",
+          "type": "Clean up Overflowing Street Litter Bin",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 422291,
+          "date": "2026-09-25",
+          "type": "Bike Lane Pothole",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 422259,
+          "date": "2026-09-24",
+          "type": "Bike Lane Pothole",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 413412,
+          "date": "2026-09-18",
+          "type": "Clean up Illegal Dumping on City Road Allowance",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 412492,
+          "date": "2026-09-18",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 412349,
+          "date": "2026-09-17",
+          "type": "Clean up Illegal Dumping on City Road Allowance",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 412346,
+          "date": "2026-09-17",
+          "type": "Clean up Overflowing Street Litter Bin",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 411275,
+          "date": "2026-09-17",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 410324,
+          "date": "2026-09-16",
+          "type": "Clean up Debris on Road",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 410320,
+          "date": "2026-09-16",
+          "type": "Clean up Debris on Road",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 408893,
+          "date": "2026-09-16",
+          "type": "Tree Emergency Clean-Up",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 406562,
+          "date": "2026-09-14",
+          "type": "Road - Sinking",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 403766,
+          "date": "2026-09-12",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 403719,
+          "date": "2026-09-12",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668374,
+          "lon": -79.401997,
+          "row": 403717,
+          "date": "2026-09-12",
+          "type": "Tree Emergency Clean-Up",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 403594,
+          "date": "2026-09-12",
+          "type": "Sidewalk - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 399124,
+          "date": "2026-09-09",
+          "type": "Bees/Wasp",
+          "status": "New"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 395919,
+          "date": "2026-09-08",
+          "type": "Pick up Dead Wildlife",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 395618,
+          "date": "2026-09-08",
+          "type": "Biohazard Human Waste Removal",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.671758,
+          "lon": -79.409347,
+          "row": 395455,
+          "date": "2026-09-08",
+          "type": "Park Conduct",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 393803,
+          "date": "2026-09-07",
+          "type": "Road Pothole / Road Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.670302,
+          "lon": -79.405287,
+          "row": 392146,
+          "date": "2026-09-05",
+          "type": "Street Furniture Request",
+          "status": "Unknown"
+        },
+        {
+          "lat": 43.670314,
+          "lon": -79.413241,
+          "row": 391796,
+          "date": "2026-09-05",
+          "type": "Report an Encroachment on City Property",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 389608,
+          "date": "2026-09-04",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.671158,
+          "lon": -79.408219,
+          "row": 387469,
+          "date": "2026-09-03",
+          "type": "Catch Basin - Blocked / Flooding",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666175,
+          "lon": -79.406277,
+          "row": 384373,
+          "date": "2026-09-02",
+          "type": "Road - Sinking",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 383359,
+          "date": "2026-09-02",
+          "type": "Sidewalk - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.412994,
+          "row": 379782,
+          "date": "2026-08-31",
+          "type": "Missing/Damaged/Faded/Relocating Street Name or Traffic Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.670302,
+          "lon": -79.405287,
+          "row": 378277,
+          "date": "2026-08-29",
+          "type": "Damaged Concrete Sidewalk",
+          "status": "In Progress"
+        },
+        {
+          "lat": 43.66691,
+          "lon": -79.402687,
+          "row": 374532,
+          "date": "2026-08-27",
+          "type": "Clean up Litter on Sidewalks and Boulevards",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66747,
+          "lon": -79.404174,
+          "row": 374524,
+          "date": "2026-08-27",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 374523,
+          "date": "2026-08-27",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 372379,
+          "date": "2026-08-25",
+          "type": "Injured - Wildlife",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 369106,
+          "date": "2026-08-23",
+          "type": "Clean up Illegal Dumping on City Road Allowance",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 366718,
+          "date": "2026-08-21",
+          "type": "Walkway - Damaged or Uneven",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 361403,
+          "date": "2026-08-18",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 360724,
+          "date": "2026-08-17",
+          "type": "Waste Set Out - Wrong Location / Time/ Day",
+          "status": "In Progress"
+        },
+        {
+          "lat": 43.66422,
+          "lon": -79.408791,
+          "row": 357860,
+          "date": "2026-08-15",
+          "type": "Tree Emergency Clean-Up",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.664091,
+          "lon": -79.409461,
+          "row": 357653,
+          "date": "2026-08-15",
+          "type": "Tree Emergency Clean-Up",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 354077,
+          "date": "2026-08-13",
+          "type": "Clean up Illegal Dumping on City Road Allowance",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 350809,
+          "date": "2026-08-11",
+          "type": "Street Furniture Request",
+          "status": "Unknown"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 350401,
+          "date": "2026-08-10",
+          "type": "Investigate Regulatory Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 347421,
+          "date": "2026-08-08",
+          "type": "Missing/Faded Pavement Markings",
+          "status": "New"
+        },
+        {
+          "lat": 43.665236,
+          "lon": -79.408473,
+          "row": 343465,
+          "date": "2026-08-06",
+          "type": "Clean up Illegal Dumping on City Road Allowance",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 342153,
+          "date": "2026-08-05",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 342133,
+          "date": "2026-08-05",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 339997,
+          "date": "2026-08-04",
+          "type": "Speeding",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 339813,
+          "date": "2026-08-04",
+          "type": "Sidewalk - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 339767,
+          "date": "2026-08-04",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 339766,
+          "date": "2026-08-04",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665236,
+          "lon": -79.408473,
+          "row": 338947,
+          "date": "2026-08-03",
+          "type": "Clean up Illegal Dumping on City Road Allowance",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 338039,
+          "date": "2026-08-02",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 338038,
+          "date": "2026-08-02",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 338031,
+          "date": "2026-08-02",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 334259,
+          "date": "2026-07-30",
+          "type": "Road - Sinking",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.670666,
+          "lon": -79.410619,
+          "row": 334056,
+          "date": "2026-07-30",
+          "type": "Coyote Sighting",
+          "status": "Closed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 333657,
+          "date": "2026-07-30",
+          "type": "Street Furniture Request",
+          "status": "Unknown"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 333388,
+          "date": "2026-07-29",
+          "type": "Pick up Dead Wildlife",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 330161,
+          "date": "2026-07-28",
+          "type": "Taxi|| Limo Complaint",
+          "status": "Unknown"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 328360,
+          "date": "2026-07-27",
+          "type": "Clean up Litter on Sidewalks and Boulevards",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 326662,
+          "date": "2026-07-25",
+          "type": "Clean up Overflowing Street Litter Bin",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 325873,
+          "date": "2026-07-24",
+          "type": "Street Furniture Request",
+          "status": "Unknown"
+        },
+        {
+          "lat": 43.66691,
+          "lon": -79.402687,
+          "row": 324996,
+          "date": "2026-07-24",
+          "type": "Road - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665679,
+          "lon": -79.408654,
+          "row": 321571,
+          "date": "2026-07-22",
+          "type": "Clean up Illegal Dumping on City Road Allowance",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 320300,
+          "date": "2026-07-21",
+          "type": "Maintenance Holes -Damage / Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 319525,
+          "date": "2026-07-21",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 317768,
+          "date": "2026-07-19",
+          "type": "Public Spaces Complaint",
+          "status": "Unknown"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 314791,
+          "date": "2026-07-17",
+          "type": "Street Furniture Request",
+          "status": "Unknown"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 314770,
+          "date": "2026-07-17",
+          "type": "Sidewalk - Cleaning",
+          "status": "In Progress"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 314188,
+          "date": "2026-07-16",
+          "type": "Pick up Dead Wildlife",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668037,
+          "lon": -79.408303,
+          "row": 314149,
+          "date": "2026-07-16",
+          "type": "Clean up Debris on Road",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 313131,
+          "date": "2026-07-16",
+          "type": "Pick up Dead Wildlife",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 312789,
+          "date": "2026-07-16",
+          "type": "Pick up Dead Wildlife",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.671942,
+          "lon": -79.4072,
+          "row": 310115,
+          "date": "2026-07-14",
+          "type": "General Pruning",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668905,
+          "lon": -79.408644,
+          "row": 307558,
+          "date": "2026-07-13",
+          "type": "Coyote Dangerous to Public Safety",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 307437,
+          "date": "2026-07-13",
+          "type": "Clean up Litter on Sidewalks and Boulevards",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665402,
+          "lon": -79.409984,
+          "row": 304666,
+          "date": "2026-07-10",
+          "type": "Park Use",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.664091,
+          "lon": -79.409461,
+          "row": 304665,
+          "date": "2026-07-10",
+          "type": "Tree Emergency Clean-Up",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 302597,
+          "date": "2026-07-09",
+          "type": "Speeding",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.671613,
+          "lon": -79.409446,
+          "row": 301569,
+          "date": "2026-07-08",
+          "type": "Park Lighting Maintenance",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.671942,
+          "lon": -79.4072,
+          "row": 300804,
+          "date": "2026-07-08",
+          "type": "Pedestrian Crossing Protection",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.412994,
+          "row": 299205,
+          "date": "2026-07-07",
+          "type": "Missing/Damaged/Faded/Relocating Street Name or Traffic Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 298940,
+          "date": "2026-07-07",
+          "type": "Investigate Regulatory Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.667854,
+          "lon": -79.413591,
+          "row": 298930,
+          "date": "2026-07-07",
+          "type": "Investigate Regulatory Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.667854,
+          "lon": -79.413591,
+          "row": 298923,
+          "date": "2026-07-07",
+          "type": "Investigate Regulatory Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 298918,
+          "date": "2026-07-07",
+          "type": "Investigate Regulatory Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 298914,
+          "date": "2026-07-07",
+          "type": "Investigate Regulatory Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 298899,
+          "date": "2026-07-07",
+          "type": "Investigate Regulatory Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 298892,
+          "date": "2026-07-07",
+          "type": "Investigate Regulatory Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 298885,
+          "date": "2026-07-07",
+          "type": "Investigate Regulatory Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 298864,
+          "date": "2026-07-07",
+          "type": "Investigate Regulatory Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 298853,
+          "date": "2026-07-07",
+          "type": "Investigate Regulatory Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 297560,
+          "date": "2026-07-06",
+          "type": "Process and Procedures - Complaint - Road Operations",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66922,
+          "lon": -79.403613,
+          "row": 294715,
+          "date": "2026-07-04",
+          "type": "General Pruning",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 292233,
+          "date": "2026-07-02",
+          "type": "Injured - Domestic",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.67173,
+          "lon": -79.409485,
+          "row": 290205,
+          "date": "2026-07-01",
+          "type": "Clean up Debris on Road",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.67173,
+          "lon": -79.409485,
+          "row": 290090,
+          "date": "2026-07-01",
+          "type": "Tree Emergency Clean-Up",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 287147,
+          "date": "2026-06-29",
+          "type": "Clean up Debris on Road",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 287141,
+          "date": "2026-06-29",
+          "type": "Clean up Litter on Laneways",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 286411,
+          "date": "2026-06-29",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.670119,
+          "lon": -79.413163,
+          "row": 284806,
+          "date": "2026-06-27",
+          "type": "Pedestrian Crossover (PXO) Maintenance",
+          "status": "Closed"
+        },
+        {
+          "lat": 43.665236,
+          "lon": -79.408473,
+          "row": 282188,
+          "date": "2026-06-26",
+          "type": "Clean up Illegal Dumping on City Road Allowance",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 281681,
+          "date": "2026-06-25",
+          "type": "Missing or Damaged Bike Lane Flexible Bollards",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 281220,
+          "date": "2026-06-25",
+          "type": "Investigate Pavement Markings",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 279855,
+          "date": "2026-06-24",
+          "type": "Bike Lane Pothole",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 279132,
+          "date": "2026-06-24",
+          "type": "Street Furniture Request",
+          "status": "Unknown"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 277287,
+          "date": "2026-06-23",
+          "type": "Clean up Needles or Syringes",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665679,
+          "lon": -79.408654,
+          "row": 277169,
+          "date": "2026-06-23",
+          "type": "General Parking Regulations",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 275496,
+          "date": "2026-06-22",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 275291,
+          "date": "2026-06-22",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 274980,
+          "date": "2026-06-22",
+          "type": "Clean up Debris on Road",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 274926,
+          "date": "2026-06-22",
+          "type": "Traffic Signal Repair",
+          "status": "In Progress"
+        },
+        {
+          "lat": 43.664352,
+          "lon": -79.408137,
+          "row": 274318,
+          "date": "2026-06-21",
+          "type": "Clean up Overflowing Street Litter Bin",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.670302,
+          "lon": -79.405287,
+          "row": 272190,
+          "date": "2026-06-19",
+          "type": "Road Pothole / Road Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.670119,
+          "lon": -79.413163,
+          "row": 270324,
+          "date": "2026-06-18",
+          "type": "Pollution Spill & Illegal Dumping Response",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.671758,
+          "lon": -79.409347,
+          "row": 270247,
+          "date": "2026-06-18",
+          "type": "Commercial Tree - Emergency Clean-up",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 268717,
+          "date": "2026-06-18",
+          "type": "Catch basin (Storm)-Overflowing",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 261710,
+          "date": "2026-06-14",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.671035,
+          "lon": -79.409233,
+          "row": 260421,
+          "date": "2026-06-12",
+          "type": "Park Recycling Bin Overflowing",
+          "status": "Unknown"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 251608,
+          "date": "2026-06-08",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 251585,
+          "date": "2026-06-08",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 251574,
+          "date": "2026-06-08",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 250169,
+          "date": "2026-06-08",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 249599,
+          "date": "2026-06-07",
+          "type": "Investigate - Animal Care",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 249457,
+          "date": "2026-06-07",
+          "type": "Public Spaces Complaint",
+          "status": "Unknown"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 248562,
+          "date": "2026-06-06",
+          "type": "Traffic Signal Repair",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 248353,
+          "date": "2026-06-06",
+          "type": "Traffic Signal Repair",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 248337,
+          "date": "2026-06-06",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 248057,
+          "date": "2026-06-06",
+          "type": "Road Pothole / Road Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 248053,
+          "date": "2026-06-06",
+          "type": "Road Pothole / Road Damage",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.671942,
+          "lon": -79.4072,
+          "row": 242163,
+          "date": "2026-06-03",
+          "type": "Clean up Needles or Syringes",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 242149,
+          "date": "2026-06-03",
+          "type": "Road Pothole / Road Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.671942,
+          "lon": -79.4072,
+          "row": 241754,
+          "date": "2026-06-03",
+          "type": "Report an Encroachment on City Property",
+          "status": "New"
+        },
+        {
+          "lat": 43.665679,
+          "lon": -79.408654,
+          "row": 239622,
+          "date": "2026-06-02",
+          "type": "Traffic Island - Damaged",
+          "status": "In Progress"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 239597,
+          "date": "2026-06-02",
+          "type": "Road - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 238783,
+          "date": "2026-06-01",
+          "type": "Pedestrian Signal Issue",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 237522,
+          "date": "2026-05-31",
+          "type": "Road Pothole / Road Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 233244,
+          "date": "2026-05-29",
+          "type": "Road Pothole / Road Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 232011,
+          "date": "2026-05-28",
+          "type": "Clean up Debris on Road",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.670119,
+          "lon": -79.413163,
+          "row": 231944,
+          "date": "2026-05-28",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66922,
+          "lon": -79.403613,
+          "row": 229913,
+          "date": "2026-05-27",
+          "type": "Missing/Damaged/Faded/Relocating Street Name or Traffic Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 229314,
+          "date": "2026-05-27",
+          "type": "Road Pothole / Road Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 225124,
+          "date": "2026-05-25",
+          "type": "Litter Operations Staff - Complaint - Solid Waste Management",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 224135,
+          "date": "2026-05-24",
+          "type": "Curb - Damaged",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 224132,
+          "date": "2026-05-24",
+          "type": "Road Pothole / Road Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66946,
+          "lon": -79.40242,
+          "row": 223929,
+          "date": "2026-05-24",
+          "type": "Tree Emergency Clean-Up",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 222304,
+          "date": "2026-05-23",
+          "type": "Investigate Regulatory Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 219154,
+          "date": "2026-05-21",
+          "type": "Pedestrian Signal Issue",
+          "status": "New"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.412994,
+          "row": 218672,
+          "date": "2026-05-21",
+          "type": "Park Playground Repairs",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.671613,
+          "lon": -79.409446,
+          "row": 217895,
+          "date": "2026-05-20",
+          "type": "Park Playground Repairs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.412994,
+          "row": 217481,
+          "date": "2026-05-20",
+          "type": "Street Furniture Request",
+          "status": "Unknown"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 216486,
+          "date": "2026-05-20",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 216485,
+          "date": "2026-05-20",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.671613,
+          "lon": -79.409446,
+          "row": 212873,
+          "date": "2026-05-17",
+          "type": "Investigate - Attack to Animal",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 212563,
+          "date": "2026-05-17",
+          "type": "Missing/Faded Pavement Markings",
+          "status": "New"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 212065,
+          "date": "2026-05-16",
+          "type": "Investigate Regulatory Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.670119,
+          "lon": -79.413163,
+          "row": 209439,
+          "date": "2026-05-14",
+          "type": "Road Pothole / Road Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 208806,
+          "date": "2026-05-14",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 206525,
+          "date": "2026-05-12",
+          "type": "Clean up Needles or Syringes",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 206040,
+          "date": "2026-05-12",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.671942,
+          "lon": -79.4072,
+          "row": 202011,
+          "date": "2026-05-09",
+          "type": "Missing/Faded Pavement Markings",
+          "status": "New"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 199860,
+          "date": "2026-05-07",
+          "type": "Outcome of Service - Complaint - Road Operations",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.670119,
+          "lon": -79.413163,
+          "row": 192282,
+          "date": "2026-05-02",
+          "type": "Missing/Faded Pavement Markings",
+          "status": "New"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 189238,
+          "date": "2026-04-30",
+          "type": "Road Pothole / Road Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666621,
+          "lon": -79.411788,
+          "row": 189158,
+          "date": "2026-04-30",
+          "type": "Road Pothole / Road Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 189111,
+          "date": "2026-04-30",
+          "type": "Maintenance Holes Lid Loose/Missing",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 189083,
+          "date": "2026-04-30",
+          "type": "Damaged Concrete Sidewalk",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.66946,
+          "lon": -79.40242,
+          "row": 188496,
+          "date": "2026-04-29",
+          "type": "Waste or Illegal Dumping on Private Property",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668374,
+          "lon": -79.401997,
+          "row": 181472,
+          "date": "2026-04-24",
+          "type": "Unreasonable and Persistent Noise",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666621,
+          "lon": -79.411788,
+          "row": 179612,
+          "date": "2026-04-23",
+          "type": "Clean up Debris on Road",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 179216,
+          "date": "2026-04-23",
+          "type": "Road Pothole / Road Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.667854,
+          "lon": -79.413591,
+          "row": 178677,
+          "date": "2026-04-23",
+          "type": "Clean up Illegal Dumping on Roadways and Bridge Underpass",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66946,
+          "lon": -79.40242,
+          "row": 177359,
+          "date": "2026-04-22",
+          "type": "Clean up Debris on Road",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 176130,
+          "date": "2026-04-21",
+          "type": "Road Pothole / Road Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.670302,
+          "lon": -79.405287,
+          "row": 175130,
+          "date": "2026-04-21",
+          "type": "Road Pothole / Road Damage",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.66946,
+          "lon": -79.40242,
+          "row": 174813,
+          "date": "2026-04-21",
+          "type": "Road - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66922,
+          "lon": -79.403613,
+          "row": 174812,
+          "date": "2026-04-21",
+          "type": "Road - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 173816,
+          "date": "2026-04-20",
+          "type": "Missing/Faded Pavement Markings",
+          "status": "New"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 173562,
+          "date": "2026-04-20",
+          "type": "Missing/Faded Pavement Markings",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 172989,
+          "date": "2026-04-19",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 172832,
+          "date": "2026-04-19",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 168823,
+          "date": "2026-04-16",
+          "type": "Complaint - Crossing Guard Conduct",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 167761,
+          "date": "2026-04-16",
+          "type": "Road Pothole / Road Damage",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.665402,
+          "lon": -79.409984,
+          "row": 166876,
+          "date": "2026-04-15",
+          "type": "Catch basin (Storm)-Overflowing",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665402,
+          "lon": -79.409984,
+          "row": 166791,
+          "date": "2026-04-15",
+          "type": "Catch Basin - Blocked / Flooding",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665402,
+          "lon": -79.409984,
+          "row": 166298,
+          "date": "2026-04-15",
+          "type": "Missing/Damaged/Faded/Relocating Street Name or Traffic Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 165283,
+          "date": "2026-04-14",
+          "type": "Missing/Damaged/Faded/Relocating Street Name or Traffic Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 164682,
+          "date": "2026-04-14",
+          "type": "Missing/Damaged/Faded/Relocating Street Name or Traffic Signs",
+          "status": "In Progress"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 164495,
+          "date": "2026-04-14",
+          "type": "Waste or Illegal Dumping on Private Property",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 155956,
+          "date": "2026-04-08",
+          "type": "Clean up Debris on Road",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665679,
+          "lon": -79.408654,
+          "row": 155367,
+          "date": "2026-04-08",
+          "type": "Sidewalk - Cleaning",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 152143,
+          "date": "2026-04-05",
+          "type": "Moving Motor Vehicle Noise",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665402,
+          "lon": -79.409984,
+          "row": 151588,
+          "date": "2026-04-04",
+          "type": "Clean up Litter on Sidewalks and Boulevards",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 151399,
+          "date": "2026-04-04",
+          "type": "Catch Basin - Blocked / Flooding",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 150982,
+          "date": "2026-04-04",
+          "type": "Curb - Damaged",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 150762,
+          "date": "2026-04-03",
+          "type": "Road Pothole / Road Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 148784,
+          "date": "2026-04-02",
+          "type": "Outcome of Service - Complaint - Road Operations",
+          "status": "In Progress"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 148643,
+          "date": "2026-04-02",
+          "type": "Election Signs",
+          "status": "Closed"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 148502,
+          "date": "2026-04-02",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 148501,
+          "date": "2026-04-02",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 148499,
+          "date": "2026-04-02",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668374,
+          "lon": -79.401997,
+          "row": 146141,
+          "date": "2026-03-31",
+          "type": "Amplified or Musical Instrument Noise",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 141885,
+          "date": "2026-03-28",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66946,
+          "lon": -79.40242,
+          "row": 141461,
+          "date": "2026-03-28",
+          "type": "Amplified or Musical Instrument Noise",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 138958,
+          "date": "2026-03-26",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66747,
+          "lon": -79.404174,
+          "row": 138956,
+          "date": "2026-03-26",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 134709,
+          "date": "2026-03-23",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 132380,
+          "date": "2026-03-21",
+          "type": "Road Pothole / Road Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665402,
+          "lon": -79.409984,
+          "row": 131450,
+          "date": "2026-03-20",
+          "type": "Catch Basin - Blocked / Flooding",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 130151,
+          "date": "2026-03-19",
+          "type": "Road Pothole / Road Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 127316,
+          "date": "2026-03-17",
+          "type": "Walkway - Damaged or Uneven",
+          "status": "In Progress"
+        },
+        {
+          "lat": 43.66691,
+          "lon": -79.402687,
+          "row": 127267,
+          "date": "2026-03-17",
+          "type": "Icy Sidewalk Needs Salting",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66691,
+          "lon": -79.402687,
+          "row": 127266,
+          "date": "2026-03-17",
+          "type": "Road Salting Request",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 125329,
+          "date": "2026-03-15",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 120764,
+          "date": "2026-03-11",
+          "type": "Catch basin (Storm)-Overflowing",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 119499,
+          "date": "2026-03-11",
+          "type": "Catch Basin - Blocked / Flooding",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 118042,
+          "date": "2026-03-10",
+          "type": "Damaged Concrete Sidewalk",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 116707,
+          "date": "2026-03-10",
+          "type": "Missing/Damaged/Faded Emergency Traffic Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668374,
+          "lon": -79.401997,
+          "row": 113682,
+          "date": "2026-03-07",
+          "type": "Amplified or Musical Instrument Noise",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 113534,
+          "date": "2026-03-07",
+          "type": "Road Plowing Request",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 112654,
+          "date": "2026-03-06",
+          "type": "Street Furniture Request",
+          "status": "Unknown"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 111921,
+          "date": "2026-03-06",
+          "type": "Report an Encroachment on City Property",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 109392,
+          "date": "2026-03-04",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 108241,
+          "date": "2026-03-03",
+          "type": "Missing/Damaged In Road Flexible Sign",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 106481,
+          "date": "2026-03-02",
+          "type": "Snow at Intersections - Impeded Mobility",
+          "status": "In Progress"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 106009,
+          "date": "2026-03-02",
+          "type": "Investigate Temporary Condition Markings",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 105236,
+          "date": "2026-03-01",
+          "type": "Icy Sidewalk Needs Salting",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 105213,
+          "date": "2026-03-01",
+          "type": "Bike Lane Pavement Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 104897,
+          "date": "2026-02-28",
+          "type": "Missing/Damaged/Faded Emergency Traffic Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 104244,
+          "date": "2026-02-28",
+          "type": "Sink Hole",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 102455,
+          "date": "2026-02-27",
+          "type": "Bike Lane Pavement Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 101600,
+          "date": "2026-02-26",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665679,
+          "lon": -79.408654,
+          "row": 101110,
+          "date": "2026-02-26",
+          "type": "Clean up Illegal Dumping on City Road Allowance",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 96877,
+          "date": "2026-02-23",
+          "type": "Road - Sinking",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 95632,
+          "date": "2026-02-23",
+          "type": "Road Pothole / Road Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 93904,
+          "date": "2026-02-21",
+          "type": "New Traffic Control Signal Request",
+          "status": "In Progress"
+        },
+        {
+          "lat": 43.670119,
+          "lon": -79.413163,
+          "row": 90030,
+          "date": "2026-02-19",
+          "type": "Bus Stops Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 87884,
+          "date": "2026-02-18",
+          "type": "Road - Sinking",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 87564,
+          "date": "2026-02-18",
+          "type": "Bicycle Stand (Post and Ring) Repair or Graffiti Removal",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 87562,
+          "date": "2026-02-18",
+          "type": "Bicycle Stand (Post and Ring) Repair or Graffiti Removal",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 84907,
+          "date": "2026-02-16",
+          "type": "Bike Lane Winter Maintenance Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665679,
+          "lon": -79.408654,
+          "row": 84037,
+          "date": "2026-02-15",
+          "type": "Missing/Damaged/Faded Emergency Traffic Signs",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 83959,
+          "date": "2026-02-15",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 83958,
+          "date": "2026-02-15",
+          "type": "Road Plowing Request",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665316,
+          "lon": -79.408507,
+          "row": 83083,
+          "date": "2026-02-14",
+          "type": "Clean up Debris on Road",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 82964,
+          "date": "2026-02-14",
+          "type": "Road Plowing Request",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 80215,
+          "date": "2026-02-12",
+          "type": "Bike Lane Winter Maintenance Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.67173,
+          "lon": -79.409485,
+          "row": 79866,
+          "date": "2026-02-12",
+          "type": "Road Plowing Request",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66691,
+          "lon": -79.402687,
+          "row": 78521,
+          "date": "2026-02-11",
+          "type": "Bike Lane Winter Maintenance Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 77842,
+          "date": "2026-02-11",
+          "type": "Bike Lane Winter Maintenance Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 76167,
+          "date": "2026-02-10",
+          "type": "Road Plowing Request",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 75590,
+          "date": "2026-02-10",
+          "type": "Street Furniture Request",
+          "status": "Unknown"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 74297,
+          "date": "2026-02-09",
+          "type": "Bike Lane Winter Maintenance Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 73400,
+          "date": "2026-02-08",
+          "type": "Bike Lane Winter Maintenance Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 73218,
+          "date": "2026-02-08",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 72524,
+          "date": "2026-02-07",
+          "type": "Bike Lane Winter Maintenance Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 72401,
+          "date": "2026-02-07",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 71588,
+          "date": "2026-02-06",
+          "type": "Bike Lane Winter Maintenance Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 68955,
+          "date": "2026-02-05",
+          "type": "Bike Lane Winter Maintenance Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.670302,
+          "lon": -79.405287,
+          "row": 68737,
+          "date": "2026-02-05",
+          "type": "Road Plowing Request",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665679,
+          "lon": -79.408654,
+          "row": 66535,
+          "date": "2026-02-04",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 66526,
+          "date": "2026-02-04",
+          "type": "Damaged Concrete Sidewalk",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 66178,
+          "date": "2026-02-04",
+          "type": "Bike Lane Winter Maintenance Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 65242,
+          "date": "2026-02-03",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 65230,
+          "date": "2026-02-03",
+          "type": "Process and Procedures - Complaint - Road Operations",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 64524,
+          "date": "2026-02-03",
+          "type": "Bike Lane Winter Maintenance Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665679,
+          "lon": -79.408654,
+          "row": 64122,
+          "date": "2026-02-03",
+          "type": "Road Plowing Request",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.670302,
+          "lon": -79.405287,
+          "row": 63766,
+          "date": "2026-02-03",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 63011,
+          "date": "2026-02-03",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 62952,
+          "date": "2026-02-02",
+          "type": "Icy Sidewalk Needs Salting",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 62436,
+          "date": "2026-02-02",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 62424,
+          "date": "2026-02-02",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 62359,
+          "date": "2026-02-02",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 62237,
+          "date": "2026-02-02",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 61806,
+          "date": "2026-02-02",
+          "type": "Road Salting Request",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.671942,
+          "lon": -79.4072,
+          "row": 60597,
+          "date": "2026-02-01",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 60322,
+          "date": "2026-02-01",
+          "type": "Bike Lane Winter Maintenance Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 59963,
+          "date": "2026-02-01",
+          "type": "Bike Lane Winter Maintenance Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 59117,
+          "date": "2026-01-31",
+          "type": "Road Plowing Request",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 59041,
+          "date": "2026-01-31",
+          "type": "Bike Lane Winter Maintenance Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 57861,
+          "date": "2026-01-31",
+          "type": "Bike Lane Winter Maintenance Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 57306,
+          "date": "2026-01-30",
+          "type": "Bike Lane Winter Maintenance Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 55952,
+          "date": "2026-01-30",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 55662,
+          "date": "2026-01-30",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.670119,
+          "lon": -79.413163,
+          "row": 53915,
+          "date": "2026-01-29",
+          "type": "Illegal Snow Dumping & Failure to Clear Snow or Ice on Public Sidewalk",
+          "status": "New"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 53613,
+          "date": "2026-01-29",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666097,
+          "lon": -79.406647,
+          "row": 52918,
+          "date": "2026-01-29",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 51894,
+          "date": "2026-01-28",
+          "type": "Road Plowing Request",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.670119,
+          "lon": -79.413163,
+          "row": 50729,
+          "date": "2026-01-28",
+          "type": "Bus Stops Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 50345,
+          "date": "2026-01-28",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.671942,
+          "lon": -79.4072,
+          "row": 50170,
+          "date": "2026-01-28",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 49282,
+          "date": "2026-01-28",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.670302,
+          "lon": -79.405287,
+          "row": 49252,
+          "date": "2026-01-28",
+          "type": "Walkway Snow Clearing/Salting Request",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.667854,
+          "lon": -79.413591,
+          "row": 49015,
+          "date": "2026-01-28",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665254,
+          "lon": -79.410594,
+          "row": 47922,
+          "date": "2026-01-27",
+          "type": "Road Plowing Request",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 46456,
+          "date": "2026-01-27",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665236,
+          "lon": -79.408473,
+          "row": 44414,
+          "date": "2026-01-27",
+          "type": "Road Plowing Request",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668962,
+          "lon": -79.404773,
+          "row": 44069,
+          "date": "2026-01-27",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 43560,
+          "date": "2026-01-27",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 42028,
+          "date": "2026-01-26",
+          "type": "Snow Removal - Sightline Problem",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.672188,
+          "lon": -79.406042,
+          "row": 38207,
+          "date": "2026-01-25",
+          "type": "Pedestrian Crossover (PXO) Maintenance",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 38139,
+          "date": "2026-01-25",
+          "type": "Waste or Illegal Dumping on Private Property",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668374,
+          "lon": -79.401997,
+          "row": 35651,
+          "date": "2026-01-22",
+          "type": "Sight Line Obstruction",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 29354,
+          "date": "2026-01-19",
+          "type": "Clean up Illegal Dumping on City Road Allowance",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66512,
+          "lon": -79.411195,
+          "row": 26213,
+          "date": "2026-01-17",
+          "type": "Bike Lane Winter Maintenance Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66747,
+          "lon": -79.404174,
+          "row": 22277,
+          "date": "2026-01-16",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668374,
+          "lon": -79.401997,
+          "row": 20650,
+          "date": "2026-01-15",
+          "type": "Amplified or Musical Instrument Noise",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 17424,
+          "date": "2026-01-14",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 17420,
+          "date": "2026-01-14",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Cancelled"
+        },
+        {
+          "lat": 43.668114,
+          "lon": -79.412384,
+          "row": 17095,
+          "date": "2026-01-13",
+          "type": "Road Pothole / Road Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 15980,
+          "date": "2026-01-13",
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666359,
+          "lon": -79.405355,
+          "row": 14868,
+          "date": "2026-01-12",
+          "type": "Road Pothole / Road Damage",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.665924,
+          "lon": -79.407472,
+          "row": 14865,
+          "date": "2026-01-12",
+          "type": "Road Salting Request",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.670119,
+          "lon": -79.413163,
+          "row": 13377,
+          "date": "2026-01-10",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.668037,
+          "lon": -79.408303,
+          "row": 12888,
+          "date": "2026-01-10",
+          "type": "Pick up Dead Wildlife",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.670119,
+          "lon": -79.413163,
+          "row": 12673,
+          "date": "2026-01-09",
+          "type": "Traffic Signal Repair",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.670302,
+          "lon": -79.405287,
+          "row": 11496,
+          "date": "2026-01-09",
+          "type": "New Pedestrian Crossover",
+          "status": "In Progress"
+        },
+        {
+          "lat": 43.670119,
+          "lon": -79.413163,
+          "row": 11365,
+          "date": "2026-01-09",
+          "type": "Traffic Signal Repair",
+          "status": "Closed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 10657,
+          "date": "2026-01-09",
+          "type": "Postering City Property / Structures",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.666668,
+          "lon": -79.403832,
+          "row": 8948,
+          "date": "2026-01-08",
+          "type": "Sidewalk - Cleaning",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.66747,
+          "lon": -79.404174,
+          "row": 7205,
+          "date": "2026-01-07",
+          "type": "Sidewalk Snow Clearing Required",
+          "status": "Completed"
+        },
+        {
+          "lat": 43.670314,
+          "lon": -79.413241,
+          "row": 1109,
+          "date": "2026-01-02",
+          "type": "Bus Stops Snow Clearing Required",
+          "status": "Completed"
+        }
+      ],
+      "top_types": [
+        {
+          "cite": {
+            "file": "sr2026.zip",
+            "dataset": "service_requests_311",
+            "row_count": 5,
+            "sample_rows": [
+              411275,
+              403766,
+              403719,
+              361403,
+              338039
+            ]
+          },
+          "type": "Traffic Signal Repair",
+          "count": 29,
+          "still_open": 1
+        },
+        {
+          "cite": {
+            "file": "sr2026.zip",
+            "dataset": "service_requests_311",
+            "row_count": 5,
+            "sample_rows": [
+              83959,
+              73218,
+              72401,
+              66535,
+              65242
+            ]
+          },
+          "type": "Sidewalk Snow Clearing Required",
+          "count": 26,
+          "still_open": 0
+        },
+        {
+          "cite": {
+            "file": "sr2026.zip",
+            "dataset": "service_requests_311",
+            "row_count": 5,
+            "sample_rows": [
+              393803,
+              272190,
+              248057,
+              248053,
+              242149
+            ]
+          },
+          "type": "Road Pothole / Road Damage",
+          "count": 22,
+          "still_open": 0
+        },
+        {
+          "cite": {
+            "file": "sr2026.zip",
+            "dataset": "service_requests_311",
+            "row_count": 5,
+            "sample_rows": [
+              412492,
+              389608,
+              374524,
+              374523,
+              342153
+            ]
+          },
+          "type": "Traffic Signal Equipment - Graffiti Complaint",
+          "count": 21,
+          "still_open": 0
+        },
+        {
+          "cite": {
+            "file": "sr2026.zip",
+            "dataset": "service_requests_311",
+            "row_count": 5,
+            "sample_rows": [
+              84907,
+              80215,
+              78521,
+              77842,
+              74297
+            ]
+          },
+          "type": "Bike Lane Winter Maintenance Required",
+          "count": 17,
+          "still_open": 0
+        },
+        {
+          "cite": {
+            "file": "sr2026.zip",
+            "dataset": "service_requests_311",
+            "row_count": 5,
+            "sample_rows": [
+              425483,
+              350401,
+              298940,
+              298930,
+              298923
+            ]
+          },
+          "type": "Investigate Regulatory Signs",
+          "count": 14,
+          "still_open": 0
+        },
+        {
+          "cite": {
+            "file": "sr2026.zip",
+            "dataset": "service_requests_311",
+            "row_count": 5,
+            "sample_rows": [
+              410324,
+              410320,
+              314149,
+              290205,
+              287147
+            ]
+          },
+          "type": "Clean up Debris on Road",
+          "count": 11,
+          "still_open": 0
+        },
+        {
+          "cite": {
+            "file": "sr2026.zip",
+            "dataset": "service_requests_311",
+            "row_count": 5,
+            "sample_rows": [
+              428844,
+              413412,
+              412349,
+              369106,
+              354077
+            ]
+          },
+          "type": "Clean up Illegal Dumping on City Road Allowance",
+          "count": 11,
+          "still_open": 0
+        }
+      ]
+    },
+    "period": {
+      "to": "2026-09-30",
+      "from": "2026-01-01"
+    }
+  },
+  "development_applications": {
+    "open": [
+      {
+        "lat": 43.6669241775701,
+        "lon": -79.4122394023597,
+        "url": "http://app.toronto.ca/AIC/index.do?folderRsn=gMmfEmWfWdPoFAspNpzhVA%3D%3D",
+        "cite": {
+          "row": 22559,
+          "file": "development-applications.csv",
+          "dataset": "development_applications"
+        },
+        "type": "SA",
+        "status": "Under Review",
+        "address": "862 BATHURST ST",
+        "distance_m": 375,
+        "description": "The proposal involves a 3-storey addition to the existing 2-storey building, resulting in a 5-storey mixed-use building. The development would retain medical office uses in the basement and ground floor, introduce commercial/office space on the second floor, and provide 15 residential units on floors three to five. The proposed building would contain approximately 920 m² of medical office space, 460 m² of commercial/office space, and 1,380 m² of residential space, for a total gross floor area of 2,760 m² (4.72 FSI).",
+        "status_group": "in_review",
+        "date_submitted": "2026-09-23",
+        "other_addresses": [
+          "860 BATHURST ST",
+          "864 BATHURST ST"
+        ],
+        "application_number": "26 242430 STE 11 SA",
+        "community_meeting_date": null
+      },
+      {
+        "lat": 43.6674396316499,
+        "lon": -79.4021175027199,
+        "url": "http://app.toronto.ca/AIC/index.do?folderRsn=mVbh0utjvq%2FBrGmxA10vBA%3D%3D",
+        "cite": {
+          "row": 26054,
+          "file": "development-applications.csv",
+          "dataset": "development_applications"
+        },
+        "type": "CD",
+        "status": "Draft Plan Approved",
+        "address": "300 BLOOR ST W",
+        "distance_m": 496,
+        "description": "Draft Plan of Standard Condominium to create 339 residential units and 1 retail unit within a 34-storey building.",
+        "status_group": "approved",
+        "date_submitted": "2026-03-17",
+        "other_addresses": [],
+        "application_number": "26 130612 STE 11 CD",
+        "community_meeting_date": null
+      },
+      {
+        "lat": 43.6681183074362,
+        "lon": -79.4073995290025,
+        "url": "http://app.toronto.ca/AIC/index.do?folderRsn=WEIiv5idUBxL2zhm1jEEBg%3D%3D",
+        "cite": {
+          "row": 357,
+          "file": "development-applications.csv",
+          "dataset": "development_applications"
+        },
+        "type": "OZ",
+        "status": "OMB Appeal",
+        "address": "175 LOWTHER AVE",
+        "distance_m": 68,
+        "description": "Lift the hold ('H') application for By-law 410-2024.",
+        "status_group": "in_review",
+        "date_submitted": "2025-12-02",
+        "other_addresses": [
+          "171 LOWTHER AVE",
+          "173 LOWTHER AVE"
+        ],
+        "application_number": "25 261452 STE 11 OZ",
+        "community_meeting_date": null
+      },
+      {
+        "lat": 43.6681183074362,
+        "lon": -79.4073995290025,
+        "url": "http://app.toronto.ca/AIC/index.do?folderRsn=AMDLNLz8qH06wfQg6WRcQA%3D%3D",
+        "cite": {
+          "row": 26511,
+          "file": "development-applications.csv",
+          "dataset": "development_applications"
+        },
+        "type": "SA",
+        "status": "Under Review",
+        "address": "175 LOWTHER AVE",
+        "distance_m": 68,
+        "description": "Site Plan Approval for a 11-storey residential building with 64 dwelling units, including the retention of part of the heritage building at 171 Lowther Avenue.",
+        "status_group": "in_review",
+        "date_submitted": "2025-10-17",
+        "other_addresses": [
+          "171 LOWTHER AVE",
+          "173 LOWTHER AVE"
+        ],
+        "application_number": "25 241286 STE 11 SA",
+        "community_meeting_date": null
+      },
+      {
+        "lat": 43.6688081499356,
+        "lon": -79.4070387577269,
+        "url": "http://app.toronto.ca/AIC/index.do?folderRsn=cRuwHneQnqT0wIZ54VeV4A%3D%3D",
+        "cite": {
+          "row": 26460,
+          "file": "development-applications.csv",
+          "dataset": "development_applications"
+        },
+        "type": "SA",
+        "status": "Under Review",
+        "address": "40 WALMER RD",
+        "distance_m": 94,
+        "description": "Site Plan Approval for a 25-storey building with a mix of rental replacement units (33 units) and condominium ownership units, totalling 253 units.",
+        "status_group": "in_review",
+        "date_submitted": "2025-09-04",
+        "other_addresses": [],
+        "application_number": "25 220439 STE 11 SA",
+        "community_meeting_date": null
+      },
+      {
+        "lat": 43.6688081499356,
+        "lon": -79.4070387577269,
+        "url": "http://app.toronto.ca/AIC/index.do?folderRsn=lFMK2ZMSLL%2F7Sj%2Bd67zGSg%3D%3D",
+        "cite": {
+          "row": 21131,
+          "file": "development-applications.csv",
+          "dataset": "development_applications"
+        },
+        "type": "OZ",
+        "status": "OMB Approved",
+        "address": "40 WALMER RD",
+        "distance_m": 94,
+        "description": "Zoning By-law Amendment application was appealed to Ontario Land Tribunal (OLT Case No. OLT-24-000316). On April 29, 2025, OLT issued a partial order approving a 25-storey residential building (including 33 replacement rental units), final order pending fulfilment of outstanding conditions.",
+        "status_group": "approved",
+        "date_submitted": "2023-10-24",
+        "other_addresses": [],
+        "application_number": "23 217877 STE 11 OZ",
+        "community_meeting_date": "2023-12-18"
+      },
+      {
+        "lat": 43.6662477659193,
+        "lon": -79.4050168552742,
+        "url": "http://app.toronto.ca/AIC/index.do?folderRsn=Qvf6Uv%2FDvcTeT6QPanlclw%3D%3D",
+        "cite": {
+          "row": 19323,
+          "file": "development-applications.csv",
+          "dataset": "development_applications"
+        },
+        "type": "SA",
+        "status": "Under Review",
+        "address": "425 BLOOR ST W",
+        "distance_m": 350,
+        "description": "Proposal for a 30-storey building with retail units at grade along Bloor Street West. Overall, the proposal will introduce 472 residential units and 798 square metres of retail gross floor area.",
+        "status_group": "in_review",
+        "date_submitted": "2022-10-12",
+        "other_addresses": [],
+        "application_number": "22 216344 STE 11 SA",
+        "community_meeting_date": null
+      },
+      {
+        "lat": 43.6662477659193,
+        "lon": -79.4050168552742,
+        "url": "http://app.toronto.ca/AIC/index.do?folderRsn=Z%2Bsz4E1BxmWRB%2B0JGMxCKA%3D%3D",
+        "cite": {
+          "row": 20915,
+          "file": "development-applications.csv",
+          "dataset": "development_applications"
+        },
+        "type": "OZ",
+        "status": "Council Approved",
+        "address": "425 BLOOR ST W",
+        "distance_m": 350,
+        "description": "Official Plan and Zoning By-law Amendment application to permit a 30-storey mixed-use building, containing 472 dwelling units and 798 square metres of non-residential gross floor area.",
+        "status_group": "approved",
+        "date_submitted": "2022-10-12",
+        "other_addresses": [],
+        "application_number": "22 216345 STE 11 OZ",
+        "community_meeting_date": "2023-04-25"
+      },
+      {
+        "lat": 43.6684086127857,
+        "lon": -79.4073687143344,
+        "url": "http://app.toronto.ca/AIC/index.do?folderRsn=zF17%2FeoI%2BIcJltfaou2WvQ%3D%3D",
+        "cite": {
+          "row": 21592,
+          "file": "development-applications.csv",
+          "dataset": "development_applications"
+        },
+        "type": "OZ",
+        "status": "OMB Approved",
+        "address": "188 LOWTHER AVE",
+        "distance_m": 59,
+        "description": "Zoning By-law Amendment application was appealed to Ontario Land Tribunal (OLT Case No. OLT-23-000532). On April 30, 2025, OLT issued a partial order approving a 25-storey mixed-use building with partial heritage retention, containing 186 dwelling units, non-residential uses include replacement 952 square metres of church space and 1,276 square metres of community/commercial uses.OLT Final order pending fulfilment of outstanding conditions.",
+        "status_group": "approved",
+        "date_submitted": "2022-07-21",
+        "other_addresses": [
+          "38 WALMER RD"
+        ],
+        "application_number": "22 179831 STE 11 OZ",
+        "community_meeting_date": "2022-12-08"
+      },
+      {
+        "lat": 43.6686115523616,
+        "lon": -79.4068414738429,
+        "url": "http://app.toronto.ca/AIC/index.do?folderRsn=2n9Rf%2BmXALtp%2B6padYHlXA%3D%3D",
+        "cite": {
+          "row": 20768,
+          "file": "development-applications.csv",
+          "dataset": "development_applications"
+        },
+        "type": "SA",
+        "status": "Under Review",
+        "address": "38 WALMER RD",
+        "distance_m": 103,
+        "description": "Site Plan application to permit a 25-storey mixed use building containing 211 dwelling units and 1,950 square metres of non-residential GFA, including retail, community, and congregation space.",
+        "status_group": "in_review",
+        "date_submitted": "2022-07-21",
+        "other_addresses": [],
+        "application_number": "22 179830 STE 11 SA",
+        "community_meeting_date": null
+      },
+      {
+        "lat": 43.6671655398474,
+        "lon": -79.4046955237747,
+        "url": "http://app.toronto.ca/AIC/index.do?folderRsn=Ku9rY5egKG0%2Fz%2BltQj9Jig%3D%3D",
+        "cite": {
+          "row": 19872,
+          "file": "development-applications.csv",
+          "dataset": "development_applications"
+        },
+        "type": "SA",
+        "status": "Under Review",
+        "address": "6 SPADINA RD",
+        "distance_m": 310,
+        "description": "Site Plan Approval for a 36-storey mixed-use building containing 431 residential dwelling units (including 24 rental dwelling replacement units), retail at-grade and in the concourse levels and 2 levels of office space. The site includes a TTC entrance to Spadina Station, as well as 470 square metres of office space and two kiosk areas on the ground floor to be conveyed to the City to be used by Indigenous non-profit organization(s).",
+        "status_group": "in_review",
+        "date_submitted": "2022-04-27",
+        "other_addresses": [
+          "2 SPADINA RD",
+          "334 BLOOR ST W",
+          "336 BLOOR ST W",
+          "338 BLOOR ST W",
+          "340 BLOOR ST W",
+          "342 BLOOR ST W",
+          "344 BLOOR ST W",
+          "346 BLOOR ST W",
+          "348 BLOOR ST W",
+          "350 BLOOR ST W",
+          "4 SPADINA RD"
+        ],
+        "application_number": "22 138885 STE 11 SA",
+        "community_meeting_date": null
+      },
+      {
+        "lat": 43.6670116942849,
+        "lon": -79.4038427444326,
+        "url": "http://app.toronto.ca/AIC/index.do?folderRsn=7sgrEKwtkBX0VfTm14AZ2w%3D%3D",
+        "cite": {
+          "row": 19084,
+          "file": "development-applications.csv",
+          "dataset": "development_applications"
+        },
+        "type": "SA",
+        "status": "Under Review",
+        "address": "332 BLOOR ST W",
+        "distance_m": 379,
+        "description": "Site Plan Approval for a 37-storey mixed-use building atop an 8-storey base building, having a non-residential gross floor area of 627.9 square metres and a residential gross floor area of 31,231.27 square metres.  A total of 366 residential units are proposed.",
+        "status_group": "in_review",
+        "date_submitted": "2021-12-07",
+        "other_addresses": [
+          "320 BLOOR ST W",
+          "320-326 BLOOR ST W",
+          "328 BLOOR ST W"
+        ],
+        "application_number": "21 245851 STE 11 SA",
+        "community_meeting_date": null
+      },
+      {
+        "lat": 43.6670116942849,
+        "lon": -79.4038427444326,
+        "url": "http://app.toronto.ca/AIC/index.do?folderRsn=mikbqEgM6PDTeQM1uO%2Bb2w%3D%3D",
+        "cite": {
+          "row": 19329,
+          "file": "development-applications.csv",
+          "dataset": "development_applications"
+        },
+        "type": "SB",
+        "status": "Under Review",
+        "address": "332 BLOOR ST W",
+        "distance_m": 379,
+        "description": "Draft Plan of Subdivision for 1 development block.",
+        "status_group": "in_review",
+        "date_submitted": "2021-11-05",
+        "other_addresses": [
+          "320 BLOOR ST W",
+          "320-326 BLOOR ST W",
+          "328 BLOOR ST W"
+        ],
+        "application_number": "21 234509 STE 11 SB",
+        "community_meeting_date": null
+      },
+      {
+        "lat": 43.6670116942849,
+        "lon": -79.4038427444326,
+        "url": "http://app.toronto.ca/AIC/index.do?folderRsn=UvCaXU6I%2FHdQouhreM1ryA%3D%3D",
+        "cite": {
+          "row": 20039,
+          "file": "development-applications.csv",
+          "dataset": "development_applications"
+        },
+        "type": "OZ",
+        "status": "Under Review",
+        "address": "332 BLOOR ST W",
+        "distance_m": 379,
+        "description": "Zoning By-law amendment to permit a 36-storey mixed-use building, containing 345 dwelling units and 250 square metres of non-residential gross floor area.",
+        "status_group": "in_review",
+        "date_submitted": "2021-11-05",
+        "other_addresses": [
+          "320 BLOOR ST W",
+          "320-326 BLOOR ST W",
+          "328 BLOOR ST W"
+        ],
+        "application_number": "21 234506 STE 11 OZ",
+        "community_meeting_date": "2022-03-28"
+      },
+      {
+        "lat": 43.6671655398474,
+        "lon": -79.4046955237747,
+        "url": "http://app.toronto.ca/AIC/index.do?folderRsn=e3rkdgh7SXRhedpMuluyZw%3D%3D",
+        "cite": {
+          "row": 2494,
+          "file": "development-applications.csv",
+          "dataset": "development_applications"
+        },
+        "type": "OZ",
+        "status": "Council Approved",
+        "address": "6 SPADINA RD",
+        "distance_m": 310,
+        "description": "Zoning By-law Amendment application for a 35-storey mixed-use building, containing 422 dwelling units and 8,200 square metres of non-residential gross floor area. The site includes a TTC entrance to Spadina Station, as well as 470 square metres of office space and two kiosk areas on the ground floor to be conveyed to the City to be used by Indigenous non-profit organization(s).",
+        "status_group": "approved",
+        "date_submitted": "2020-09-11",
+        "other_addresses": [
+          "2 SPADINA RD",
+          "334 BLOOR ST W",
+          "336 BLOOR ST W",
+          "338 BLOOR ST W",
+          "340 BLOOR ST W",
+          "342 BLOOR ST W",
+          "344 BLOOR ST W",
+          "346 BLOOR ST W",
+          "348 BLOOR ST W",
+          "350 BLOOR ST W",
+          "4 SPADINA RD"
+        ],
+        "application_number": "20 192411 STE 11 OZ",
+        "community_meeting_date": "2021-02-23"
+      },
+      {
+        "lat": 43.6671315297123,
+        "lon": -79.4031604386241,
+        "url": "http://app.toronto.ca/AIC/index.do?folderRsn=CEAkZ%2F5v6bOdzwIAGNZ8uA%3D%3D",
+        "cite": {
+          "row": 9007,
+          "file": "development-applications.csv",
+          "dataset": "development_applications"
+        },
+        "type": "SA",
+        "status": "NOAC Issued",
+        "address": "316 BLOOR ST W",
+        "distance_m": 425,
+        "description": "Site Plan application for a 36-storey mixed use building including at grade commercial space and 499 residential units.",
+        "status_group": "approved",
+        "date_submitted": "2016-06-28",
+        "other_addresses": [],
+        "application_number": "16 182137 STE 20 SA",
+        "community_meeting_date": null
+      }
+    ],
+    "counts": {
+      "closed": 22,
+      "approved": 6,
+      "in_review": 10
+    },
+    "type_labels": {
+      "CD": "Draft Plan of Condominium",
+      "OZ": "Official Plan / Zoning By-law Amendment",
+      "PL": "Part Lot Control",
+      "SA": "Site Plan Control",
+      "SB": "Draft Plan of Subdivision"
+    }
+  }
+}
