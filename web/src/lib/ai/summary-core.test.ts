@@ -3,17 +3,20 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
+import type * as AdCheckCore from "./ad-check-core";
 import type { Brief } from "../brief";
 import type { Extras } from "../extras";
 import type * as SummaryCore from "./summary-core";
 
-// Node runs .ts natively, but tsc (without allowImportingTsExtensions) rejects value imports ending in .ts, so the
-// module is loaded by URL and keeps its types through the type-only import above.
+// Node runs .ts natively, but the modules are loaded by URL and keep their types through the type-only imports
+// above (see the note in this file's history: value imports by URL, types from the declaration).
 const {
   buildEvidence, checkLine, citesFor, extractNumbers, groundingContext, isNumberGrounded, parseSummaryRequest,
   rentControl, summaryCacheKey, summaryResponseSchema, templateLines, templateSummary, TEMPLATE_MODEL, toSummary,
   validateSummaryOutput,
 } = (await import(new URL("./summary-core.ts", import.meta.url).href)) as typeof SummaryCore;
+const { adCheckContext, rentComparison } =
+  (await import(new URL("./ad-check-core.ts", import.meta.url).href)) as typeof AdCheckCore;
 
 const fixture = (name: string) => JSON.parse(readFileSync(new URL(`../../fixtures/${name}`, import.meta.url), "utf8"));
 const BRIEF: Brief = fixture("brief-375-brunswick.json");
@@ -30,7 +33,7 @@ function item(set: ReturnType<typeof buildEvidence>, id: string | null | undefin
 
 /** Template lines -> the JSON shape Gemini answers with, to run them through the same checks. */
 const asModelOutput = (lines: ReturnType<typeof templateLines>) => ({
-  sentences: lines.sentences.map((l) => ({ text: l.text, evidence_ids: l.ids })),
+  flags: lines.sentences.map((l) => ({ text: l.text, evidence_ids: l.ids })),
   checklist: lines.checklist.map((l) => ({ question: l.text, evidence_ids: l.ids })),
 });
 
@@ -189,22 +192,22 @@ test("checkLine keeps 311, crime and conditions off the building", () => {
   assert.match(ok("The units have mould.", [latest]) ?? "", /mould without a record/);
 });
 
-test("templateSummary on 375 Brunswick: cited, grounded, within limits", () => {
+test("template flags on 375 Brunswick: worry-first, cited, grounded, at most 3", () => {
   const summary = templateSummary(brief(), extras(), new Date("2026-10-17T12:00:00Z"));
   assert.equal(summary.model, TEMPLATE_MODEL);
   assert.equal(summary.generated_at, "2026-10-17T12:00:00.000Z");
-  assert.ok(summary.sentences.length >= 4 && summary.sentences.length <= 7, `sentences: ${summary.sentences.length}`);
+  assert.equal(summary.sentences.length, 3);
   assert.ok(summary.checklist.length >= 3 && summary.checklist.length <= 6, `checklist: ${summary.checklist.length}`);
   for (const line of [...summary.sentences, ...summary.checklist]) {
     assert.ok(line.cites.length > 0, line.text);
     for (const c of line.cites) assert.ok(c.dataset && c.file, line.text);
   }
   const texts = summary.sentences.map((s) => s.text);
+  // Worst first: the bottom-0.9% inspection score, then the big change close by, then no AC on file.
   assert.equal(texts[0],
-    "375 Brunswick Ave scored 70/100 on its latest RentSafeTO evaluation (Oct 2, 2025), down from 81 in Oct 2023; 0.9% of evaluated Toronto buildings score lower.");
-  assert.ok(texts.some((t) => /likely covered/.test(t) && /confirm with the landlord/.test(t)));
-  assert.ok(texts.some((t) => /no air conditioning or cooling room/.test(t)));
-  assert.ok(texts.some((t) => /vacant purpose-built rentals .* \$2,092 for one bedroom/.test(t)));
+    "Scored 70/100 on its latest RentSafeTO evaluation (Oct 2, 2025), down from 81 in Oct 2023; only 0.9% of evaluated Toronto buildings score lower.");
+  assert.match(texts[1], /m away at /);
+  assert.equal(texts[2], "No air conditioning and no cooling room on the building's City registration.");
   assert.ok(summary.checklist.some((q) => /balcony guards 1 of 3/.test(q.text)));
 
   // The template passes the same checks as Gemini's answer, with nothing dropped.
@@ -215,32 +218,56 @@ test("templateSummary on 375 Brunswick: cited, grounded, within limits", () => {
   assert.equal(checked.checklist.length, summary.checklist.length);
 });
 
-test("templateSummary without extras, without RentSafeTO, and for a newer building", () => {
+test("with a listing, the rent flag outranks the registration and stays grounded", () => {
+  const set = buildEvidence(brief(), extras());
+  const cx = rentComparison(EXTRAS.rent_benchmark, 2350, 1);
+  assert.ok(cx && cx.diff === 258 && cx.pct === 12);
+  const lines = templateLines(brief(), extras(), set, cx);
+  assert.equal(lines.sentences.length, 3);
+  const texts = lines.sentences.map((s) => s.text);
+  assert.match(texts[0], /^Scored 70\/100/);
+  assert.match(texts[1], /m away at /);
+  assert.match(texts[2], /^Asks \$2,350 a month — \$258 \(12%\) above CMHC's vacant-unit average for 1-bedroom rentals/);
+  assert.deepEqual(lines.sentences[2].ids, [set.refs.rent]);
+
+  // The renter's own numbers ($2,350, $258, 12%) pass only with the listing-extended context.
+  const ctx = adCheckContext(set, 2350, 1, cx);
+  const checked = validateSummaryOutput(asModelOutput(lines), ctx);
+  assert.deepEqual(checked.rejected, []);
+  const plain = validateSummaryOutput(asModelOutput(lines), groundingContext(set));
+  assert.ok(plain.rejected.some((r) => /2350|258/.test(r.reason)), JSON.stringify(plain.rejected));
+});
+
+test("template flags without extras, without RentSafeTO, and for a newer building", () => {
   const check = (b: Brief, x: Extras | null) => {
     const set = buildEvidence(b, x);
     const lines = templateLines(b, x, set);
     assert.deepEqual(validateSummaryOutput(asModelOutput(lines), groundingContext(set)).rejected, []);
     for (const l of [...lines.sentences, ...lines.checklist]) assert.ok(l.ids.length > 0, l.text);
+    assert.ok(lines.sentences.length <= 3);
     return lines.sentences.map((s) => s.text);
   };
 
   const noExtras = check(brief(), null);
-  assert.ok(noExtras.length >= 4);
+  assert.ok(noExtras.length >= 2);
   assert.ok(!noExtras.some((t) => /CMHC|registration/.test(t)));
 
+  // A house: no RentSafeTO record means no score flag, but nearby change still flags.
   const house = brief();
   house.building = { in_rentsafe: false, note: "No RentSafeTO evaluation with this exact address." };
   const houseLines = check(house, { registration: null, rent_benchmark: EXTRAS.rent_benchmark });
-  assert.match(houseLines[0], /^375 Brunswick Ave has no RentSafeTO evaluation; RentSafeTO only covers/);
-  assert.ok(houseLines.some((t) => /311 logged/.test(t) && /not this building/.test(t)));
-  assert.ok(houseLines.some((t) => /offence types reported by Toronto Police/.test(t)));
+  assert.ok(houseLines.length >= 1);
+  assert.ok(!houseLines.some((t) => /Scored \d+\/100/.test(t)));
+  assert.ok(houseLines.some((t) => /m away/.test(t)));
 
+  // A post-2018 building flags its likely rent-control exemption.
   const newer = brief();
   if (newer.building.in_rentsafe) newer.building.year_built = 2021;
-  assert.ok(check(newer, extras()).some((t) => /likely exempt/.test(t) && /Nov 15, 2018/.test(t)));
+  assert.ok(check(newer, extras()).some((t) => /Likely exempt/.test(t) && /built in 2021/.test(t)));
   assert.equal(rentControl(2018), "unknown");
   assert.equal(rentControl(null), "unknown");
 
+  // Nothing standing out means zero flags - the honest empty state - while the checklist still helps.
   const bare = brief();
   bare.building = { in_rentsafe: false, note: "No RentSafeTO evaluation with this exact address." };
   bare.area = { neighbourhood: null, ward: null };
@@ -257,16 +284,18 @@ test("templateSummary without extras, without RentSafeTO, and for a newer buildi
   bare.census = { ...bare.census, values: null };
   const empty = templateSummary(bare, null);
   assert.equal(empty.model, TEMPLATE_MODEL);
-  assert.equal(empty.sentences.length, 1);
+  assert.equal(empty.sentences.length, 0);
   assert.ok(empty.checklist.length >= 1);
 });
 
-test("response schema limits citations to the evidence ids", () => {
+test("response schema limits citations to the evidence ids and allows zero flags", () => {
   const set = buildEvidence(brief(), extras());
   const ids = set.evidence.items.map((i) => i.id);
   const schema = summaryResponseSchema(ids);
-  assert.deepEqual(schema.properties.sentences.items.properties.evidence_ids.items.enum, ids);
-  assert.deepEqual(schema.required, ["sentences", "checklist"]);
+  assert.deepEqual(schema.properties.flags.items.properties.evidence_ids.items.enum, ids);
+  assert.equal(schema.properties.flags.minItems, 0);
+  assert.equal(schema.properties.flags.maxItems, 3);
+  assert.deepEqual(schema.required, ["flags", "checklist"]);
 });
 
 test("citesFor drops unknown ids and duplicate cites", () => {
@@ -280,14 +309,17 @@ test("citesFor drops unknown ids and duplicate cites", () => {
 test("parseSummaryRequest and summaryCacheKey", () => {
   const limits = { min: 100, max: 1000, default: 500 };
   assert.deepEqual(parseSummaryRequest({ address_point_id: 778448 }, limits), {
-    ok: true, value: { address_point_id: 778448, radius_m: 500 },
+    ok: true, value: { address_point_id: 778448, radius_m: 500, rent: null, beds: null },
   });
-  assert.deepEqual(parseSummaryRequest({ address_point_id: 7, radius_m: 250 }, limits), {
-    ok: true, value: { address_point_id: 7, radius_m: 250 },
+  assert.deepEqual(parseSummaryRequest({ address_point_id: 7, radius_m: 250, rent: 2350, beds: 1 }, limits), {
+    ok: true, value: { address_point_id: 7, radius_m: 250, rent: 2350, beds: 1 },
   });
   for (const bad of [null, [], {}, { address_point_id: "778448" }, { address_point_id: -1 }, { address_point_id: 1.5 },
-    { address_point_id: 7, radius_m: 50 }, { address_point_id: 7, radius_m: 2000 }, { address_point_id: 7, radius_m: "500" }]) {
+    { address_point_id: 7, radius_m: 50 }, { address_point_id: 7, radius_m: 2000 }, { address_point_id: 7, radius_m: "500" },
+    { address_point_id: 7, rent: 5 }, { address_point_id: 7, rent: "2350" }, { address_point_id: 7, beds: 1.5 },
+    { address_point_id: 7, beds: 11 }]) {
     assert.equal(parseSummaryRequest(bad, limits).ok, false, JSON.stringify(bad));
   }
-  assert.equal(summaryCacheKey({ address_point_id: 778448, radius_m: 500 }), "778448:500");
+  assert.equal(summaryCacheKey({ address_point_id: 778448, radius_m: 500, rent: null, beds: null }), "778448:500:-:-");
+  assert.equal(summaryCacheKey({ address_point_id: 778448, radius_m: 500, rent: 2350, beds: 1 }), "778448:500:2350:1");
 });

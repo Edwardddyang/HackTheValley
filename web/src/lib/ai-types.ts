@@ -1,17 +1,21 @@
 import type { AddressMatch, Cite } from "./brief";
 
 // Request/response shapes for the AI routes (web/src/app/api/summary, web/src/app/api/listing).
-// The summary only restates facts already in the brief or extras; every line carries the cites it used.
+// The flags only restate facts already in the brief or extras; every line carries the cites it used.
 
 export type SummaryLine = { text: string; cites: Cite[] };
 
-/** POST /api/summary with SummaryRequest. The server rebuilds the brief itself; it never trusts one from the browser. */
-export type SummaryRequest = { address_point_id: number; radius_m?: number };
+/**
+ * POST /api/summary with SummaryRequest. The server rebuilds the brief itself; it never trusts one from the
+ * browser. rent and beds (from a pasted listing) let the flags rank the asking rent against the CMHC average.
+ */
+export type SummaryRequest = { address_point_id: number; radius_m?: number; rent?: number | null; beds?: number | null };
 export type Summary = {
+  /** The What-to-flag bullets, worst first (at most 3); empty when nothing in the records stands out. */
   sentences: SummaryLine[];
   /** Questions to ask at the viewing, grounded in the weak inspection items and other facts. */
   checklist: SummaryLine[];
-  /** Gemini model id, or "template" when the AI was unavailable and the summary was built without it. */
+  /** Gemini model id, or "template" when the AI was unavailable and the flags were built without it. */
   model: string;
   generated_at: string;
 };

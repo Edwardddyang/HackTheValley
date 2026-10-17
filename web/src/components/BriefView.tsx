@@ -39,7 +39,7 @@ export function BriefView({ brief, extras, alternatives, radius, listing, fixtur
   const nav: [string, string][] = [
     ...(hasListing ? [["listing", "Your listing"] as [string, string]] : []),
     ...(listing.claims.length ? [["adcheck", "Ad check"] as [string, string]] : []),
-    ["summary", "In plain language"],
+    ["summary", "What to flag"],
     ["ask", "Ask the records"],
     ["building", "Building"],
     ["checklist", "Viewing questions"],
@@ -53,7 +53,8 @@ export function BriefView({ brief, extras, alternatives, radius, listing, fixtur
   ];
 
   return (
-    <SummaryProvider key={`${brief.address.address_point_id}-${radius}`} addressPointId={brief.address.address_point_id} radius={brief.address.radius_m}>
+    <SummaryProvider key={`${brief.address.address_point_id}-${radius}`} addressPointId={brief.address.address_point_id}
+      radius={brief.address.radius_m} rent={listing.rent} beds={listing.beds}>
       <div className="grid gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="min-w-0 lg:col-start-2">
           {fixture && <FixtureBanner />}
@@ -87,8 +88,8 @@ export function BriefView({ brief, extras, alternatives, radius, listing, fixtur
           <LimitsPanel />
           <p className="pb-4 text-sm leading-relaxed text-ink-2">
             Facts come from City of Toronto open data, Toronto Police Service data and CMHC&apos;s Rental Market Survey.
-            Hover or focus a source tag to see the dataset, file and row. Only the plain-language summary and the
-            viewing questions are written by AI, and they cite the same records.
+            Hover or focus a source tag to see the dataset, file and row. Only the What-to-flag bullets, the viewing
+            questions, the ad check and the answers to your questions are written by AI, and they cite the same records.
           </p>
         </div>
       </div>
