@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 // CesiumJS never enters the bundle: the modal injects the official CDN build once and talks to
 // window.Cesium. These are the few APIs the flyover touches, typed structurally.
@@ -161,7 +162,9 @@ function FlyoverModal({ apiKey, lat, lon, address, onClose }: {
     };
   }, [apiKey, lat, lon]);
 
-  return (
+  // Portalled to <body>: the map region is position:sticky, whose stacking context would
+  // otherwise paint the brief's content over this fixed overlay.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true"
       aria-label={`3D flyover of ${address}`} onClick={onClose}>
       <div className="relative flex h-[min(80vh,720px)] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-xl"
@@ -190,6 +193,7 @@ function FlyoverModal({ apiKey, lat, lon, address, onClose }: {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
