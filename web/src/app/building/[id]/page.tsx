@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { BriefTabs } from "@/components/BriefTabs";
 import { Cite } from "@/components/Cite";
 import AddressPermitsPanel from "@/components/dashboard/AddressPermitsPanel";
 import AreaComplaintsPanel from "@/components/dashboard/AreaComplaintsPanel";
@@ -11,12 +12,13 @@ import InspectionPanel from "@/components/dashboard/InspectionPanel";
 import NearbyBuildingsPanel from "@/components/dashboard/NearbyBuildingsPanel";
 import NearbyConstructionPanel from "@/components/dashboard/NearbyConstructionPanel";
 import NeighbourhoodPanel from "@/components/dashboard/NeighbourhoodPanel";
+import { rate } from "@/components/dashboard/DashboardPanel";
 import NeighbourhoodMap from "@/components/map/NeighbourhoodMap";
 import { ReviewsSection } from "@/components/reviews/ReviewsSection";
 import AddressSearch from "@/components/search/AddressSearch";
 import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { DEFAULT_RADIUS_M } from "@/lib/brief";
-import { metres } from "@/lib/format";
+import { metres, num } from "@/lib/format";
 import { loadBrief } from "@/lib/load";
 
 import Loading from "./loading";
@@ -32,6 +34,13 @@ const LIMITATIONS = [
   "Census figures are from 2021 and describe the neighbourhood. Shelter cost is not a current asking rent.",
   "Rent-control status can't be determined from these datasets: it depends on first residential occupancy, which isn't recorded here.",
 ];
+
+const count = (n: number | null | undefined) => (n ? num(n) : null);
+
+/** Panels within a tab: two columns on wide screens; a panel can span both. */
+function Grid({ children }: { children: React.ReactNode }) {
+  return <div className="grid gap-5 md:grid-cols-2 xl:gap-6">{children}</div>;
+}
 
 async function Report({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
@@ -50,9 +59,10 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
   const { brief, stats } = result;
   const { area } = brief;
   const typeLabels = brief.development_applications.type_labels;
+  const crimeAbove = brief.crime.offences.filter((o) => rate(o.rate_per_100k, o.city_rate_per_100k, { direction: "higher-worse", tolerance: 0.1 }) === "poor").length;
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10 sm:py-14">
+    <main className="mx-auto max-w-[1600px] px-6 lg:px-10 py-10 sm:py-14">
       <header>
         <p className="text-xs font-semibold tracking-[0.16em] text-teal-700 uppercase">Your building brief</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{brief.address.address}<Cite cite={brief.address.cite} /></h1>
@@ -69,27 +79,49 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
             </Link>
           ))}
         </div>
-        <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600">Building information, inspection records and the surrounding area, from City of Toronto open data. Hover a source tag to see the dataset row behind a figure, and check each panel&apos;s notes for what the data can&apos;t tell you.</p>
+        <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">From City of Toronto open data. Pick a tab below; hover a source tag to see the dataset row behind a figure.</p>
       </header>
-      <div className="mt-9 grid gap-5 md:grid-cols-2">
-        <BuildingSummaryPanel brief={brief} />
-        <InspectionPanel brief={brief} stats={stats} />
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 md:col-span-2" aria-labelledby="map-title">
-          <h2 id="map-title" className="text-xl font-semibold">Around the block</h2>
-          <NeighbourhoodMap brief={brief} typeLabels={typeLabels} />
-        </section>
-        <NearbyConstructionPanel brief={brief} />
-        <DevelopmentPanel brief={brief} />
-        <AreaComplaintsPanel brief={brief} />
-        <NearbyBuildingsPanel brief={brief} stats={stats} />
-        <AddressPermitsPanel brief={brief} />
-        <CrimePanel brief={brief} />
-        <NeighbourhoodPanel brief={brief} />
-        <ReviewsSection />
-        <section className="rounded-2xl border border-slate-200 bg-slate-100 p-6 md:col-span-2" aria-labelledby="limitations-title">
-          <h2 id="limitations-title" className="text-xl font-semibold">Sources and limitations</h2>
-          <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-600">{LIMITATIONS.map((l) => <li key={l}>{l}</li>)}</ul>
-        </section>
+      <div className="mt-8">
+        <BriefTabs tabs={[
+          { id: "overview", label: "Overview", content: (
+            <Grid>
+              <BuildingSummaryPanel brief={brief} />
+              <InspectionPanel brief={brief} stats={stats} />
+              <section className="rounded-2xl border border-slate-200 bg-white p-6 md:col-span-2" aria-labelledby="map-title">
+                <h2 id="map-title" className="text-xl font-semibold">Around the block</h2>
+                <NeighbourhoodMap brief={brief} typeLabels={typeLabels} />
+              </section>
+            </Grid>
+          ) },
+          { id: "buildings", label: "Nearby buildings", badge: count(brief.rentsafe_nearby.buildings.length), content: (
+            <Grid><NearbyBuildingsPanel brief={brief} stats={stats} /></Grid>
+          ) },
+          { id: "construction", label: "Construction", badge: count(brief.construction_nearby.active_permit_count), content: (
+            <Grid>
+              <NearbyConstructionPanel brief={brief} />
+              <DevelopmentPanel brief={brief} />
+              <AddressPermitsPanel brief={brief} />
+            </Grid>
+          ) },
+          { id: "311", label: "311 requests", badge: count(brief.service_requests_311.nearby.count), content: (
+            <Grid><AreaComplaintsPanel brief={brief} /></Grid>
+          ) },
+          { id: "crime", label: "Crime", badge: crimeAbove ? `${crimeAbove} above city` : null, content: (
+            <Grid><CrimePanel brief={brief} /></Grid>
+          ) },
+          { id: "neighbourhood", label: "Neighbourhood", content: (
+            <Grid><NeighbourhoodPanel brief={brief} /></Grid>
+          ) },
+          { id: "reviews", label: "Reviews", badge: "Soon", content: (
+            <Grid><ReviewsSection /></Grid>
+          ) },
+          { id: "about", label: "About the data", content: (
+            <section className="rounded-2xl border border-slate-200 bg-slate-100 p-6" aria-labelledby="limitations-title">
+              <h2 id="limitations-title" className="text-xl font-semibold">Sources and limitations</h2>
+              <ul className="mt-4 max-w-4xl list-disc space-y-2 pl-5 text-sm leading-6 text-slate-600">{LIMITATIONS.map((l) => <li key={l}>{l}</li>)}</ul>
+            </section>
+          ) },
+        ]} />
       </div>
     </main>
   );

@@ -6,7 +6,7 @@ import { DashboardPanel, ShowMore, SourceNote, Unavailable } from "./DashboardPa
 export default function AddressPermitsPanel({ brief }: { brief: Brief }) {
   const p = brief.permits_at_address;
   return (
-    <DashboardPanel id="address-permits" title="Permits at this address" subtitle={p.note}>
+    <DashboardPanel wide id="address-permits" title="Permits at this address" subtitle={p.note}>
       {p.items.length === 0 ? <Unavailable>No permits on record for this exact address.</Unavailable> : (
         <ShowMore noun="permits" items={p.items.map((i) => (
             <li key={i.permit_num + i.type + i.status} className="rounded-xl border border-slate-200 p-4 text-sm">

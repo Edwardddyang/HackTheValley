@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { Cite } from "@/components/Cite";
 import type { Brief, RentSafeStats } from "@/lib/brief";
 import { metres, num, titleCase } from "@/lib/format";
@@ -10,7 +8,7 @@ export default function NearbyBuildingsPanel({ brief, stats }: { brief: Brief; s
   const median = stats?.median_score ?? null;
   const list = brief.rentsafe_nearby.buildings.filter((b) => b.distance_m > 0 || !brief.building.in_rentsafe);
   return (
-    <DashboardPanel id="nearby-buildings" title="Evaluated buildings nearby"
+    <DashboardPanel wide id="nearby-buildings" title="Evaluated buildings nearby"
       subtitle={`RentSafeTO apartment buildings within ${metres(brief.address.radius_m)}, nearest first. Useful for comparing options on the same block.`}>
       {list.length === 0 ? <Unavailable>No RentSafeTO-evaluated buildings in this radius.</Unavailable> : (
         <>
@@ -47,7 +45,7 @@ export default function NearbyBuildingsPanel({ brief, stats }: { brief: Brief; s
         </>
       )}
       {list.length > 10 && <p className="mt-3 text-xs text-slate-500">{list.length - 10} more {list.length - 10 === 1 ? "is" : "are"} shown on the map.</p>}
-      <p className="mt-4 text-xs leading-5 text-slate-500">Scores are each building&apos;s latest evaluation. <Link href="#inspection" className="underline">What the score means</Link>.</p>
+      <p className="mt-4 text-xs leading-5 text-slate-500">Scores are each building&apos;s latest evaluation. <a href="#overview" className="underline">What the score means</a>.</p>
     </DashboardPanel>
   );
 }

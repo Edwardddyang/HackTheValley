@@ -196,7 +196,7 @@ function MapExplorer({ brief, typeLabels }: Props) {
             {mapIssue.kind === "graphics" && <p className="mt-2">Enable graphics acceleration in your browser settings and relaunch the browser, or try another browser with WebGL support. The location list remains available.</p>}
             <button type="button" onClick={retryMap} className="mt-2 rounded font-medium underline focus-visible:outline-2 focus-visible:outline-teal-700">Retry map</button>
           </div>}
-          <div ref={containerRef} className={`relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100 ${expanded ? "h-[55dvh] min-h-64 sm:h-[62dvh]" : "h-96"}`}>
+          <div ref={containerRef} className={`relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100 ${expanded ? "h-[55dvh] min-h-64 sm:h-[62dvh]" : "h-96 lg:h-[30rem] 2xl:h-[36rem]"}`}>
             <MapBoundary key={attempt} onRetry={retryMap}>
               <Map
                 ref={mapRef}
@@ -290,7 +290,7 @@ function MapExplorer({ brief, typeLabels }: Props) {
         <p className="text-sm text-slate-600">Explore the address and its surroundings.</p>
         <button ref={expandRef} type="button" onClick={() => setExpanded(true)} className="rounded-lg bg-[#142D4E] px-4 py-3 text-sm font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">Expand map</button>
       </div>
-      {expanded && <div aria-hidden="true" className="h-96 rounded-xl bg-slate-100" />}
+      {expanded && <div aria-hidden="true" className="h-96 rounded-xl bg-slate-100 lg:h-[30rem] 2xl:h-[36rem]" />}
       <dialog ref={dialogRef} open role={expanded ? "dialog" : "region"} aria-modal={expanded || undefined} aria-label={expanded ? undefined : "Neighbourhood map"} aria-labelledby={expanded ? `${id}-dialog-title` : undefined} onCancel={(event) => { event.preventDefault(); setExpanded(false); }} className={expanded ? "fixed inset-0 m-auto max-h-[96dvh] w-[96vw] max-w-7xl overflow-y-auto rounded-2xl border border-slate-200 bg-[#F8FAFC] p-4 text-[#142D4E] shadow-2xl backdrop:bg-slate-950/65 sm:p-6" : "relative m-0 w-full max-w-none overflow-visible border-0 bg-transparent p-0 text-[#142D4E]"}>
         {expanded && <div className="mb-5 flex items-start justify-between gap-4"><div><h2 id={`${id}-dialog-title`} className="text-xl font-semibold">Neighbourhood explorer</h2><p className="mt-1 text-sm text-slate-600">{brief.address.address}</p></div><button ref={closeRef} type="button" onClick={() => setExpanded(false)} className="shrink-0 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-teal-700">Close map</button></div>}
         {content}

@@ -12,12 +12,12 @@ export default function CrimePanel({ brief }: { brief: Brief }) {
   const c = brief.crime;
   const hood = brief.area.neighbourhood?.name ?? "this neighbourhood";
   return (
-    <DashboardPanel id="crime" title={`Crime in ${hood}, ${c.year}`}
+    <DashboardPanel wide id="crime" title={`Crime in ${hood}, ${c.year}`}
       subtitle={<>Incidents per 100,000 people. Bar: {hood}; tick: all of Toronto.</>}>
       {c.offences.length === 0 ? <Unavailable>No crime figures for this neighbourhood.</Unavailable> : (
         <>
         <div className="mb-4"><StatusLegend good="More than 10% below the city rate" fair="Within 10%" poor="More than 10% above" /></div>
-        <ul className="space-y-4">
+        <ul className="grid gap-x-12 gap-y-5 lg:grid-cols-2">
           {c.offences.map((o) => {
             const max = Math.max(o.rate_per_100k, o.city_rate_per_100k ?? 0) * 1.15;
             const status = rate(o.rate_per_100k, o.city_rate_per_100k, RULE);

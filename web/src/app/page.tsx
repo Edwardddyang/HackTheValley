@@ -56,12 +56,12 @@ export default function Home(props: PageProps<"/">) {
       <SiteHeader>
         <a href="#how-it-works" className="rounded text-sm font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-teal-700">How it works</a>
       </SiteHeader>
-      <main className="mx-auto max-w-6xl px-6 pb-20 pt-14 sm:pt-24">
-        <div className="grid gap-12 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+      <main className="mx-auto max-w-[1600px] px-6 lg:px-10 pb-20 pt-14 sm:pt-24">
+        <div className="grid gap-12 lg:grid-cols-[1.1fr_1fr] lg:gap-20 xl:gap-28">
           <section aria-labelledby="hero-title" className="lg:pt-5">
             <p className="mb-6 text-xs font-bold tracking-[0.18em] text-teal-700 uppercase">A little context. A better move.</p>
-            <h1 id="hero-title" className="max-w-xl text-5xl leading-[1.08] font-semibold tracking-tight sm:text-6xl">Know your building before you sign.</h1>
-            <p className="mt-7 max-w-lg text-lg leading-8 text-slate-600">See a Toronto building&apos;s City inspection score, construction and development nearby, 311 requests, crime and neighbourhood rents, all from City of Toronto open data.</p>
+            <h1 id="hero-title" className="max-w-2xl text-5xl leading-[1.08] font-semibold tracking-tight sm:text-6xl xl:text-7xl">Know your building before you sign.</h1>
+            <p className="mt-7 max-w-xl text-lg leading-8 text-slate-600">See a Toronto building&apos;s City inspection score, construction and development nearby, 311 requests, crime and neighbourhood rents, all from City of Toronto open data.</p>
             <p className="mt-6 max-w-md text-sm leading-6 text-slate-600">Every figure links back to the dataset row it came from. Nothing is estimated or made up.</p>
           </section>
           <section id="search" aria-labelledby="search-title" className="scroll-mt-6 self-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-200/40">

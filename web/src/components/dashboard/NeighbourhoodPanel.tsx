@@ -27,12 +27,12 @@ export default function NeighbourhoodPanel({ brief }: { brief: Brief }) {
   const pop = values.population;
   const rows = ROWS.filter((r) => values[r.key]);
   return (
-    <DashboardPanel id="neighbourhood" title={`${hood} at a glance`}
+    <DashboardPanel wide id="neighbourhood" title={`${hood} at a glance`}
       subtitle={<>2021 Census{pop?.value ? <> · population {num(pop.value)}<Cite cite={pop.cite} /></> : null}. Bar: {hood}; tick: median of Toronto&apos;s 158 neighbourhoods.</>}>
       {rows.length === 0 ? <Unavailable>Census figures are unavailable for this neighbourhood.</Unavailable> : (
         <>
         <div className="mb-4"><StatusLegend good="More than 10% below the median" fair="Within 10%" poor="More than 10% above" /></div>
-        <ul className="space-y-4">
+        <ul className="grid gap-x-12 gap-y-5 lg:grid-cols-2">
           {rows.map((r) => {
             const v = values[r.key];
             const shown = r.kind === "percent" ? v.percent ?? v.value : v.value;
