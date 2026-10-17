@@ -52,8 +52,10 @@ function circle(lon: number, lat: number, radiusM: number, steps = 96): Polygon 
 }
 
 // Ghost towers: a block for each open application whose description states a height. Only the
-// conservative "NN-storey" phrasing counts; everything else simply gets no block.
-const STOREY_RE = /(\d{1,3})\s*[- ]?\s*store?y/i;
+// conservative "NN-storey" phrasing counts; everything else simply gets no block. Global, because
+// one description often names several heights ("a 3-storey addition to the existing 2-storey
+// building, resulting in a 5-storey building"); the tallest is the one that counts.
+const STOREY_RE = /(\d{1,3})\s*[- ]?\s*store?y/gi;
 const METRES_PER_STOREY = 3;
 const GHOST_SIDE_M = 22;
 
@@ -75,7 +77,8 @@ function ghostTowers(open: Brief["development_applications"]["open"]): FeatureCo
   const tallest: Record<string, { lon: number; lat: number; storeys: number }> = {};
   for (const a of open) {
     if (a.lat == null || a.lon == null) continue;
-    const storeys = Number(STOREY_RE.exec(a.description ?? "")?.[1] ?? 0);
+    let storeys = 0;
+    for (const m of (a.description ?? "").matchAll(STOREY_RE)) storeys = Math.max(storeys, Number(m[1]));
     if (!storeys) continue;
     const key = `${a.lat.toFixed(6)},${a.lon.toFixed(6)}`;
     if ((tallest[key]?.storeys ?? 0) < storeys) tallest[key] = { lon: a.lon, lat: a.lat, storeys };
@@ -171,16 +174,21 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
     sr311: points(brief.service_requests_311.nearby.points, (p) => ({
       title: p.type, sub: `Reported ${p.date} at this intersection. Status: ${p.status}.`, row: p.row,
     })),
+    // `id` matches the row keys in BriefView, so a row's "Map" button opens its own popup even
+    // when several records share one point.
     devapps: points(brief.development_applications.open, (d) => ({
+      id: `${d.application_number}|${d.type}`,
       title: typeLabels[d.type] ?? d.type,
       sub: `${d.status} · submitted ${d.date_submitted ?? "—"}`,
       address: d.address, description: d.description, url: d.url,
     })),
     permits: points(brief.construction_nearby.notable, (p) => ({
+      id: `${p.permit_num}|${p.type}`,
       title: p.type, sub: `${p.status} · ${p.est_const_cost ? `$${Math.round(p.est_const_cost).toLocaleString("en-CA")}` : "cost not stated"}`,
       address: p.address, description: p.description,
     })),
     rentsafe: points(brief.rentsafe_nearby.buildings, (b) => ({
+      id: String(b.rsn),
       title: b.address, score: b.score == null ? "?" : String(Math.round(b.score)),
       sub: `RentSafeTO score ${b.score ?? "—"}/100 · evaluated ${b.evaluation_date ?? "—"}${b.scoring === "pre-2023" ? " (pre-2023 scoring)" : ""}`,
     })),
@@ -204,15 +212,21 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
   // "Map" buttons on brief rows dispatch this event; fly there and open the matching popup.
   useEffect(() => {
     function onShow(e: Event) {
-      const { lon: flon, lat: flat, layer, props } = (e as CustomEvent<ShowOnMapDetail>).detail;
+      const { lon: flon, lat: flat, layer, id, props } = (e as CustomEvent<ShowOnMapDetail>).detail;
       let best: Record<string, unknown> = props ?? {};
       if (layer !== "amenity") {
         setVisible((v) => (v[layer] ? v : { ...v, [layer]: true }));
-        let bestD = Infinity;
-        for (const f of data[layer].features) {
-          const [cx, cy] = f.geometry.coordinates;
-          const d = (cx - flon) ** 2 + (cy - flat) ** 2;
-          if (d < bestD) { bestD = d; best = f.properties ?? {}; }
+        const features = data[layer].features;
+        const exact = id == null ? undefined : features.find((f) => f.properties?.id === id);
+        if (exact) {
+          best = exact.properties ?? {};
+        } else {
+          let bestD = Infinity;
+          for (const f of features) {
+            const [cx, cy] = f.geometry.coordinates;
+            const d = (cx - flon) ** 2 + (cy - flat) ** 2;
+            if (d < bestD) { bestD = d; best = f.properties ?? {}; }
+          }
         }
       }
       focus(flon, flat, layer, best);
@@ -288,6 +302,9 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
         onMouseEnter={() => setHovering(true)}
         onMouseLeave={() => setHovering(false)}
         onClick={onClick}
+        // A new map instance (first load, or a page restored from Next's back/forward cache)
+        // starts flat; match the 3D checkbox, which may already be on.
+        onLoad={(e) => e.target.easeTo({ pitch: three ? 55 : 0, duration: 0 })}
         attributionControl={{ compact: true }}
         style={{ width: "100%", height: "100%" }}
       >
@@ -314,9 +331,12 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
         </Source>
 
         {/* The positron style's own vector source carries the OpenMapTiles "building" layer with
-            render_height/render_min_height in metres. Mounted here, below the point layers, so
-            markers and popups keep working on top of the extrusions. */}
+            render_height/render_min_height in metres. beforeId slots both extrusion layers under
+            the style's first label layer, so street and place names stay readable, and below the
+            point layers, so markers and popups keep working on top. buildings-3d is created
+            before the ghost layer (it needs no Source of ours), so the ghosts land above it. */}
         <Layer id="buildings-3d" type="fill-extrusion" source="openmaptiles" source-layer="building"
+          beforeId="waterway_line_label"
           minzoom={13} filter={["!=", ["get", "hide_3d"], true]}
           layout={{ visibility: three ? "visible" : "none" }}
           paint={{
@@ -326,7 +346,7 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
             "fill-extrusion-base": ["interpolate", ["linear"], ["zoom"], 13, 0, 14.5, ["get", "render_min_height"]],
           }} />
         <Source id="ghosts" type="geojson" data={data.ghosts}>
-          <Layer id="ghost-towers" type="fill-extrusion"
+          <Layer id="ghost-towers" type="fill-extrusion" beforeId="waterway_line_label"
             layout={{ visibility: three ? "visible" : "none" }}
             paint={{
               "fill-extrusion-color": COLORS.devapps,
@@ -403,7 +423,9 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
                 </a>
               ) : null}
               {picked.layer !== "amenity" && picked.layer !== "hood" ? (
-                <a className="block text-accent underline" href={`#${SECTION_OF[picked.layer]}`}>See in brief</a>
+                // Leaving full screen first, or the page would scroll invisibly behind the map.
+                <a className="block text-accent underline" href={`#${SECTION_OF[picked.layer]}`}
+                  onClick={() => setFull(false)}>See in brief</a>
               ) : null}
             </div>
           </Popup>
@@ -486,14 +508,15 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
           </select>
         </label>
         {shade !== "none" && hoods && hoods !== "error" && (
+          /* The domain is clipped (areas beyond it share the end colours), hence ≤ and ≥. */
           <p className="flex items-center gap-1.5 py-0.5 text-[11px] text-ink-3">
             <span className="tabular-nums">
-              {shade === "rent" ? money(hoods.domains.rent[0]) : num(hoods.domains.assault[0])}
+              ≤ {shade === "rent" ? money(hoods.domains.rent[0]) : num(Math.round(hoods.domains.assault[0]))}
             </span>
             <span aria-hidden="true" className="inline-block h-2 w-16 rounded-sm"
               style={{ background: `linear-gradient(to right, #f3f0e8, ${SHADE_DEEP[shade]})` }} />
             <span className="tabular-nums">
-              {shade === "rent" ? money(hoods.domains.rent[1]) : `${num(hoods.domains.assault[1])}/100k`}
+              ≥ {shade === "rent" ? money(hoods.domains.rent[1]) : `${num(Math.round(hoods.domains.assault[1]))}/100k`}
             </span>
             <span className="pl-1">· click an area</span>
           </p>
@@ -524,7 +547,8 @@ function AreaStats({ brief }: { brief: Brief }) {
   if (cv.renter_households?.percent != null) census.push(["Households renting", `${num(Math.round(cv.renter_households.percent * 10) / 10)}%`]);
   if (cv.median_household_income?.value != null) census.push(["Median household income", money(cv.median_household_income.value)]);
   return (
-    <div className="absolute bottom-8 left-2 max-w-[280px] rounded-lg border border-border bg-surface/95 p-3 text-xs shadow-sm backdrop-blur sm:left-3">
+    // Right side: on the left it covered the legend (including its own toggle) and the scale bar.
+    <div className="absolute bottom-8 right-2 max-w-[270px] rounded-lg border border-border bg-surface/95 p-3 text-xs shadow-sm backdrop-blur sm:right-3">
       <h3 className="text-[13px] font-semibold text-ink">{hood}</h3>
       {brief.crime.offences.slice(0, 3).map((o) => (
         <div key={o.offence} className="flex justify-between gap-3 py-0.5">

@@ -168,7 +168,7 @@ function NearbyBuildingsSection({ brief }: { brief: Brief }) {
                 <th scope="row" className="py-2 pr-3 text-left font-normal text-ink">
                   {titleCase(b.address)}
                   <Cite cite={b.cite} />
-                  <ShowOnMap lon={b.lon} lat={b.lat} layer="rentsafe" label={titleCase(b.address)} />
+                  <ShowOnMap lon={b.lon} lat={b.lat} layer="rentsafe" id={String(b.rsn)} label={titleCase(b.address)} />
                 </th>
                 <td className="w-2/5 py-2 pr-3">
                   <div className="flex items-center gap-2">
@@ -213,7 +213,8 @@ function ConstructionSection({ brief }: { brief: Brief }) {
                 <span className="font-semibold text-ink">
                   {titleCase(p.address)}
                   <Cite cite={p.cite} />
-                  <ShowOnMap lon={p.lon} lat={p.lat} layer="permits" label={p.address ?? "this project"} />
+                  <ShowOnMap lon={p.lon} lat={p.lat} layer="permits" id={`${p.permit_num}|${p.type}`}
+                    label={p.address ?? "this project"} />
                 </span>
                 <span className="num text-sm text-ink-2">{metres(p.distance_m)}</span>
               </div>
@@ -256,7 +257,8 @@ function DevelopmentSection({ brief }: { brief: Brief }) {
                     </span>
                   ) : null}
                   <Cite cite={a.cite} />
-                  <ShowOnMap lon={a.lon} lat={a.lat} layer="devapps" label={a.address ?? "this application"} />
+                  <ShowOnMap lon={a.lon} lat={a.lat} layer="devapps" id={`${a.application_number}|${a.type}`}
+                    label={a.address ?? "this application"} />
                 </span>
                 <span className="num text-sm text-ink-2">{metres(a.distance_m)}</span>
               </div>

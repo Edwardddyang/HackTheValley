@@ -37,7 +37,7 @@ interface CesiumNS {
   Matrix4: { IDENTITY: object };
   Math: { toRadians(deg: number): number };
   GoogleMaps: { defaultApiKey?: string };
-  createGooglePhotorealistic3DTileset(options?: object): Promise<object>;
+  createGooglePhotorealistic3DTileset(options?: object): Promise<{ destroy?(): void }>;
 }
 
 declare global {
@@ -100,9 +100,15 @@ function FlyoverModal({ apiKey, lat, lon, address, onClose }: {
 
   useEffect(() => {
     closeRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    // Capture phase + stopPropagation: the map's full-screen Escape handler listens in the bubble
+    // phase, so Escape closes only this modal and leaves full-screen as it was.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      onClose();
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [onClose]);
 
   useEffect(() => {
@@ -123,7 +129,11 @@ function FlyoverModal({ apiKey, lat, lon, address, onClose }: {
         });
         Cesium.GoogleMaps.defaultApiKey = apiKey;
         const tileset = await Cesium.createGooglePhotorealistic3DTileset();
-        if (cancelled) return;
+        if (cancelled) {
+          // Closed while the tileset was loading: it never reached a viewer, so release it here.
+          tileset.destroy?.();
+          return;
+        }
         viewer.scene.primitives.add(tileset);
         setLoading(false);
 
@@ -177,9 +187,10 @@ function FlyoverModal({ apiKey, lat, lon, address, onClose }: {
   }, [apiKey, lat, lon]);
 
   // Portalled to <body>: the map region is position:sticky, whose stacking context would
-  // otherwise paint the brief's content over this fixed overlay.
+  // otherwise paint the brief's content over this fixed overlay. z-[70] sits above the region's
+  // z-index 60 while the map is full screen.
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true"
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true"
       aria-label={`3D flyover of ${address}`} onClick={onClose}>
       <div className="relative flex h-[min(80vh,720px)] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-xl"
         onClick={(e) => e.stopPropagation()}>
