@@ -4,10 +4,12 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 import type { FeatureCollection, Point, Polygon } from "geojson";
 import { type MapLayerMouseEvent, setWorkerUrl } from "maplibre-gl";
-import { useMemo, useState } from "react";
-import Map, { Layer, NavigationControl, Popup, ScaleControl, Source } from "react-map-gl/maplibre";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Map, { Layer, type MapRef, NavigationControl, Popup, ScaleControl, Source } from "react-map-gl/maplibre";
 
 import type { Brief } from "@/lib/brief";
+
+import { FlyoverButton } from "./Flyover";
 
 const STYLE = "https://tiles.openfreemap.org/styles/positron";
 
@@ -36,6 +38,45 @@ function circle(lon: number, lat: number, radiusM: number, steps = 96): Polygon 
   return { type: "Polygon", coordinates: [coords] };
 }
 
+// Ghost towers: a block for each open application whose description states a height. Only the
+// conservative "NN-storey" phrasing counts; everything else simply gets no block.
+const STOREY_RE = /(\d{1,3})\s*[- ]?\s*store?y/i;
+const METRES_PER_STOREY = 3;
+const GHOST_SIDE_M = 22;
+
+function square(lon: number, lat: number, sizeM: number): Polygon {
+  const dLat = sizeM / 2 / 111_320;
+  const dLon = sizeM / 2 / (111_320 * Math.cos((lat * Math.PI) / 180));
+  return {
+    type: "Polygon",
+    coordinates: [[
+      [lon - dLon, lat - dLat], [lon + dLon, lat - dLat], [lon + dLon, lat + dLat],
+      [lon - dLon, lat + dLat], [lon - dLon, lat - dLat],
+    ]],
+  };
+}
+
+function ghostTowers(open: Brief["development_applications"]["open"]): FeatureCollection<Polygon> {
+  // One project often files several applications at the same point; keep the tallest reading.
+  // (A record, not a Map: the react-map-gl Map component shadows the global in this module.)
+  const tallest: Record<string, { lon: number; lat: number; storeys: number }> = {};
+  for (const a of open) {
+    if (a.lat == null || a.lon == null) continue;
+    const storeys = Number(STOREY_RE.exec(a.description ?? "")?.[1] ?? 0);
+    if (!storeys) continue;
+    const key = `${a.lat.toFixed(6)},${a.lon.toFixed(6)}`;
+    if ((tallest[key]?.storeys ?? 0) < storeys) tallest[key] = { lon: a.lon, lat: a.lat, storeys };
+  }
+  return {
+    type: "FeatureCollection",
+    features: Object.values(tallest).map((t) => ({
+      type: "Feature",
+      geometry: square(t.lon, t.lat, GHOST_SIDE_M),
+      properties: { height: t.storeys * METRES_PER_STOREY },
+    })),
+  };
+}
+
 function points<T extends { lat: number; lon: number }>(items: T[], props: (t: T) => Record<string, unknown>) {
   return {
     type: "FeatureCollection",
@@ -52,6 +93,14 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
   });
   const [picked, setPicked] = useState<Picked | null>(null);
   const [hovering, setHovering] = useState(false);
+  const [three, setThree] = useState(false);
+  const mapRef = useRef<MapRef>(null);
+
+  // After the commit, not in the change handler: an easeTo started mid-render can be
+  // cancelled by react-map-gl's own camera reconciliation.
+  useEffect(() => {
+    mapRef.current?.easeTo({ pitch: three ? 55 : 0, duration: 700 });
+  }, [three]);
 
   const data = useMemo(() => ({
     ring: { type: "Feature", geometry: circle(lon, lat, radius_m), properties: {} } as GeoJSON.Feature<Polygon>,
@@ -74,6 +123,7 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
       sub: `RentSafeTO score ${b.score ?? "—"}/100 · evaluated ${b.evaluation_date ?? "—"}${b.scoring === "pre-2023" ? " (pre-2023 scoring)" : ""}`,
     })),
     home: points([{ lat, lon }], () => ({})),
+    ghosts: ghostTowers(brief.development_applications.open),
   }), [brief, lat, lon, radius_m, typeLabels]);
 
   const bounds = useMemo(() => {
@@ -113,6 +163,7 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
     <div className="relative h-full w-full overflow-hidden rounded-xl border border-border bg-surface-2">
       <Map
         key={brief.address.address_point_id}
+        ref={mapRef}
         initialViewState={{ bounds, fitBoundsOptions: { padding: 28 } }}
         mapStyle={STYLE}
         interactiveLayerIds={interactive}
@@ -129,6 +180,28 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
         <Source id="ring" type="geojson" data={data.ring}>
           <Layer id="ring-fill" type="fill" paint={{ "fill-color": COLORS.sr311, "fill-opacity": 0.04 }} />
           <Layer id="ring-line" type="line" paint={{ "line-color": COLORS.building, "line-opacity": 0.45, "line-width": 1.5, "line-dasharray": [3, 2] }} />
+        </Source>
+
+        {/* The positron style's own vector source carries the OpenMapTiles "building" layer with
+            render_height/render_min_height in metres. Mounted here, below the point layers, so
+            markers and popups keep working on top of the extrusions. */}
+        <Layer id="buildings-3d" type="fill-extrusion" source="openmaptiles" source-layer="building"
+          minzoom={13} filter={["!=", ["get", "hide_3d"], true]}
+          layout={{ visibility: three ? "visible" : "none" }}
+          paint={{
+            "fill-extrusion-color": "#d8d4c8",
+            "fill-extrusion-opacity": 0.85,
+            "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 13, 0, 14.5, ["get", "render_height"]],
+            "fill-extrusion-base": ["interpolate", ["linear"], ["zoom"], 13, 0, 14.5, ["get", "render_min_height"]],
+          }} />
+        <Source id="ghosts" type="geojson" data={data.ghosts}>
+          <Layer id="ghost-towers" type="fill-extrusion"
+            layout={{ visibility: three ? "visible" : "none" }}
+            paint={{
+              "fill-extrusion-color": COLORS.devapps,
+              "fill-extrusion-opacity": 0.35,
+              "fill-extrusion-height": ["get", "height"],
+            }} />
         </Source>
 
         <Source id="sr311" type="geojson" data={data.sr311}>
@@ -196,7 +269,27 @@ export default function BriefMap({ brief, typeLabels }: { brief: Brief; typeLabe
             <span className="ml-auto pl-2 tabular-nums text-ink-3">{l.count}</span>
           </label>
         ))}
+        <label className="mt-1 flex cursor-pointer items-center gap-2 border-t border-hairline pt-1.5 text-ink-2">
+          <input type="checkbox" className="accent-[var(--ink)]" checked={three}
+            onChange={(e) => setThree(e.target.checked)} />
+          <span className="flex w-3 justify-center">
+            <span className="inline-block h-2.5 w-2.5 rounded-[2px] border border-ink-3" style={{ background: "#d8d4c8" }} />
+          </span>
+          <span>3D buildings</span>
+        </label>
+        {three && data.ghosts.features.length > 0 && (
+          <p className="flex items-center gap-2 py-0.5 text-ink-2">
+            <span className="w-[13px]" aria-hidden="true" />
+            <span className="flex w-3 justify-center">
+              <span className="inline-block h-2.5 w-2.5 rounded-[2px]" style={{ background: COLORS.devapps, opacity: 0.4 }} />
+            </span>
+            <span>Proposed/approved — height approximate</span>
+            <span className="ml-auto pl-2 tabular-nums text-ink-3">{data.ghosts.features.length}</span>
+          </p>
+        )}
       </fieldset>
+
+      <FlyoverButton lat={lat} lon={lon} address={brief.address.address} />
     </div>
   );
 }
