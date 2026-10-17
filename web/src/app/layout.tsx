@@ -37,10 +37,16 @@ export const viewport: Viewport = {
   ],
 };
 
+// Applies a stored theme choice to <html data-theme> before anything paints, so there is no
+// flash of the wrong theme. globals.css honours the attribute; unset falls back to the OS.
+const THEME_INIT = `try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-CA" className={`${body.variable} ${plate.variable} h-full antialiased`}>
+    // suppressHydrationWarning: the init script may set data-theme before React hydrates <html>.
+    <html lang="en-CA" className={`${body.variable} ${plate.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="flex min-h-full flex-col font-sans">
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
         <a href="#main" className="skip-link">
           Skip to main content
         </a>

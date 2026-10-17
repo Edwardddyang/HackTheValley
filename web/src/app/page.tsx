@@ -96,7 +96,8 @@ function Landing() {
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-10 outline-none sm:px-6 sm:pt-14">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:gap-x-14">
           <div className="lg:col-start-1 lg:row-start-1 lg:pt-4">
-            <h1 className="plate text-[clamp(2.75rem,9vw,4.75rem)] font-bold text-ink">Check the building before you sign.</h1>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">RentReceipts · Toronto open data</p>
+            <h1 className="plate mt-2 text-[clamp(2.75rem,9vw,4.75rem)] font-bold text-ink">Check the building before you sign.</h1>
             <p className="mt-5 max-w-[34ch] text-[1.25rem] leading-snug text-ink-2">
               Paste a Toronto rental ad and see the building&apos;s City inspection record and what&apos;s around it, with
               every fact linked to the open-data row it came from.
@@ -107,17 +108,17 @@ function Landing() {
             <HomeTools />
           </div>
 
-          <div className="lg:col-start-1 lg:row-start-2">
-            <h2 className="plate text-[1.4rem] font-bold text-ink">What the brief covers</h2>
-            <dl className="mt-3 flex max-w-[46ch] flex-col gap-3">
+          <section aria-labelledby="covers-h" className="rounded-2xl border border-hairline bg-surface p-5 shadow-sm sm:p-6 lg:col-start-1 lg:row-start-2">
+            <h2 id="covers-h" className="text-xl font-semibold tracking-tight text-ink">What the brief covers</h2>
+            <dl className="mt-2 flex max-w-[52ch] flex-col divide-y divide-hairline">
               {COVERS.map((c) => (
-                <div key={c.term} className="border-l-2 border-baseline pl-3">
+                <div key={c.term} className="py-3 last:pb-0">
                   <dt className="font-semibold text-ink">{c.term}</dt>
-                  <dd className="text-[15px] text-ink-2">{c.detail}</dd>
+                  <dd className="mt-0.5 text-[15px] text-ink-2">{c.detail}</dd>
                 </div>
               ))}
             </dl>
-          </div>
+          </section>
         </div>
       </main>
     </>

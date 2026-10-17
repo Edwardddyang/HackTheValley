@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { ThemeToggle } from "./ThemeToggle";
+
 /** Site header. On brief pages it is sticky and carries the address search. */
 export function SiteHeader({ search, sticky = false }: { search?: ReactNode; sticky?: boolean }) {
   return (
@@ -19,6 +21,7 @@ export function SiteHeader({ search, sticky = false }: { search?: ReactNode; sti
             <li><Link href="/sources" className="rounded text-ink underline-offset-4 transition hover:text-accent hover:underline">Sources</Link></li>
           </ul>
         </nav>
+        <ThemeToggle />
       </div>
     </header>
   );
