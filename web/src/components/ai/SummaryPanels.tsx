@@ -4,7 +4,6 @@ import { createContext, type ReactNode, useContext, useEffect, useRef, useState 
 
 import { Cite } from "@/components/Cite";
 import type { ApiError, Summary, SummaryLine, SummaryRequest } from "@/lib/ai-types";
-import { date } from "@/lib/format";
 
 // From integrate/best-of-both (Ariaz): the What-to-flag bullets and the viewing checklist both come from one
 // POST /api/summary. The server rebuilds the brief itself and only restates facts in it; every line carries its
@@ -212,9 +211,8 @@ function Provenance({ summary }: { summary: Summary | null }) {
   return (
     <p className="mt-4 max-w-4xl border-t border-slate-200/70 pt-3 text-xs leading-5 text-slate-500">
       {template
-        ? "Built from a fixed template because the AI wasn't available. It only restates the records on this page."
-        : `Written by Google Gemini (${summary.model}) from the records on this page; each line cites the records it used. AI can misread a record, so check anything that matters with the landlord or the City.`}
-      {summary.generated_at ? ` ${template ? "Built" : "Written"} ${date(summary.generated_at)}.` : ""}
+        ? "From a fixed template (AI unavailable)."
+        : "Written by Gemini from the cited records. Double-check anything important."}
     </p>
   );
 }

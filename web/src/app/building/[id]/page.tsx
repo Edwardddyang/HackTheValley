@@ -75,8 +75,7 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
   return (
     <main className="mx-auto max-w-[1600px] px-6 lg:px-10 py-10 sm:py-14">
       <header>
-        <p className="text-xs font-semibold tracking-[0.16em] text-teal-700 uppercase">Your building brief</p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{brief.address.address}<Cite cite={brief.address.cite} /></h1>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{brief.address.address}<Cite cite={brief.address.cite} /></h1>
         <p className="mt-3 text-sm text-slate-600">
           {area.neighbourhood && <>{area.neighbourhood.name}<Cite cite={area.neighbourhood.cite} /></>}
           {area.ward && <>{" · "}Ward {area.ward.ward_number} {area.ward.name}<Cite cite={area.ward.cite} /></>}

@@ -10,7 +10,7 @@ export default function InspectionPanel({ brief, stats }: { brief: Brief; stats:
   if (!b.in_rentsafe) {
     return (
       <DashboardPanel id="inspection" title="RentSafeTO inspection" subtitle="City evaluation of common areas, exterior and maintenance records.">
-        <Unavailable>No RentSafeTO evaluation is on record for this exact address. RentSafeTO only covers apartment buildings with 3+ storeys and 10+ units, and missing data does not establish a building&apos;s condition. Evaluated buildings nearby are listed further down.</Unavailable>
+        <Unavailable>Not in RentSafeTO, so no City inspection score. It only covers rental buildings with 3+ storeys and 10+ units.</Unavailable>
       </DashboardPanel>
     );
   }
