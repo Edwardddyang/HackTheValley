@@ -1,25 +1,26 @@
 @import "tailwindcss";
 
 /* Colour roles.
-   Survey-paper ground, navy ink, lake-teal actions and links. Amber, brick and moss are reserved
-   for inspection-score levels and always travel with a text label and a shape, so colour is never
-   the only signal. Every text pair below is at least 4.5:1 (WCAG AA) on page, surface and surface-2.
+   Cool slate ground, deep-navy ink and teal actions, adopted from Satwik's feature/frontend design.
+   Amber, brick and moss are reserved for inspection-score levels and always travel with a text label
+   and a shape, so colour is never the only signal. Every text pair below is at least 4.5:1 (WCAG AA)
+   on page, surface and surface-2.
    Series colours are for map markers and bars; markers also carry a letter, so they don't rely on hue. */
 :root {
   color-scheme: light;
-  --page: #eef2f1;
+  --page: #f6f8fb;
   --surface: #ffffff;
-  --surface-2: #e2e9e8;
-  --ink: #17263a;
-  --ink-2: #4a5a6b;
-  --ink-3: #536376;
-  --hairline: #d3dcdd;
-  --border: rgba(23, 38, 58, 0.16);
-  --field: #5b6b7c; /* input borders: 3:1+ against page and surface */
-  --baseline: #b9c5c7;
-  --accent: #0e5a5e;
+  --surface-2: #e9eef5;
+  --ink: #142d4e;
+  --ink-2: #44566c;
+  --ink-3: #52647a;
+  --hairline: #dde4ed;
+  --border: rgba(20, 45, 78, 0.16);
+  --field: #5a6b80; /* input borders: 3:1+ against page and surface */
+  --baseline: #c3cedb;
+  --accent: #0f766e;
   --accent-ink: #ffffff;
-  --accent-tint: #dcecec;
+  --accent-tint: #e2f3f0;
   --amber: #8f4b00;
   --amber-tint: #fbefd9;
   --brick: #a1302b;
@@ -29,11 +30,11 @@
   --series-311: #2468b8;
   --series-devapp: #b84a17;
   --series-permit: #137a55;
-  --building: #17263a;
-  --tooltip-bg: #17263a;
-  --tooltip-ink: #e5ecf2;
-  --focus: #0e5a5e;
-  --skeleton: #d8e1e1;
+  --building: #142d4e;
+  --tooltip-bg: #142d4e;
+  --tooltip-ink: #e8eef6;
+  --focus: #0f766e;
+  --skeleton: #dfe6ef;
 }
 
 /* Dark values, defined once and applied by the OS setting or an explicit data-theme. */
