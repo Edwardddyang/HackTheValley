@@ -192,6 +192,101 @@ test("checkLine keeps 311, crime and conditions off the building", () => {
   assert.match(ok("The units have mould.", [latest]) ?? "", /mould without a record/);
 });
 
+test("checkLine grounds spelled-out numbers like digits", () => {
+  const set = buildEvidence(brief(), extras());
+  const ctx = groundingContext(set);
+  const { address, sr311_ward: ward, latest } = set.refs;
+  const ok = (text: string, ids: (string | null)[]) => checkLine(text, ids as string[], ctx, 350);
+
+  // "fifteen" happens to be grounded (the Nov 15, 2018 rent-control note); "forty" is in nothing cited.
+  assert.match(ok("The landlord raised rent by fifteen percent and there were forty complaints.", [address]) ?? "",
+    /number word "forty" is not in the cited evidence/);
+  assert.match(ok("Thirty-two units were inspected.", [latest]) ?? "", /number word "thirty"/);
+  assert.match(ok("A DOZEN tenants complained.", [address]) ?? "", /number word "dozen"/);
+  // Grounded number words pass, and "one" and "no" are ordinary words, not quantities.
+  assert.equal(ok("Ward eleven had 23,632 requests.", [ward]), null);
+  assert.equal(ok("Balcony guards were graded one of three, the lowest grade.", [latest]), null);
+  assert.equal(ok("No one item scored below 1.", [latest]), null);
+
+  // A cited item that spells the number out itself grounds it ("sixty-unit" in a permit description).
+  const b = brief();
+  for (const p of b.construction_nearby.notable) p.description = "Proposed sixty-unit rental building";
+  const spelled = buildEvidence(b, extras());
+  const line = "The nearest major permit is for a sixty-unit rental building.";
+  assert.equal(checkLine(line, [spelled.refs.nearest_notable!.id], groundingContext(spelled), 350), null);
+  assert.match(checkLine(line, [set.refs.nearest_notable!.id], ctx, 350) ?? "", /number word "sixty"/);
+});
+
+test("checkLine keeps 311, crime and census off the building without a preposition or with a possessive", () => {
+  const set = buildEvidence(brief(), extras());
+  const ctx = groundingContext(set);
+  const { sr311_nearby: nearby, crime, registration } = set.refs;
+  const renters = set.refs.census.renter_households;
+  const ok = (text: string, ids: (string | null)[]) => checkLine(text, ids as string[], ctx, 350);
+
+  // 311: "has" pins area requests on the building as surely as "at" does; negated attribution still passes.
+  assert.match(ok("This building has 328 311 requests.", [nearby]) ?? "", /311 requests to the building/);
+  assert.equal(ok("311 requests within 500 m describe the area, not this building.", [nearby]), null);
+  assert.equal(ok("311 logged 328 requests within 500 m rather than at the address.", [nearby]), null);
+
+  // Crime: the possessive no longer slips through.
+  assert.match(ok("This building's assault rate was 1,080.9 per 100,000 people in 2025.", [crime]) ?? "",
+    /crime to the building/);
+  // Census: the same rule, with or without a possessive.
+  assert.match(ok("The building's households: 59.1% rent.", [renters]) ?? "", /census data to the building/);
+  assert.match(ok("In this building, 59.1% of households rent.", [renters]) ?? "", /census data to the building/);
+  assert.equal(ok("In the Annex, 59.1% of households rent.", [renters]), null);
+
+  assert.equal(ok("The building's City registration lists hot water heating.", [registration]), null);
+
+  // Conditions keep the possessive exemption: a nearby permit's fire repairs may be placed near "the building's"
+  // entrance, but not "at the building".
+  const b = brief();
+  for (const p of b.construction_nearby.notable) p.description = "Fire damage repair";
+  const fireSet = buildEvidence(b, extras());
+  const fireCtx = groundingContext(fireSet);
+  const permit = fireSet.refs.nearest_notable!.id;
+  assert.equal(checkLine("Fire repairs are under way near the building's entrance.", [permit], fireCtx, 350), null);
+  assert.match(checkLine("Fire repairs are under way at the building.", [permit], fireCtx, 350) ?? "",
+    /attributes fire to the building without a building record/);
+});
+
+test("the rent flag needs a clear gap over the vacant-unit average", () => {
+  const set = buildEvidence(brief(), extras());
+  const flagged = (rent: number, beds: number) => {
+    const cx = rentComparison(EXTRAS.rent_benchmark, rent, beds);
+    const lines = templateLines(brief(), extras(), set, cx);
+    assert.deepEqual(validateSummaryOutput(asModelOutput(lines), adCheckContext(set, rent, beds, cx)).rejected, []);
+    return lines.sentences.some((s) => /^Asks /.test(s.text));
+  };
+  assert.equal(flagged(2097, 1), false, "$5 (0%) over the $2,092 vacant 1-bedroom average");
+  assert.equal(flagged(2180, 1), false, "$88 (4%) over");
+  assert.equal(flagged(2200, 1), true, "$108 (5%) over");
+  assert.equal(flagged(2350, 1), true, "$258 (12%) over");
+  assert.equal(flagged(2000, 1), false, "below the average");
+  // A 3-bedroom only has the all-units average (long-time tenants included): never a flag.
+  assert.equal(rentComparison(EXTRAS.rent_benchmark, 3500, 3)?.kind, "all_units");
+  assert.equal(flagged(3500, 3), false, "$305 over the all-units average");
+});
+
+test("checkLine: rent control must be hedged in statements, and no advice on signing", () => {
+  const set = buildEvidence(brief(), extras());
+  const ctx = groundingContext(set);
+  const { latest, address } = set.refs;
+  const ok = (text: string, ids: (string | null)[]) => checkLine(text, ids as string[], ctx, 350);
+
+  assert.equal(ok("Built in 1960, the building is likely covered by Ontario's rent-increase guideline; confirm with the landlord.", [latest]), null);
+  assert.match(ok("The unit is rent controlled.", [latest]) ?? "", /states rent control as certain/);
+  assert.match(ok("Built in 1960, so the rent-increase guideline applies.", [latest]) ?? "", /states rent control as certain/);
+  // Questions may ask about it.
+  assert.equal(ok("Is this unit covered by rent control?", [latest]), null);
+
+  for (const text of ["You should not sign this lease.", "Don't sign before a viewing.", "Don’t sign yet.",
+    "You shouldn't sign without the registration.", "Do not sign until the balcony is fixed.", "Walk away from this one."]) {
+    assert.equal(ok(text, [address]), "gives advice on signing", text);
+  }
+});
+
 test("template flags on 375 Brunswick: worry-first, cited, grounded, at most 3", () => {
   const summary = templateSummary(brief(), extras(), new Date("2026-10-17T12:00:00Z"));
   assert.equal(summary.model, TEMPLATE_MODEL);

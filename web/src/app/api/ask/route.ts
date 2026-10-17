@@ -15,7 +15,9 @@ export const maxDuration = 30;
 
 // 10 questions per IP per minute: protects the free Gemini quota and the database.
 const limiter = createRateLimiter({ limit: 10, windowMs: 60_000 });
-const MAX_BODY_BYTES = 8_192;
+// Two history turns with full answers (2,000 characters each) plus the question, with room for non-ASCII text, which
+// takes up to 3 bytes per character.
+const MAX_BODY_BYTES = 16_384;
 const NO_STORE = { "Cache-Control": "no-store" };
 
 function error(status: number, message: string, headers: Record<string, string> = {}) {

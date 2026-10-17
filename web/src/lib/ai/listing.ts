@@ -5,6 +5,7 @@ import type { Part } from "@google/genai";
 import type { ListingExtraction } from "@/lib/ai-types";
 import { type AddressMatch, geocode } from "@/lib/brief";
 
+import { claimsFoundInText } from "./ad-check-core";
 import { generateJson } from "./gemini";
 import {
   LISTING_RESPONSE_SCHEMA, type ListingInput, addressSearchQueries, listingSystemInstruction, listingTextPart,
@@ -33,7 +34,11 @@ export async function extractListing(input: ListingInput): Promise<ListingExtrac
     schema: LISTING_RESPONSE_SCHEMA,
     temperature: 0,
   });
-  return normaliseListingExtraction(data);
+  const listing = normaliseListingExtraction(data);
+  // Claims are shown as the ad's own words, so a quote that isn't in the pasted text is dropped. A screenshot can't
+  // be checked this way, so screenshot-only claims are kept as extracted.
+  if (input.text) return { ...listing, claims: claimsFoundInText(listing.claims, input.text) };
+  return listing;
 }
 
 /** Geocodes the listing's street address: the normalised form first, then number + street name. */

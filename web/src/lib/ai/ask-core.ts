@@ -11,12 +11,16 @@ import {
 
 export const MAX_QUESTION_CHARS = 300;
 export const MAX_HISTORY_TURNS = 2;
-export const MAX_HISTORY_ANSWER_CHARS = 1_500;
+/** Room for a full answer sent back as history: 5 lines of 320 characters joined with spaces is 1,604. */
+export const MAX_HISTORY_ANSWER_CHARS = 2_000;
 export const MAX_ANSWER_LINES = 5;
 export const MAX_ANSWER_LINE_CHARS = 320;
 
-/** Shown, cited, when nothing Gemini wrote survives the checks: honesty beats an empty panel. */
+/** Shown, cited, when Gemini returned no answer lines at all: honesty beats an empty panel. */
 export const NO_ANSWER_TEXT = "The records loaded for this address don't answer that question.";
+/** Shown, cited, when Gemini did answer but no line survived the checks (not the same as the records lacking it). */
+export const UNGROUNDED_ANSWER_TEXT =
+  "An answer came back but didn't pass the grounding checks against the records; try asking again.";
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -124,8 +128,20 @@ Rules:
 - Neutral, factual tone. No legal advice, no telling the renter whether to sign or walk away.`;
 }
 
-/** Strips anything that could close the delimiters, so the question and history stay data. */
-const sanitize = (s: string) => s.replace(/<\/?\s*(?:question|history)\s*>/gi, "");
+const DELIMITER_TAG_RE = /<\s*\/?\s*(?:question|history)\s*>/gi;
+
+/**
+ * Strips anything that could close the delimiters, so the question and history stay data. Repeats until nothing is
+ * left to strip, so "</ques</question>tion>" can't rebuild a tag after one pass.
+ */
+function sanitize(s: string): string {
+  let prev: string;
+  do {
+    prev = s;
+    s = s.replace(DELIMITER_TAG_RE, "");
+  } while (s !== prev);
+  return s;
+}
 
 export function askUserPrompt(evidence: Evidence, question: string, history: readonly AskTurn[]): string {
   const historyPart = history.length
@@ -162,8 +178,9 @@ export function askResponseSchema(ids: readonly string[]) {
 // Checking the answer --------------------------------------------------------------------------------------------
 
 /**
- * Runs every answer line through the same checkLine checks as the summary. When nothing survives, one honest
- * "the records don't answer that" line citing the address item stands in, so the answer is never uncited.
+ * Runs every answer line through the same checkLine checks as the summary. When nothing survives, one honest line
+ * citing the address item stands in, so the answer is never uncited: "the records don't answer that" when Gemini
+ * returned nothing, "an answer didn't pass the checks" when it answered and every line was rejected.
  */
 export function validateAskOutput(
   raw: unknown,
@@ -189,7 +206,7 @@ export function validateAskOutput(
     if (lines.length < MAX_ANSWER_LINES) lines.push({ text, ids });
   }
   if (lines.length === 0 && set.refs.address) {
-    lines.push({ text: NO_ANSWER_TEXT, ids: [set.refs.address] });
+    lines.push({ text: rejected.length > 0 ? UNGROUNDED_ANSWER_TEXT : NO_ANSWER_TEXT, ids: [set.refs.address] });
   }
   return { lines, rejected };
 }

@@ -41,17 +41,21 @@ export function getSummary(key: SummaryKey): Promise<Summary | null> {
 }
 
 async function load(key: SummaryKey, k: string): Promise<Summary | null> {
+  // A failed bb_extras call (unlike a legitimate "no registration") leaves facts out, so that result is kept for a
+  // minute only and heals once the extras load again.
+  let extrasFailed = false;
   const [brief, extras] = await Promise.all([
     getBrief(key.address_point_id, key.radius_m),
     // Extras only add facts; the flags still work without them.
     getExtras(key.address_point_id).catch((e) => {
       console.warn(`[summary] ${k}: bb_extras failed; continuing without it`, e);
+      extrasFailed = true;
       return null;
     }),
   ]);
   if (!brief) return null;
   const { summary, ttl } = await summarize(brief, extras, key, k);
-  cache.set(k, summary, ttl);
+  cache.set(k, summary, extrasFailed ? Math.min(ttl, TEMPLATE_TTL_MS) : ttl);
   return summary;
 }
 
@@ -64,7 +68,7 @@ async function summarize(
 ): Promise<{ summary: Summary; ttl: number }> {
   const set = buildEvidence(brief, extras);
   const cx = rentComparison(extras?.rent_benchmark ?? null, key.rent, key.beds);
-  // The renter's own rent and beds join the allowed shared numbers, exactly as in the ad check.
+  // The renter's own rent and beds join the CMHC rent item's allowed numbers, exactly as in the ad check.
   const ctx = adCheckContext(set, key.rent, key.beds, cx);
   const template = () => ({
     summary: toSummary(templateLines(brief, extras, set, cx), set.cites, TEMPLATE_MODEL),

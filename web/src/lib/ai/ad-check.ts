@@ -41,16 +41,20 @@ export function getAdCheck(key: AdCheckKey): Promise<AdCheck | null> {
 }
 
 async function load(key: AdCheckKey, k: string): Promise<AdCheck | null> {
+  // A failed bb_extras call (unlike a legitimate "no registration") makes the rows read as if no record existed, so
+  // that result is kept for a minute only and heals once the extras load again.
+  let extrasFailed = false;
   const [brief, extras] = await Promise.all([
     getBrief(key.address_point_id, key.radius_m),
     getExtras(key.address_point_id).catch((e) => {
       console.warn(`[adcheck] ${k}: bb_extras failed; continuing without it`, e);
+      extrasFailed = true;
       return null;
     }),
   ]);
   if (!brief) return null;
   const { adCheck, ttl } = await check(brief, extras, key, k);
-  cache.set(k, adCheck, ttl);
+  cache.set(k, adCheck, extrasFailed ? Math.min(ttl, TEMPLATE_TTL_MS) : ttl);
   return adCheck;
 }
 
@@ -81,8 +85,12 @@ async function check(
     if (checked.rejected.length) {
       console.warn(`[adcheck] ${k}: replaced ${checked.rejected.length} row(s) with the template`, checked.rejected);
     }
+    // Every row replaced means the result is the template: label it so and keep it for a minute, like the template.
     const allReplaced = checked.replaced >= key.claims.length;
-    return { adCheck: toAdCheck(checked.rows, set.cites, allReplaced ? TEMPLATE_MODEL : model), ttl: AI_TTL_MS };
+    return {
+      adCheck: toAdCheck(checked.rows, set.cites, allReplaced ? TEMPLATE_MODEL : model),
+      ttl: allReplaced ? TEMPLATE_TTL_MS : AI_TTL_MS,
+    };
   } catch (e) {
     const err = e instanceof AiError ? e : new AiError("upstream", String(e));
     console.warn(`[adcheck] ${k}: Gemini failed (${err.kind}): ${err.message}; using the template`);

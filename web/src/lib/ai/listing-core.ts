@@ -347,8 +347,19 @@ export const LISTING_RESPONSE_SCHEMA = {
   ],
 } as const;
 
+const LISTING_TAG_RE = /<\s*\/?\s*(?:listing)\s*>/gi;
+
+/** Removes every match of `re`, repeating until none is left, so "</lis</listing>ting>" can't rebuild a tag. */
+function stripAll(s: string, re: RegExp): string {
+  let prev: string;
+  do {
+    prev = s;
+    s = s.replace(re, "");
+  } while (s !== prev);
+  return s;
+}
+
 /** Wraps listing text in delimiters the listing itself can't close, so the model treats it as data. */
 export function listingTextPart(text: string): string {
-  const safe = text.replace(/<\/?\s*listing\s*>/gi, "");
-  return `<listing>\n${safe}\n</listing>`;
+  return `<listing>\n${stripAll(text, LISTING_TAG_RE)}\n</listing>`;
 }

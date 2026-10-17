@@ -10,6 +10,8 @@ export const TEMPLATE_MODEL = "template";
 /** The panel shows at most this many flags, worst first; zero flags is a valid, honest answer. */
 export const MAX_FLAGS = 3;
 export const MAX_QUESTIONS = 6;
+/** An asking rent this many percent or more above CMHC's vacant-unit average is a price flag (shared with the ad check). */
+export const MIN_PRICE_GAP_PCT = 5;
 const MAX_IDS_PER_LINE = 4;
 const MAX_SENTENCE_CHARS = 350;
 const MAX_QUESTION_CHARS = 250;
@@ -446,6 +448,16 @@ function collect(value: unknown, numbers: number[], strings: string[]): void {
 const same = (a: number, b: number) => Math.abs(a - b) < 1e-9;
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
+// Spelled-out numbers ("forty complaints") are grounded like digits. "one" and "no" are left out on purpose: they are
+// ordinary words ("one of the", "no air conditioning") far more often than quantities.
+const WORD_NUMBERS: Readonly<Record<string, number>> = {
+  zero: 0, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+  eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18,
+  nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90,
+  hundred: 100, thousand: 1_000, million: 1_000_000, billion: 1_000_000_000, dozen: 12,
+};
+const NUMBER_WORD_RE = new RegExp(String.raw`\b(?:${Object.keys(WORD_NUMBERS).join("|")})\b`, "gi");
+
 /** True when `n` is in `allowed`, exactly, rounded or truncated (88.1 -> 88 but not 89; 193.5 -> 193 or 194). */
 export function isNumberGrounded(n: number, allowed: readonly number[]): boolean {
   return allowed.some((e) => same(e, n) || same(round1(e), n) || same(Math.round(e), n) || same(Math.floor(e), n));
@@ -501,6 +513,15 @@ const CRIME_RE =
 const AT_BUILDING_RE =
   /(?<!\b(?:not|than|never)\s+)\b(?:at|in|inside|from|for|about|against|on|regarding)\s+(?:this|the|your)\s+(?:building|address|property|unit|apartment)\b(?!['’]s)/i;
 const BUILDING_REF_RE = /\b(?:this|the|your)\s+(?:building|address|property|unit|apartment)\b(?!['’]s)/i;
+// The same without the possessive exemption: "this building's assault rate" still pins area data on the building.
+const BUILDING_ANY_REF_RE = /\b(?:this|the|your)\s+(?:building|address|property|unit|apartment)\b/i;
+// "not this building", "rather than the address": the line keeps area data off the building on purpose.
+const NEGATED_ATTRIBUTION_RE =
+  /\b(?:not|never|rather than|instead of)\s+(?:at\s+|about\s+|in\s+)?(?:this|the|your)\s+(?:building|address|property|unit|apartment)/i;
+const RENT_CONTROL_RE = /rent[ -]?control|rent[ -]?increase guideline/i;
+const RENT_CONTROL_HEDGE_RE = /\blikely\b|\bunclear\b|confirm with the landlord|ask the landlord/i;
+const SIGNING_ADVICE_RE =
+  /\b(?:you\s+)?should(?:n['’]?t|\s+not)?\s+sign\b|\bdon['’]?t\s+sign\b|\bdo\s+not\s+sign\b|\bwalk\s+away\b/i;
 const RESOLUTION_RE = /\b(?:resol(?:ved|ves?|ving|ution)|closed|closing|response times?|turnaround)\b/i;
 const CITATION_IN_TEXT_RE = /\s*[[(]\s*(?:evidence\s*:?\s*)?f\d{1,3}(?:\s*[,;]\s*f\d{1,3})*\s*[\])]/gi;
 
@@ -544,15 +565,30 @@ export function checkLine(text: string, ids: readonly string[], ctx: GroundingCo
   for (const n of extractNumbers(text)) {
     if (!isNumberGrounded(n, allowed)) return `number ${n} is not in the cited evidence`;
   }
+  const citedText = ids.map((id) => ctx.item_text.get(id) ?? "").join("\n");
+  for (const m of text.matchAll(NUMBER_WORD_RE)) {
+    const word = m[0].toLowerCase();
+    if (isNumberGrounded(WORD_NUMBERS[word], allowed)) continue;
+    // A cited item that spells the number out itself ("three-storey addition" in a permit description) grounds it.
+    if (new RegExp(String.raw`\b${word}\b`).test(citedText)) continue;
+    return `number word "${word}" is not in the cited evidence`;
+  }
 
   const topics = ids.map((id) => ctx.topics.get(id));
   const about311 = topics.includes("sr311") || /\b311\b/.test(text);
   if (about311 && AT_BUILDING_RE.test(text)) return "attributes area 311 requests to the building";
+  // "This building has 328 311 requests" needs no preposition to pin area requests on the building.
+  if (about311 && BUILDING_REF_RE.test(text) && !NEGATED_ATTRIBUTION_RE.test(text)) {
+    return "attributes area 311 requests to the building";
+  }
   if (about311 && RESOLUTION_RE.test(text)) return "mentions 311 resolution, which the data doesn't have";
 
   if (CRIME_RE.test(text)) {
     if (!topics.includes("crime")) return "claims crime without a crime record";
-    if (BUILDING_REF_RE.test(text)) return "attributes neighbourhood crime to the building";
+    if (BUILDING_ANY_REF_RE.test(text)) return "attributes neighbourhood crime to the building";
+  }
+  if (topics.includes("census") && BUILDING_ANY_REF_RE.test(text)) {
+    return "attributes neighbourhood census data to the building";
   }
 
   for (const term of CONDITION_TERMS) {
@@ -560,8 +596,15 @@ export function checkLine(text: string, ids: readonly string[], ctx: GroundingCo
     const support = ids.filter((id) => term.re.test(ctx.item_text.get(id) ?? ""));
     if (support.length === 0) return `claims ${term.label} without a record`;
     const onBuilding = support.some((id) => BUILDING_TOPICS.has(ctx.topics.get(id) as Topic));
+    // Keeps the possessive exemption: "the building's City registration" is a legitimate building record.
     if (!onBuilding && BUILDING_REF_RE.test(text)) return `attributes ${term.label} to the building without a building record`;
   }
+
+  // Rent control is an estimate from the year built; questions may ask about it, statements must hedge.
+  if (!text.includes("?") && RENT_CONTROL_RE.test(text) && !RENT_CONTROL_HEDGE_RE.test(text)) {
+    return "states rent control as certain";
+  }
+  if (SIGNING_ADVICE_RE.test(text)) return "gives advice on signing";
   return null;
 }
 
@@ -778,9 +821,11 @@ export function templateLines(
       [notable.id]);
   }
 
-  if (listing && refs.rent && listing.diff > 0) {
+  // Only a clear gap over the vacant-unit average flags; the all-units average includes long-time tenants, so a new
+  // lease can't fairly be judged against it.
+  if (listing && refs.rent && listing.kind === "vacant_units" && listing.diff > 0 && listing.pct >= MIN_PRICE_GAP_PCT) {
     flag(18,
-      `Asks ${money(listing.rent)} a month — ${money(listing.diff)} (${listing.pct}%) above CMHC's ${listing.kind === "vacant_units" ? "vacant-unit" : "all-units"} average for ${listing.noun} rentals in the area.`,
+      `Asks ${money(listing.rent)} a month — ${money(listing.diff)} (${listing.pct}%) above CMHC's vacant-unit average for ${listing.noun} rentals in the area.`,
       [refs.rent]);
   }
 
@@ -817,7 +862,7 @@ export function templateLines(
   }
   const rc = b.in_rentsafe ? rentControl(b.year_built) : "unknown";
   say(checklist, rc === "likely_covered"
-    ? "Is this unit covered by the rent-increase guideline, and what were the last two increases?"
+    ? "Is this unit covered by the rent-increase guideline, and what were the most recent increases?"
     : rc === "likely_exempt"
       ? `Was this unit first occupied after ${RENT_CONTROL_CUTOFF}? If so, how are rent increases decided?`
       : "When was this unit first occupied, and is it covered by rent control?",
