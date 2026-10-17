@@ -125,6 +125,7 @@ test("normaliseListingExtraction cleans fields and downgrades confidence", () =>
       bedrooms: 1,
       utilities_included: "Heat and water",
       available_from: "2026-11-01",
+      claims: [{ quote: "Stays cool in summer with A/C", topic: "cooling" }],
       confidence: "high",
     }),
     {
@@ -134,6 +135,7 @@ test("normaliseListingExtraction cleans fields and downgrades confidence", () =>
       bedrooms: 1,
       utilities_included: "Heat and water",
       available_from: "2026-11-01",
+      claims: [{ quote: "Stays cool in summer with A/C", topic: "cooling" }],
       confidence: "high",
     },
   );
@@ -142,10 +144,44 @@ test("normaliseListingExtraction cleans fields and downgrades confidence", () =>
   // Garbage in, all-null out.
   assert.deepEqual(normaliseListingExtraction("nonsense"), {
     address: null, unit: null, asking_rent: null, bedrooms: null, utilities_included: null, available_from: null,
-    confidence: "low",
+    claims: [], confidence: "low",
   });
-  assert.equal(normaliseListingExtraction({ is_rental_listing: false, address: "375 Brunswick Ave", confidence: "high" }).address, null);
+  const notListing = normaliseListingExtraction({
+    is_rental_listing: false, address: "375 Brunswick Ave", claims: [{ quote: "AC included", topic: "cooling" }],
+    confidence: "high",
+  });
+  assert.equal(notListing.address, null);
+  assert.deepEqual(notListing.claims, [], "a non-listing keeps no claims");
   assert.equal(normaliseListingExtraction({ address: "375 Brunswick Ave", unit: "Apt 4", confidence: "medium" }).unit, "4");
+});
+
+test("normaliseListingExtraction cleans claims: caps, unknown topics, duplicates and junk", () => {
+  const { claims } = normaliseListingExtraction({
+    address: "375 Brunswick Ave",
+    confidence: "high",
+    claims: [
+      { quote: "  Stays cool in   summer with A/C  ", topic: "cooling" },
+      { quote: "Pets welcome", topic: "petting zoo" }, // unknown topic -> "other"
+      { quote: "stays cool in summer with a/c", topic: "cooling" }, // duplicate (case/whitespace)
+      { quote: "", topic: "heating" },
+      { quote: 42, topic: "heating" },
+      "not an object",
+      { quote: "x".repeat(300), topic: "condition" },
+    ],
+  });
+  assert.deepEqual(claims.slice(0, 2), [
+    { quote: "Stays cool in summer with A/C", topic: "cooling" },
+    { quote: "Pets welcome", topic: "other" },
+  ]);
+  assert.equal(claims.length, 3);
+  assert.equal(claims[2].quote.length, 200);
+
+  // The cap is 12 claims.
+  const many = normaliseListingExtraction({
+    address: "375 Brunswick Ave", confidence: "high",
+    claims: Array.from({ length: 20 }, (_, i) => ({ quote: `claim ${i}`, topic: "other" })),
+  });
+  assert.equal(many.claims.length, 12);
 });
 
 test("listingTextPart keeps the listing inside its delimiters", () => {

@@ -4,13 +4,14 @@ import { useRouter } from "next/navigation";
 import { type ClipboardEvent, type FormEvent, type RefObject, useId, useRef, useState, useTransition } from "react";
 
 import type { ApiError, ListingExtraction, ListingRequest, ListingResponse } from "@/lib/ai-types";
+import { encodeClaimsParam } from "@/lib/ai/ad-check-core";
 import type { AddressMatch } from "@/lib/brief";
 import { DEFAULT_RADIUS_M } from "@/lib/brief";
 import { bedroomsLabel, date, money } from "@/lib/format";
 
-const SAMPLE_LISTING = `Bright 1 bedroom in the Annex – $2,350/month
+const SAMPLE_LISTING = `Bright 1 bedroom in a well-maintained Annex building – $2,350/month
 
-375 Brunswick Ave, Toronto. Heat and water included, hydro extra. Available November 1. Close to Bloor St, shops and the subway. No smoking. Message to book a viewing.`;
+375 Brunswick Ave, Toronto. Heat and water included, hydro extra. Stays cool in summer with A/C. Pets welcome. On-site laundry. Available November 1. Close to Bloor St, shops and the subway. No smoking. Message to book a viewing.`;
 
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const MAX_FILE_BYTES = 12 * 1024 * 1024; // what we accept before downscaling
@@ -24,16 +25,18 @@ type State =
   | { kind: "error"; message: string; searchInstead: boolean }
   | { kind: "result"; listing: ListingExtraction; matches: AddressMatch[] };
 
-/** The brief URL for a matched address, carrying the listing's rent and bedrooms. */
-function briefHref(match: Pick<AddressMatch, "address_point_id" | "address">, listing?: Pick<ListingExtraction, "asking_rent" | "bedrooms">) {
+/** The brief URL for a matched address, carrying the listing's rent, bedrooms and claims. */
+function briefHref(match: Pick<AddressMatch, "address_point_id" | "address">, listing?: Pick<ListingExtraction, "asking_rent" | "bedrooms" | "claims">) {
   return `/?id=${match.address_point_id}&address=${encodeURIComponent(match.address)}&r=${DEFAULT_RADIUS_M}${listingParams(listing)}`;
 }
 
-function listingParams(listing?: Pick<ListingExtraction, "asking_rent" | "bedrooms">) {
+function listingParams(listing?: Pick<ListingExtraction, "asking_rent" | "bedrooms" | "claims">) {
   if (!listing) return "";
   const rent = listing.asking_rent != null && listing.asking_rent > 0 ? `&rent=${Math.round(listing.asking_rent)}` : "";
   const beds = listing.bedrooms != null && listing.bedrooms >= 0 ? `&beds=${Math.round(listing.bedrooms)}` : "";
-  return rent + beds;
+  const encoded = encodeClaimsParam(listing.claims ?? []);
+  const claims = encoded ? `&claims=${encodeURIComponent(encoded)}` : "";
+  return rent + beds + claims;
 }
 
 /** Paste a rental ad (text and/or a screenshot); the AI reads the address, rent and bedrooms. */
@@ -106,7 +109,7 @@ export function ListingForm({ onSearchInstead }: { onSearchInstead: (address: st
     try {
       res = await fetch("/api/listing", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
     } catch {
-      setState({ kind: "error", message: "Block Brief couldn't be reached. Check your connection and try again.", searchInstead: false });
+      setState({ kind: "error", message: "RentReceipts couldn't be reached. Check your connection and try again.", searchInstead: false });
       return;
     }
     const json = (await res.json().catch(() => null)) as ListingResponse | ApiError | null;

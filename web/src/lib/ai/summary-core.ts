@@ -513,7 +513,8 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-function cleanText(raw: string): string {
+/** Strips inline citations, bullets and stray whitespace from a model-written line (shared with the ad check). */
+export function cleanText(raw: string): string {
   return raw
     .replace(CITATION_IN_TEXT_RE, "")
     .replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "")
@@ -522,7 +523,8 @@ function cleanText(raw: string): string {
     .trim();
 }
 
-function validIds(raw: unknown, ctx: GroundingContext): string[] {
+/** The evidence ids in `raw` that exist in the context, deduplicated and capped (shared with the ad check). */
+export function validIds(raw: unknown, ctx: GroundingContext): string[] {
   if (!Array.isArray(raw)) return [];
   const out: string[] = [];
   for (const v of raw) {

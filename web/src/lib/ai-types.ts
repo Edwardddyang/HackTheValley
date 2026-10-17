@@ -25,8 +25,32 @@ export type ListingExtraction = {
   bedrooms: number | null; // 0 = bachelor
   utilities_included: string | null;
   available_from: string | null; // ISO date
+  /** Checkable claims the ad makes, quoted verbatim, for the ad check. */
+  claims: Claim[];
   confidence: "high" | "medium" | "low";
 };
 export type ListingResponse = { listing: ListingExtraction; matches: AddressMatch[] };
+
+// Ad check (POST /api/adcheck): the ad's claims, each judged against the loaded records. The server rebuilds the
+// brief and extras itself; the only client facts that reach the prompt are the quoted claims, rent and bedrooms.
+
+export type ClaimTopic =
+  | "cooling" | "heating" | "pets" | "laundry" | "elevator" | "condition" | "noise_quiet" | "price_deal"
+  | "rent_control" | "management" | "transit" | "other";
+export type Claim = { quote: string; topic: ClaimTopic };
+
+/** cant_check is a first-class honest outcome: no loaded record speaks to the claim. */
+export type Verdict = "confirmed" | "challenged" | "cant_check";
+
+export type AdCheckRequest = {
+  address_point_id: number; radius_m?: number; rent?: number | null; beds?: number | null; claims: Claim[];
+};
+export type AdCheckRow = { quote: string; topic: ClaimTopic; verdict: Verdict; text: string; cites: Cite[] };
+export type AdCheck = {
+  rows: AdCheckRow[];
+  /** Gemini model id, or "template" when every row was built without AI. */
+  model: string;
+  generated_at: string;
+};
 
 export type ApiError = { error: string };

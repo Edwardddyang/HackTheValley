@@ -1,9 +1,12 @@
 import Link from "next/link";
 
+import type { Claim } from "@/lib/ai-types";
+import { encodeClaimsParam } from "@/lib/ai/ad-check-core";
 import type { AddressMatch, Brief } from "@/lib/brief";
 import type { Extras } from "@/lib/extras";
 import { OFFENCE_LABELS, compactMoney, date, metres, money, num, titleCase } from "@/lib/format";
 
+import { AdCheckSection } from "./AdCheckSection";
 import { ChecklistPanel, SummaryPanel, SummaryProvider } from "./AiSummary";
 import { BuildingSection } from "./BuildingSection";
 import { Cite } from "./Cite";
@@ -12,7 +15,14 @@ import { ListingCard } from "./ListingCard";
 import { MapPanel } from "./MapPanel";
 import { BarList, CompareBar, Empty, Note, Pill, Section, Stat } from "./ui";
 
-export type ListingHints = { rent: number | null; beds: number | null };
+export type ListingHints = { rent: number | null; beds: number | null; claims: Claim[] };
+
+/** The query-string tail that carries a pasted listing's rent, bedrooms and claims between pages. */
+export function listingHintsQuery(listing: ListingHints): string {
+  const claims = encodeClaimsParam(listing.claims);
+  return `${listing.rent != null ? `&rent=${listing.rent}` : ""}${listing.beds != null ? `&beds=${listing.beds}` : ""}${
+    claims ? `&claims=${encodeURIComponent(claims)}` : ""}`;
+}
 
 export function BriefView({ brief, extras, alternatives, radius, listing, fixture = false }: {
   brief: Brief; extras: Extras | null; alternatives: AddressMatch[]; radius: number;
@@ -25,6 +35,7 @@ export function BriefView({ brief, extras, alternatives, radius, listing, fixtur
 
   const nav: [string, string][] = [
     ...(hasListing ? [["listing", "Your listing"] as [string, string]] : []),
+    ...(listing.claims.length ? [["adcheck", "Ad check"] as [string, string]] : []),
     ["summary", "In plain language"],
     ["building", "Building"],
     ["checklist", "Viewing questions"],
@@ -53,6 +64,10 @@ export function BriefView({ brief, extras, alternatives, radius, listing, fixtur
 
         <div className="min-w-0 space-y-12 lg:col-start-2">
           {hasListing && <ListingCard rent={listing.rent} beds={listing.beds} benchmark={extras?.rent_benchmark ?? null} />}
+          {listing.claims.length > 0 && (
+            <AdCheckSection addressPointId={brief.address.address_point_id} radius={brief.address.radius_m}
+              rent={listing.rent} beds={listing.beds} claims={listing.claims} />
+          )}
           <SummaryPanel />
           <BuildingSection brief={brief} extras={extras} asOfYear={asOfYear} />
           <ChecklistPanel address={brief.address.address} />
@@ -88,7 +103,7 @@ function Header({ brief, alternatives, radius, nav, listing }: {
   brief: Brief; alternatives: AddressMatch[]; radius: number; nav: [string, string][]; listing: ListingHints;
 }) {
   const { address, area } = brief;
-  const keep = `${listing.rent != null ? `&rent=${listing.rent}` : ""}${listing.beds != null ? `&beds=${listing.beds}` : ""}`;
+  const keep = listingHintsQuery(listing);
   return (
     <div>
       <p className="text-[15px] text-ink-2">Before-you-sign brief</p>

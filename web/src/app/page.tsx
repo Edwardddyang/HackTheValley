@@ -1,9 +1,10 @@
 import { Suspense } from "react";
 
-import { BriefView, type ListingHints } from "@/components/BriefView";
+import { BriefView, listingHintsQuery, type ListingHints } from "@/components/BriefView";
 import { HomeTools } from "@/components/HomeTools";
 import { SearchBox } from "@/components/SearchBox";
 import { SiteHeader } from "@/components/SiteHeader";
+import { parseClaimsParam } from "@/lib/ai/ad-check-core";
 import { DEFAULT_RADIUS_M, MAX_RADIUS_M, MIN_RADIUS_M } from "@/lib/brief";
 import { loadBrief } from "@/lib/load";
 
@@ -26,13 +27,13 @@ function first(v: string | string[] | undefined) {
   return Array.isArray(v) ? v[0] : v;
 }
 
-/** rent and beds come from a pasted listing; ignore anything that isn't a plausible value. */
+/** rent, beds and claims come from a pasted listing; ignore anything that isn't a plausible value. */
 function listingHints(sp: Record<string, string | string[] | undefined>): ListingHints {
   const rentRaw = first(sp.rent);
   const rent = rentRaw && /^\d{2,6}$/.test(rentRaw) && Number(rentRaw) >= 50 && Number(rentRaw) <= 100_000 ? Number(rentRaw) : null;
   const bedsRaw = first(sp.beds);
   const beds = bedsRaw && /^\d{1,2}$/.test(bedsRaw) && Number(bedsRaw) <= 20 ? Number(bedsRaw) : null;
-  return { rent, beds };
+  return { rent, beds, claims: parseClaimsParam(first(sp.claims)) };
 }
 
 async function Content({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
@@ -47,7 +48,7 @@ async function Content({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
   if (!address && id == null) {
     return <Landing />;
   }
-  const keep = `${listing.rent != null ? `&rent=${listing.rent}` : ""}${listing.beds != null ? `&beds=${listing.beds}` : ""}`;
+  const keep = listingHintsQuery(listing);
   return (
     <Shell search={<SearchBox key={`${id}-${address}`} initialAddress={address ?? ""} initialRadius={radius} keep={keep} keepFor={address ?? ""} />}>
       <Suspense key={`${id}-${address}-${radius}`} fallback={<BriefSkeleton />}>
