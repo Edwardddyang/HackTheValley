@@ -74,3 +74,23 @@ body {
   padding: 0.75rem 0.875rem !important;
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
+
+/* "Print list" on the viewing questions (from integrate/best-of-both): print only that panel. */
+@media print {
+  .no-print,
+  .maplibregl-map {
+    display: none !important;
+  }
+  html[data-print="checklist"] body * {
+    visibility: hidden;
+  }
+  html[data-print="checklist"] #checklist,
+  html[data-print="checklist"] #checklist * {
+    visibility: visible;
+  }
+  html[data-print="checklist"] #checklist {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+  }
+}

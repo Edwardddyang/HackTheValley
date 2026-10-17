@@ -9,6 +9,8 @@ type Props = {
   visible: LayerVisibility;
   counts: Partial<Record<LayerId, number>>;
   onToggle: (layer: LayerId) => void;
+  /** Extra controls (3D buildings, area shading) shown under the layer checkboxes. */
+  children?: React.ReactNode;
 };
 
 const SWATCH: Partial<Record<LayerId, string>> = {
@@ -17,9 +19,10 @@ const SWATCH: Partial<Record<LayerId, string>> = {
   building_permit: "bg-amber-800",
   development_application: "bg-violet-700",
   sr311: "bg-sky-600",
+  amenity: "bg-emerald-800",
 };
 
-export default function MapLayerControls({ available, visible, counts, onToggle }: Props) {
+export default function MapLayerControls({ available, visible, counts, onToggle, children }: Props) {
   return (
     <fieldset className="rounded-xl border border-slate-200 bg-[#F8FAFC] p-4">
       <legend className="px-1 text-sm font-semibold text-[#142D4E]">Map layers</legend>
@@ -34,6 +37,7 @@ export default function MapLayerControls({ available, visible, counts, onToggle 
           </label>
         ))}
       </div>
+      {children}
       <p className="mt-3 text-xs leading-5 text-slate-500">Only layers with valid locations are offered. 311 requests appear only where they were reported at a street intersection; they are never pinned to a building.</p>
     </fieldset>
   );

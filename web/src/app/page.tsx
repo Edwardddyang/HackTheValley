@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import AddressSearch from "@/components/search/AddressSearch";
+import { HomeTools } from "@/components/listing/HomeTools";
 import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { resolveAddress } from "@/lib/load";
 
@@ -61,14 +61,14 @@ export default function Home(props: PageProps<"/">) {
           <section aria-labelledby="hero-title" className="lg:pt-5">
             <p className="mb-6 text-xs font-bold tracking-[0.18em] text-teal-700 uppercase">A little context. A better move.</p>
             <h1 id="hero-title" className="max-w-2xl text-5xl leading-[1.08] font-semibold tracking-tight sm:text-6xl xl:text-7xl">Know your building before you sign.</h1>
-            <p className="mt-7 max-w-xl text-lg leading-8 text-slate-600">See a Toronto building&apos;s City inspection score, construction and development nearby, 311 requests, crime and neighbourhood rents, all from City of Toronto open data.</p>
-            <p className="mt-6 max-w-md text-sm leading-6 text-slate-600">Every figure links back to the dataset row it came from. Nothing is estimated or made up.</p>
+            <p className="mt-7 max-w-xl text-lg leading-8 text-slate-600">Paste a rental ad or search an address to see the building&apos;s City inspection score, how the rent compares, construction nearby, 311 requests, crime and neighbourhood figures, all from open data.</p>
+            <p className="mt-6 max-w-md text-sm leading-6 text-slate-600">Every figure links back to the dataset row it came from. The AI summary only restates those records, and cites each one.</p>
           </section>
-          <section id="search" aria-labelledby="search-title" className="scroll-mt-6 self-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-200/40">
-            <div className="border-b border-slate-200 px-6 py-6"><h2 id="search-title" className="text-xl font-semibold">Look up an address</h2><p className="mt-2 text-sm leading-6 text-slate-600">Any of Toronto&apos;s 525,000 address points. Apartment buildings also get their RentSafeTO inspection.</p></div>
-            <AddressSearch />
-            <p className="px-6 pt-5 pb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">Try an example</p>
-            <Suspense fallback={<p role="status" className="p-6 text-slate-600">Loading examples…</p>}><ExampleChoices /></Suspense>
+          <section id="search" aria-labelledby="paste-title" className="scroll-mt-6 self-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-200/40">
+            <HomeTools examples={<>
+              <p className="px-6 pt-5 pb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">Try an example</p>
+              <Suspense fallback={<p role="status" className="p-6 text-slate-600">Loading examples…</p>}><ExampleChoices /></Suspense>
+            </>} />
           </section>
         </div>
         <section id="how-it-works" aria-labelledby="how-title" className="mt-20 border-t border-slate-200 pt-10">

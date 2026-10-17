@@ -6,13 +6,16 @@ import dynamic from "next/dynamic";
 import { Component, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { AttributionControl, Layer, Marker, NavigationControl, Popup, Source } from "react-map-gl/maplibre";
-import type { MapRef } from "react-map-gl/maplibre";
+import type { MapLayerMouseEvent, MapRef } from "react-map-gl/maplibre";
+import type { FeatureCollection, Polygon } from "geojson";
 
+import { type AmenityResult, fetchAmenities } from "@/lib/amenities";
 import type { Brief } from "@/lib/brief";
-import { metres } from "@/lib/format";
+import { metres, money, month, num } from "@/lib/format";
 
+import { FlyoverButton } from "./Flyover";
 import MapLayerControls from "./MapLayerControls";
-import { briefCenter, briefLocations, defaultLayers, isValidLocation, layerLabels, radiusCircle, sr311Points } from "./mapData";
+import { amenityLocations, briefCenter, briefLocations, defaultLayers, isValidLocation, layerLabels, radiusCircle, sr311Points } from "./mapData";
 import type { LayerId, MapLocation } from "./mapData";
 
 // From feature/frontend (Satwik): expandable map with layer controls and an accessible location
@@ -59,8 +62,52 @@ const MARKER_CLASS: Record<MapLocation["layer"], string> = {
   rentsafe: "size-8 bg-slate-600 text-[11px]",
   building_permit: "size-8 bg-amber-800 text-xs",
   development_application: "size-8 bg-violet-700 text-xs",
+  amenity: "size-7 bg-emerald-800 text-[10px]",
 };
-const MARKER_TEXT: Record<MapLocation["layer"], string> = { building: "B", rentsafe: "", building_permit: "P", development_application: "D" };
+const MARKER_TEXT: Record<MapLocation["layer"], string> = { building: "B", rentsafe: "", building_permit: "P", development_application: "D", amenity: "" };
+
+// --- From integrate/best-of-both (Ariaz): 3D buildings, ghost towers and neighbourhood shading -----------------
+
+/** public/hoods-toronto.json: simplified City boundaries carrying each neighbourhood's values. */
+type Shade = "none" | "rent" | "assault";
+type HoodsFile = { domains: Record<"rent" | "assault", [number, number]>; fc: FeatureCollection };
+const SHADE_DEEP: Record<"rent" | "assault", string> = { rent: "#13724f", assault: "#a62e1c" };
+const SHADE_LIGHT = "#f3f0e8";
+type HoodPick = { lng: number; lat: number; name: string; rent: number | null; assault: number | null; own: boolean };
+
+// Ghost towers: a block for each open application whose description states a height ("NN-storey"); only that
+// conservative phrasing counts. The tallest stated height wins, since one description often names several.
+const STOREY_RE = /(\d{1,3})\s*[- ]?\s*store?y/gi;
+const METRES_PER_STOREY = 3;
+const GHOST_SIDE_M = 22;
+
+function square(lng: number, lat: number, sizeM: number): Polygon {
+  const dLat = sizeM / 2 / 111_320;
+  const dLon = sizeM / 2 / (111_320 * Math.cos((lat * Math.PI) / 180));
+  return { type: "Polygon", coordinates: [[
+    [lng - dLon, lat - dLat], [lng + dLon, lat - dLat], [lng + dLon, lat + dLat], [lng - dLon, lat + dLat], [lng - dLon, lat - dLat],
+  ]] };
+}
+
+function ghostTowers(open: Brief["development_applications"]["open"]): FeatureCollection<Polygon> {
+  const tallest: Record<string, { lng: number; lat: number; storeys: number }> = {};
+  for (const a of open) {
+    if (a.lat == null || a.lon == null) continue;
+    // Condominium plans register units in a building that is usually already approved or built.
+    if (a.type === "CD") continue;
+    let storeys = 0;
+    for (const m of (a.description ?? "").matchAll(STOREY_RE)) storeys = Math.max(storeys, Number(m[1]));
+    if (!storeys) continue;
+    const key = `${a.lat.toFixed(6)},${a.lon.toFixed(6)}`;
+    if ((tallest[key]?.storeys ?? 0) < storeys) tallest[key] = { lng: a.lon, lat: a.lat, storeys };
+  }
+  return {
+    type: "FeatureCollection",
+    features: Object.values(tallest).map((t) => ({
+      type: "Feature", geometry: square(t.lng, t.lat, GHOST_SIDE_M), properties: { height: t.storeys * METRES_PER_STOREY },
+    })),
+  };
+}
 
 export default function NeighbourhoodMap(props: Props) {
   // A different address or radius resets the camera, popup and map lifecycle.
@@ -71,7 +118,16 @@ function MapExplorer({ brief, typeLabels }: Props) {
   const id = useId();
   const center = briefCenter(brief);
   const hasCenter = isValidLocation(center);
-  const locations = useMemo(() => briefLocations(brief, typeLabels), [brief, typeLabels]);
+  const [amen, setAmen] = useState<AmenityResult | "loading" | "error">("loading");
+  const locations = useMemo(() => [
+    ...briefLocations(brief, typeLabels),
+    ...(typeof amen === "object" ? amenityLocations(amen.items) : []),
+  ], [brief, typeLabels, amen]);
+  const ghosts = useMemo(() => ghostTowers(brief.development_applications.open), [brief]);
+  const [three, setThree] = useState(false);
+  const [shade, setShade] = useState<Shade>("none");
+  const [hoods, setHoods] = useState<HoodsFile | "error" | null>(null);
+  const [hood, setHood] = useState<HoodPick | null>(null);
   const sr311 = useMemo(() => sr311Points(brief), [brief]);
   const plotted = locations.filter((location) => isValidLocation(location.location));
   const counts: Partial<Record<LayerId, number>> = {
@@ -79,6 +135,7 @@ function MapExplorer({ brief, typeLabels }: Props) {
     building_permit: plotted.filter((l) => l.layer === "building_permit").length,
     development_application: plotted.filter((l) => l.layer === "development_application").length,
     sr311: sr311.features.length,
+    amenity: plotted.filter((l) => l.layer === "amenity").length,
   };
   const available = (Object.keys(layerLabels) as LayerId[]).filter((layer) =>
     layer === "radius" ? hasCenter : layer === "sr311" ? sr311.features.length > 0 : plotted.some((location) => location.layer === layer));
@@ -107,6 +164,41 @@ function MapExplorer({ brief, typeLabels }: Props) {
   const circle = useMemo(() => (hasCenter ? radiusCircle(center, brief.address.radius_m) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [center.lat, center.lng, hasCenter, brief.address.radius_m]);
+
+  useEffect(() => {
+    let gone = false;
+    fetchAmenities(center.lat, center.lng).then((a) => !gone && setAmen(a)).catch(() => !gone && setAmen("error"));
+    return () => { gone = true; };
+  }, [center.lat, center.lng]);
+
+  // The boundary file is ~0.5 MB, so it only loads the first time shading is turned on. Switching shading off
+  // after a failure resets `hoods` to null (in the select's handler) so switching on again retries.
+  useEffect(() => {
+    if (shade === "none" || hoods) return;
+    let gone = false;
+    fetch("/hoods-toronto.json", { signal: AbortSignal.timeout(15_000) })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((j) => !gone && setHoods(j as HoodsFile))
+      .catch(() => !gone && setHoods("error"));
+    return () => { gone = true; };
+  }, [shade, hoods]);
+
+  // Tilt for 3D after the commit (an easeTo started mid-render can be cancelled by the map's own camera sync).
+  useEffect(() => {
+    mapRef.current?.easeTo({ pitch: three ? 55 : 0, duration: 700 });
+  }, [three]);
+
+  function onMapClick(event: MapLayerMouseEvent) {
+    setSelectedId(null);
+    const f = event.features?.[0];
+    if (f?.layer.id !== "hoods-fill") return setHood(null);
+    const p = f.properties as { id?: number; name?: string; rent?: number; assault?: number };
+    setHood({
+      lng: event.lngLat.lng, lat: event.lngLat.lat, name: p.name ?? "Neighbourhood",
+      rent: p.rent ?? null, assault: p.assault ?? null,
+      own: p.id != null && Number(p.id) === brief.area.neighbourhood?.hood_id,
+    });
+  }
 
   function retryMap() {
     activeAttempt.current += 1;
@@ -188,7 +280,53 @@ function MapExplorer({ brief, typeLabels }: Props) {
   const content = (
     <div className="space-y-4">
       <MapLayerControls available={available} visible={visible} counts={counts}
-        onToggle={(layer) => setVisible((current) => ({ ...current, [layer]: !current[layer] }))} />
+        onToggle={(layer) => setVisible((current) => ({ ...current, [layer]: !current[layer] }))}>
+        <div className="mt-3 flex flex-wrap items-start gap-x-8 gap-y-3 border-t border-slate-200 pt-3 text-sm text-slate-700">
+          <div>
+            <label className="flex min-h-8 cursor-pointer items-center gap-2">
+              <input type="checkbox" checked={three} onChange={(e) => setThree(e.target.checked)}
+                className="size-4 accent-teal-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700" />
+              <span aria-hidden className="inline-block size-2.5 rounded-[2px] border border-slate-400" style={{ background: "#d8d4c8" }} />
+              3D buildings
+            </label>
+            {three && ghosts.features.length > 0 && (
+              <p className="ml-6 flex max-w-xs items-start gap-2 text-xs leading-5 text-slate-500">
+                <span aria-hidden className="mt-1 inline-block size-2.5 shrink-0 rounded-[2px] bg-violet-700/40" />
+                {ghosts.features.length} proposed or approved tower{ghosts.features.length === 1 ? "" : "s"}: height from the application text (storeys × 3 m); footprint illustrative.
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="flex min-h-8 items-center gap-2">
+              Shade neighbourhoods
+              <select value={shade}
+                onChange={(e) => {
+                  const next = e.target.value as Shade;
+                  if (next === "none" && hoods === "error") setHoods(null);
+                  if (next === "none") setHood(null);
+                  setShade(next);
+                }}
+                className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-[#142D4E] focus-visible:outline-2 focus-visible:outline-teal-700">
+                <option value="none">off</option>
+                <option value="rent">by renters&apos; shelter cost (2021)</option>
+                <option value="assault">by assault rate (2025)</option>
+              </select>
+            </label>
+            {shade !== "none" && hoods === null && <p role="status" className="text-xs text-slate-500">Loading shading…</p>}
+            {shade !== "none" && hoods === "error" && <p className="text-xs text-slate-500">The shading didn&apos;t load. Switch it off and on to retry.</p>}
+            {shade !== "none" && hoods && hoods !== "error" && (
+              <p className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+                <span className="tabular-nums">≤ {shade === "rent" ? money(hoods.domains.rent[0]) : num(Math.round(hoods.domains.assault[0]))}</span>
+                <span aria-hidden className="inline-block h-2 w-16 rounded-sm" style={{ background: `linear-gradient(to right, ${SHADE_LIGHT}, ${SHADE_DEEP[shade]})` }} />
+                <span className="tabular-nums">≥ {shade === "rent" ? money(hoods.domains.rent[1]) : `${num(Math.round(hoods.domains.assault[1]))} per 100k`}</span>
+                <span>· click an area for its figures · City boundaries, 2021 Census, TPS 2025</span>
+              </p>
+            )}
+          </div>
+          {amen === "error" && <p className="text-xs text-slate-500">The essentials list didn&apos;t load.</p>}
+          {typeof amen === "object" && amen.asof && <p className="text-xs leading-8 text-slate-500">Essentials: OpenStreetMap extract, {month(amen.asof)}. Distances are straight-line.</p>}
+        </div>
+      </MapLayerControls>
       {!hasCenter ? <p role="status" className="rounded-xl bg-slate-100 p-6 text-sm">This address has no valid coordinates, so the map and radius are unavailable. See the location list below.</p> : (
         <>
           {mapIssue && <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
@@ -207,11 +345,14 @@ function MapExplorer({ brief, typeLabels }: Props) {
                 minZoom={9} maxZoom={19}
                 attributionControl={false}
                 scrollZoom={expanded}
+                interactiveLayerIds={shade !== "none" && hoods && hoods !== "error" ? ["hoods-fill"] : []}
                 onLoad={(event) => {
                   if (attempt !== activeAttempt.current) return;
                   markMapReady();
                   const map = event.target;
                   map.resize();
+                  // A new map instance starts flat; match the 3D checkbox, which may already be on.
+                  if (three) map.easeTo({ pitch: 55, duration: 0 });
                   if (circle && !hasInitialFit.current) {
                     const ring = circle.geometry.coordinates[0];
                     map.fitBounds([
@@ -236,10 +377,39 @@ function MapExplorer({ brief, typeLabels }: Props) {
                   const stage = mapRef.current ? "A map resource failed to load" : "Map initialization failed";
                   setMapIssue({ kind: "resource", message: `${stage}: ${event.error.message || "Unknown browser error"}. Retry the map or use the location list below.` });
                 }}
-                onClick={() => setSelectedId(null)}
+                onClick={onMapClick}
               >
                 <NavigationControl position="top-right" showCompass />
                 <AttributionControl position="bottom-right" compact={!expanded} />
+                {shade !== "none" && hoods && hoods !== "error" && (
+                  /* beforeId slots the tint under the style's roads and labels. */
+                  <Source id="hoods" type="geojson" data={hoods.fc}>
+                    <Layer id="hoods-fill" type="fill" beforeId="highway_path"
+                      paint={{
+                        "fill-color": ["interpolate", ["linear"], ["coalesce", ["get", shade], hoods.domains[shade][0]],
+                          hoods.domains[shade][0], SHADE_LIGHT, hoods.domains[shade][1], SHADE_DEEP[shade]],
+                        "fill-opacity": 0.55,
+                      }} />
+                    <Layer id="hoods-line" type="line" beforeId="highway_path"
+                      paint={{ "line-color": "#142D4E", "line-opacity": 0.25, "line-width": 0.5 }} />
+                  </Source>
+                )}
+                {/* The positron style's own vector source carries OpenMapTiles buildings with heights in metres.
+                    Both extrusion layers sit under the first label layer so street names stay readable. */}
+                <Layer id="buildings-3d" type="fill-extrusion" source="openmaptiles" source-layer="building"
+                  beforeId="waterway_line_label" minzoom={13} filter={["!=", ["get", "hide_3d"], true]}
+                  layout={{ visibility: three ? "visible" : "none" }}
+                  paint={{
+                    "fill-extrusion-color": "#d8d4c8",
+                    "fill-extrusion-opacity": 0.85,
+                    "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 13, 0, 14.5, ["get", "render_height"]],
+                    "fill-extrusion-base": ["interpolate", ["linear"], ["zoom"], 13, 0, 14.5, ["get", "render_min_height"]],
+                  }} />
+                <Source id="ghosts" type="geojson" data={ghosts}>
+                  <Layer id="ghost-towers" type="fill-extrusion" beforeId="waterway_line_label"
+                    layout={{ visibility: three ? "visible" : "none" }}
+                    paint={{ "fill-extrusion-color": "#6d28d9", "fill-extrusion-opacity": 0.35, "fill-extrusion-height": ["get", "height"] }} />
+                </Source>
                 {circle && visible.radius && <Source id="building-radius" type="geojson" data={circle}>
                   <Layer id="radius-fill" type="fill" paint={{ "fill-color": "#0D9488", "fill-opacity": 0.08 }} />
                   <Layer id="radius-outline" type="line" paint={{ "line-color": "#0D9488", "line-width": 2, "line-dasharray": [3, 2] }} />
@@ -263,8 +433,18 @@ function MapExplorer({ brief, typeLabels }: Props) {
                     {selected.url && <a href={selected.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs font-medium text-teal-800 underline">City application page</a>}
                   </div>
                 </Popup>}
+                {hood && !selected && <Popup latitude={hood.lat} longitude={hood.lng} onClose={() => setHood(null)} closeOnClick={false} focusAfterOpen={false} offset={8} maxWidth="280px">
+                  <div className="p-1 text-[#142D4E]">
+                    <p className="font-semibold">{hood.name}</p>
+                    <p className="mt-1 text-xs leading-5">
+                      Renters&apos; median shelter cost {hood.rent != null ? `${money(hood.rent)}/mo` : "—"} (2021 Census) · assault {hood.assault != null ? num(Math.round(hood.assault)) : "—"} per 100k (Toronto Police, 2025).
+                    </p>
+                    {hood.own && <p className="mt-1 text-xs text-teal-800">This is the address&apos;s neighbourhood; the Crime and Neighbourhood tabs cite both figures.</p>}
+                  </div>
+                </Popup>}
               </Map>
             </MapBoundary>
+            <FlyoverButton lat={center.lat} lon={center.lng} address={brief.address.address} />
             {!loaded && !mapIssue && <p role="status" className="pointer-events-none absolute top-3 left-3 rounded bg-white px-3 py-2 text-xs shadow-sm">Loading street map…</p>}
           </div>
           <p className="text-xs leading-5 text-slate-500">{expanded ? "Drag to pan; scroll or use the zoom controls. Keyboard: focus the map, then use arrow keys to pan and +/− to zoom." : "Drag to pan and use +/− to zoom. Expand the map to enable scroll zoom."}</p>

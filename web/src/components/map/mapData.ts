@@ -1,7 +1,8 @@
 import type { Feature, FeatureCollection, Point, Polygon } from "geojson";
 
+import { type Amenity, AMENITY_LABELS } from "@/lib/amenities";
 import type { Brief } from "@/lib/brief";
-import { titleCase } from "@/lib/format";
+import { metres, titleCase } from "@/lib/format";
 
 // From feature/frontend (Satwik): layers, radius geometry and the location list, fed by bb_brief.
 
@@ -14,13 +15,14 @@ export const layerLabels = {
   building_permit: "Major construction permits",
   development_application: "Open development applications",
   sr311: "311 requests at intersections",
+  amenity: "Essentials (OpenStreetMap)",
 } as const;
 export type LayerId = keyof typeof layerLabels;
 export type LayerVisibility = Record<LayerId, boolean>;
 export const defaultLayers = Object.fromEntries(Object.keys(layerLabels).map((key) => [key, true])) as LayerVisibility;
 
 /** Layers drawn as individual, focusable markers (311 points are a plain map layer instead). */
-export type MarkerLayer = "building" | "rentsafe" | "building_permit" | "development_application";
+export type MarkerLayer = "building" | "rentsafe" | "building_permit" | "development_application" | "amenity";
 
 export type MapLocation = {
   id: string;
@@ -92,4 +94,17 @@ export function sr311Points(brief: Brief): FeatureCollection<Point> {
       properties: { type: p.type, status: p.status, date: p.date },
     })),
   };
+}
+
+// Essentials (integrate/best-of-both): subway, groceries, pharmacies and hospitals near the address, from a
+// static OpenStreetMap extract (public/amenities-toronto.json). Pharmacies are "Rx" here because "D" already
+// marks development applications on this map.
+const AMENITY_MARK: Record<Amenity["category"], string> = { subway: "T", grocery: "G", pharmacy: "Rx", hospital: "H" };
+
+export function amenityLocations(items: Amenity[]): MapLocation[] {
+  return items.map((a, i) => ({
+    id: `amenity-${a.category}-${i}`, name: a.name, layer: "amenity" as const,
+    location: { lat: a.lat, lng: a.lon }, distanceM: a.distance_m, label: AMENITY_MARK[a.category],
+    description: `${AMENITY_LABELS[a.category]} · ${metres(a.distance_m)} straight-line · OpenStreetMap`,
+  }));
 }

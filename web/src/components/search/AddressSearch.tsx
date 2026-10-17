@@ -6,9 +6,13 @@ import type { KeyboardEvent } from "react";
 
 import { useAddressSearch } from "@/hooks/useAddressSearch";
 import type { AddressMatch } from "@/lib/brief";
+import { buildingHref } from "@/lib/listing-params";
 
 // From feature/frontend (Satwik): accessible combobox, now searching all Toronto address points.
-export default function AddressSearch({ compact = false, initial = "" }: { compact?: boolean; initial?: string }) {
+/** `keep` is a pasted listing's query string (rent, beds, claims), carried to the brief that opens. */
+export default function AddressSearch({ compact = false, initial = "", keep = "", autoFocus = false }: {
+  compact?: boolean; initial?: string; keep?: string; autoFocus?: boolean;
+}) {
   const router = useRouter();
   const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -23,7 +27,7 @@ export default function AddressSearch({ compact = false, initial = "" }: { compa
     setOpen(false);
     setActiveIndex(-1);
     setQuery(address.address);
-    router.push(`/building/${address.address_point_id}`);
+    router.push(buildingHref(address.address_point_id, { listing: keep }));
   }
 
   function moveTo(index: number) {
@@ -78,6 +82,7 @@ export default function AddressSearch({ compact = false, initial = "" }: { compa
           aria-describedby={compact ? undefined : `${id}-hint`}
           autoComplete="off"
           spellCheck={false}
+          autoFocus={autoFocus}
           placeholder="e.g. 200 Elm St"
           value={query}
           onChange={(event) => {

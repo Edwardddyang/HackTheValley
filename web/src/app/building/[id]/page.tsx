@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { AdCheckPanel } from "@/components/ai/AdCheckPanel";
+import { ChecklistPanel, SummaryPanel, SummaryProvider } from "@/components/ai/SummaryPanels";
 import { BriefTabs } from "@/components/BriefTabs";
 import { Cite } from "@/components/Cite";
 import AddressPermitsPanel from "@/components/dashboard/AddressPermitsPanel";
@@ -12,18 +14,21 @@ import InspectionPanel from "@/components/dashboard/InspectionPanel";
 import NearbyBuildingsPanel from "@/components/dashboard/NearbyBuildingsPanel";
 import NearbyConstructionPanel from "@/components/dashboard/NearbyConstructionPanel";
 import NeighbourhoodPanel from "@/components/dashboard/NeighbourhoodPanel";
+import RentPanel from "@/components/dashboard/RentPanel";
 import { rate } from "@/components/dashboard/DashboardPanel";
 import NeighbourhoodMap from "@/components/map/NeighbourhoodMap";
 import { ReviewsSection } from "@/components/reviews/ReviewsSection";
 import AddressSearch from "@/components/search/AddressSearch";
 import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { DEFAULT_RADIUS_M } from "@/lib/brief";
-import { metres, num } from "@/lib/format";
+import { bedroomsLabel, metres, money, num } from "@/lib/format";
+import { buildingHref, hasListing, listingQuery, parseListingHints } from "@/lib/listing-params";
 import { loadBrief } from "@/lib/load";
 
 import Loading from "./loading";
 
-// Report layout from feature/frontend (Satwik): every panel is filled from bb_brief.
+// Report layout from feature/frontend (Satwik): every panel is filled from bb_brief and bb_extras. The Gemini
+// panels (What to flag, viewing questions, ad check) come from integrate/best-of-both (Ariaz).
 const RADII = [250, 500, 1000];
 
 const LIMITATIONS = [
@@ -33,6 +38,10 @@ const LIMITATIONS = [
   "Crime figures are Toronto Police Service rates for the whole neighbourhood, not a street or building.",
   "Census figures are from 2021 and describe the neighbourhood. Shelter cost is not a current asking rent.",
   "Rent-control status can't be determined from these datasets: it depends on first residential occupancy, which isn't recorded here.",
+  "CMHC rents are October survey averages for purpose-built rental apartments across a large area, not a valuation of one unit. Building registration details are filled in by landlords.",
+  "What to flag, the viewing questions and the ad check are written by Google Gemini from the records on this page, and each line cites the records it used; when the AI is unavailable they fall back to a fixed template. AI can misread a record, so confirm anything important with the landlord or the City.",
+  "A pasted listing is read by Gemini; the listing site itself is never visited.",
+  "The map's essentials (subway, groceries, pharmacies, hospitals) come from an OpenStreetMap extract (ODbL); distances are straight-line. Neighbourhood shading uses City boundaries with the same Census and Toronto Police figures. The Flyover, when enabled, streams Google Photorealistic 3D Tiles, whose imagery may be years old.",
 ];
 
 const count = (n: number | null | undefined) => (n ? num(n) : null);
@@ -56,7 +65,9 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
   if (!/^\d+$/.test(id)) return notFound;
   const result = await loadBrief(Number(id), radius);
   if (result.kind !== "ok") return notFound;
-  const { brief, stats } = result;
+  const { brief, stats, extras } = result;
+  const listing = parseListingHints(sp);
+  const listingQ = listingQuery(listing);
   const { area } = brief;
   const typeLabels = brief.development_applications.type_labels;
   const crimeAbove = brief.crime.offences.filter((o) => rate(o.rate_per_100k, o.city_rate_per_100k, { direction: "higher-worse", tolerance: 0.1 }) === "poor").length;
@@ -73,25 +84,48 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
         <div className="mt-5 flex flex-wrap items-center gap-2 text-sm">
           <span className="text-slate-600">Radius:</span>
           {RADII.map((r) => (
-            <Link key={r} href={`/building/${id}${r === DEFAULT_RADIUS_M ? "" : `?r=${r}`}`} aria-current={r === radius ? "page" : undefined}
+            <Link key={r} href={buildingHref(id, { radius: r === DEFAULT_RADIUS_M ? null : r, listing: listingQ })} aria-current={r === radius ? "page" : undefined}
               className={`rounded-full border px-3 py-1 ${r === radius ? "border-[#142D4E] bg-[#142D4E] text-white" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}>
               {metres(r)}
             </Link>
           ))}
         </div>
-        <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">From City of Toronto open data. Pick a tab below; hover a source tag to see the dataset row behind a figure.</p>
+        <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">From City of Toronto open data, Toronto Police and CMHC. Pick a tab below; hover a source tag to see the dataset row behind a figure.</p>
+        {hasListing(listing) && (
+          <p className="mt-4 inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-teal-200 bg-teal-50 px-4 py-2.5 text-sm text-teal-950">
+            <span className="font-semibold">From your listing:</span>
+            {listing.rent != null && <span className="tabular-nums">{money(listing.rent)} / month</span>}
+            {listing.beds != null && <span>{bedroomsLabel(listing.beds)}</span>}
+            {listing.claims.length > 0 && <a href="#adcheck" className="font-medium underline underline-offset-2">{listing.claims.length} claim{listing.claims.length === 1 ? "" : "s"} checked</a>}
+            {listing.rent != null && <a href="#rent" className="font-medium underline underline-offset-2">rent vs CMHC</a>}
+          </p>
+        )}
       </header>
       <div className="mt-8">
+        {/* One /api/summary call feeds both What to flag and the viewing questions. */}
+        <SummaryProvider key={`${brief.address.address_point_id}-${radius}-${listing.rent}-${listing.beds}`}
+          addressPointId={brief.address.address_point_id} radius={brief.address.radius_m} rent={listing.rent} beds={listing.beds}>
         <BriefTabs tabs={[
           { id: "overview", label: "Overview", content: (
             <Grid>
-              <BuildingSummaryPanel brief={brief} />
+              <SummaryPanel />
+              <BuildingSummaryPanel brief={brief} extras={extras} />
               <InspectionPanel brief={brief} stats={stats} />
               <section className="rounded-2xl border border-slate-200 bg-white p-6 md:col-span-2" aria-labelledby="map-title">
                 <h2 id="map-title" className="text-xl font-semibold">Around the block</h2>
                 <NeighbourhoodMap brief={brief} typeLabels={typeLabels} />
               </section>
+              <ChecklistPanel address={brief.address.address} />
             </Grid>
+          ) },
+          ...(listing.claims.length > 0 ? [{ id: "adcheck", label: "Ad check", badge: num(listing.claims.length), content: (
+            <Grid>
+              <AdCheckPanel addressPointId={brief.address.address_point_id} radius={brief.address.radius_m}
+                rent={listing.rent} beds={listing.beds} claims={listing.claims} />
+            </Grid>
+          ) }] : []),
+          { id: "rent", label: "Rent", badge: listing.rent != null ? "Your listing" : null, content: (
+            <Grid><RentPanel benchmark={extras?.rent_benchmark ?? null} listing={listing} /></Grid>
           ) },
           { id: "buildings", label: "Nearby buildings", badge: count(brief.rentsafe_nearby.buildings.length), content: (
             <Grid><NearbyBuildingsPanel brief={brief} stats={stats} /></Grid>
@@ -122,6 +156,7 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
             </section>
           ) },
         ]} />
+        </SummaryProvider>
       </div>
     </main>
   );
