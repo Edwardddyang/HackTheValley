@@ -45,7 +45,31 @@ export type AmenityResult = {
 };
 
 /** Packed rows of public/amenities-toronto.json. */
-type Packed = { c: "s" | "g" | "p" | "h"; n?: string; la: number; lo: number };
+export type PackedAmenity = { c: "s" | "g" | "p" | "h"; n?: string; la: number; lo: number };
+type Packed = PackedAmenity;
+
+/** The nearest place of one kind, with its row in the file (1-based, for a citation). */
+export type NearestAmenity = { category: AmenityCategory; name: string; distance_m: number; row: number };
+
+/**
+ * The nearest place of each kind within its search radius (AMENITY_RADIUS_M), or null for a kind with none, plus how
+ * many places of each kind the file holds. Pure, so the server (the ad check) and the map agree on "nearest".
+ */
+export function nearestAmenities(items: readonly PackedAmenity[], lat: number, lon: number): {
+  nearest: Record<AmenityCategory, NearestAmenity | null>; total: Record<AmenityCategory, number>;
+} {
+  const nearest: Record<AmenityCategory, NearestAmenity | null> = { subway: null, grocery: null, pharmacy: null, hospital: null };
+  const total: Record<AmenityCategory, number> = { subway: 0, grocery: 0, pharmacy: 0, hospital: 0 };
+  items.forEach((it, i) => {
+    const category = CAT[it.c];
+    if (!category) return;
+    total[category] += 1;
+    const d = Math.round(distanceM(lat, lon, it.la, it.lo));
+    if (d > AMENITY_RADIUS_M[category] || (nearest[category] && nearest[category]!.distance_m <= d)) return;
+    nearest[category] = { category, name: it.n ?? AMENITY_LABELS[category], distance_m: d, row: i + 1 };
+  });
+  return { nearest, total };
+}
 
 const CAT: Record<Packed["c"], AmenityCategory> = { s: "subway", g: "grocery", p: "pharmacy", h: "hospital" };
 

@@ -217,7 +217,7 @@ test("fallback rows on the demo listing: cited, grounded, honest verdicts", () =
   for (const t of ["transit", "noise_quiet", "management", "other"] as const) {
     assert.equal(byTopic[t].verdict, "cant_check", t);
   }
-  assert.match(byTopic.transit.text, /don't map transit stops.*Census.*commuters in the neighbourhood/);
+  assert.match(byTopic.transit.text, /don't map bus or streetcar stops.*Census.*commuters in the neighbourhood/);
   assert.deepEqual(byTopic.other.ids, [set.refs.address]);
 });
 
@@ -340,7 +340,7 @@ test("validateAdCheckOutput: keeps grounded rows, replaces the rest with the fal
   for (const row of result.rows) assert.equal(checkLine(row.text, row.ids, ctx, 320), null, row.text);
   const reasons = result.rejected.map((r) => r.reason);
   assert.ok(reasons.some((r) => /2600/.test(r)), reasons.join("; "));
-  assert.ok(reasons.some((r) => /confirmed verdict on transit, which no loaded record can confirm or challenge/.test(r)),
+  assert.ok(reasons.some((r) => /transit verdict confirmed does not match the nearest-station rule \(cant_check\)/.test(r)),
     reasons.join("; "));
   assert.ok(reasons.some((r) => /confirmed verdict cites no record that speaks to laundry/.test(r)), reasons.join("; "));
   assert.ok(reasons.includes("no row for this claim"));
@@ -378,7 +378,7 @@ test("validateAdCheckOutput replaces rows swapped between claims whose topics sh
   assert.deepEqual(right.rows.map((r) => r.text), [coolingRow.text, petsRow.text]);
 });
 
-test("transit, noise, management and other claims are never confirmed or challenged", () => {
+test("without the essentials, transit, noise, management and other claims are never confirmed or challenged", () => {
   const { b, x, set, cx, ctx } = demo();
   const transitId = set.refs.census.commute_transit;
   const reg = set.refs.registration!;
@@ -400,7 +400,7 @@ test("transit, noise, management and other claims are never confirmed or challen
   assert.equal(result.replaced, 2);
   assert.deepEqual(result.rows.map((r) => r.verdict), ["cant_check", "cant_check"]);
   assert.deepEqual(result.rejected.map((r) => r.reason), [
-    "confirmed verdict on transit, which no loaded record can confirm or challenge",
+    "transit verdict confirmed does not match the nearest-station rule (cant_check)",
     "challenged verdict on management, which no loaded record can confirm or challenge",
   ]);
 
@@ -410,6 +410,63 @@ test("transit, noise, management and other claims are never confirmed or challen
   }, claims.slice(0, 1), b, x, set, cx, ctx);
   assert.equal(honest.replaced, 0);
   assert.equal(honest.rows[0].text, transitText);
+});
+
+/** The demo listing with the map's essentials loaded: the nearest subway station at `subwayM` (null: none in reach). */
+function withSubway(subwayM: number | null) {
+  const { b, x } = demo();
+  const essentials = {
+    nearest: {
+      subway: subwayM == null ? null : { category: "subway" as const, name: "Spadina", distance_m: subwayM, row: 12 },
+      grocery: { category: "grocery" as const, name: "Bulk Barn", distance_m: 315, row: 40 },
+      pharmacy: null, hospital: null,
+    },
+    total: { subway: 70, grocery: 712, pharmacy: 836, hospital: 17 },
+    file: "amenities-toronto.json",
+  };
+  const set = buildEvidence(b, x, essentials);
+  const cx = rentComparison(x?.rent_benchmark ?? null, 2350, 1);
+  const ctx = adCheckContext(set, 2350, 1, cx);
+  return { b, x, set, cx, ctx };
+}
+
+test("subway claims are judged by the nearest station's straight-line distance", () => {
+  const verdictAt = (m: number | null, quote = "Steps to the subway") => {
+    const { b, x, set, cx, ctx } = withSubway(m);
+    const row = fallbackRows([claim("transit", quote)], b, x, set, cx, ctx)[0];
+    assert.equal(checkLine(row.text, row.ids, ctx, 320), null, row.text);
+    return row;
+  };
+  const close = verdictAt(351);
+  assert.equal(close.verdict, "confirmed");
+  assert.match(close.text, /Spadina, is 351 m/);
+  assert.equal(verdictAt(750).verdict, "cant_check");
+  assert.equal(verdictAt(1150).verdict, "challenged");
+  const none = verdictAt(null);
+  assert.equal(none.verdict, "challenged");
+  assert.match(none.text, /No subway station is within 1200 m/);
+  // Bus and streetcar stops aren't in the data, so those claims stay honest cant_checks.
+  assert.equal(verdictAt(351, "Streetcar at the door").verdict, "cant_check");
+  // A quote that says the place is far from the subway flips the verdict.
+  assert.equal(verdictAt(1150, "Not close to the subway").verdict, "confirmed");
+});
+
+test("the model's transit verdict must match the nearest-station rule and cite the station", () => {
+  const { b, x, set, cx, ctx } = withSubway(351);
+  const station = set.refs.subway!.id;
+  const claims = [claim("transit", "Steps to the subway")];
+  const text = "The nearest subway station, Spadina, is 351 m from the address in a straight line.";
+  const kept = validateAdCheckOutput({
+    rows: [{ claim_index: 0, topic: "transit", verdict: "confirmed", text, evidence_ids: [station] }],
+  }, claims, b, x, set, cx, ctx);
+  assert.equal(kept.replaced, 0);
+  assert.equal(kept.rows[0].verdict, "confirmed");
+  const wrong = validateAdCheckOutput({
+    rows: [{ claim_index: 0, topic: "transit", verdict: "challenged", text, evidence_ids: [station] }],
+  }, claims, b, x, set, cx, ctx);
+  assert.equal(wrong.replaced, 1);
+  assert.equal(wrong.rows[0].verdict, "confirmed");
+  assert.ok(topicEvidenceIds("transit", set).includes(station));
 });
 
 test("claimsFoundInText keeps only quotes that are really in the ad's text", () => {

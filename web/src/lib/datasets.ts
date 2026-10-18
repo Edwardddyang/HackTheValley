@@ -167,4 +167,16 @@ export const DATASETS: DatasetInfo[] = [
     usedFor: "Address search and autocomplete, the point the brief is centred on, and placing building permits on the map.",
     limits: ["Unit numbers aren't separate address points, so the brief is about the building, not your unit."],
   },
+  {
+    key: "openstreetmap",
+    name: "OpenStreetMap (essentials extract)",
+    publisher: "OpenStreetMap contributors",
+    url: "https://www.openstreetmap.org/copyright",
+    licence: { name: "Open Database License (ODbL)", url: "https://opendatacommons.org/licenses/odbl/" },
+    usedFor: "Subway stations, groceries, pharmacies and hospitals with an emergency room near the address, on the map and when the ad check judges claims like \"steps to the subway\".",
+    limits: [
+      "A static extract, so very new or closed places may be missing or out of date.",
+      "Distances are straight-line, not walking routes; only subway stations are included, not bus or streetcar stops.",
+    ],
+  },
 ];

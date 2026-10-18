@@ -2,6 +2,7 @@ import "server-only";
 
 import type { AskAnswer } from "@/lib/ai-types";
 import { getBrief } from "@/lib/brief";
+import { essentialsNear } from "@/lib/essentials-server";
 import { getExtras } from "@/lib/extras";
 
 import { adCheckContext, rentComparison } from "./ad-check-core";
@@ -25,7 +26,7 @@ export async function getAsk(key: AskKey): Promise<AskAnswer | null> {
   ]);
   if (!brief) return null;
 
-  const set = buildEvidence(brief, extras);
+  const set = buildEvidence(brief, extras, essentialsNear(brief.address.lat, brief.address.lon));
   // A listing's rent and beds reach the prompt as LISTING and join the CMHC rent item's allowed numbers, exactly as
   // in the summary and the ad check, so "is $2,350 fair?" can be answered with the renter's own figure.
   const cx = rentComparison(extras?.rent_benchmark ?? null, key.rent, key.beds);

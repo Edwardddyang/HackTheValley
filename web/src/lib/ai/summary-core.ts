@@ -5,6 +5,7 @@
 import type { Summary, SummaryLine } from "../ai-types";
 import type { Brief, Cite } from "../brief";
 import type { Extras } from "../extras";
+import type { AmenityCategory, NearestAmenity } from "../amenities";
 
 export const TEMPLATE_MODEL = "template";
 /** The panel shows at most this many flags, worst first; zero flags is a valid, honest answer. */
@@ -29,7 +30,7 @@ export type Evidence = { address: string; notes: string[]; items: EvidenceItem[]
 /** What an item is about. The checks use it to keep area facts (311, crime, census) off the building. */
 export type Topic =
   | "address" | "area" | "building" | "registration" | "permit_at_address" | "rent" | "construction"
-  | "development" | "sr311" | "crime" | "census" | "rentsafe_nearby";
+  | "development" | "sr311" | "crime" | "census" | "rentsafe_nearby" | "essentials";
 
 const BUILDING_TOPICS: ReadonlySet<Topic> = new Set(["building", "registration", "permit_at_address"]);
 
@@ -57,7 +58,22 @@ export type EvidenceRefs = {
   rentsafe_nearby: {
     id: string; buildings: number; median_score: number; higher: number | null; lower: number | null;
   } | null;
+  /** The nearest subway station (OpenStreetMap), or an item saying none is within the search distance. */
+  subway: { id: string; name: string | null; distance_m: number | null; within_m: number } | null;
 };
+
+/** The map's essentials near the address (src/lib/essentials-server.ts), when the caller loaded them. */
+export type EssentialsInput = {
+  nearest: Record<AmenityCategory, NearestAmenity | null>;
+  total: Record<AmenityCategory, number>;
+  file: string;
+};
+
+const ESSENTIAL_LABELS: Record<AmenityCategory, string> = {
+  subway: "subway station", grocery: "grocery store", pharmacy: "pharmacy", hospital: "hospital with an emergency room",
+};
+/** How far each kind is searched (AMENITY_RADIUS_M in lib/amenities.ts; repeated so this file stays type-only). */
+const ESSENTIAL_RADIUS_M: Record<AmenityCategory, number> = { subway: 1200, grocery: 1200, pharmacy: 1200, hospital: 3000 };
 
 export type EvidenceSet = {
   evidence: Evidence;
@@ -152,7 +168,7 @@ function aggregateCite(like: Cite, rowCount: number, sampleRows: number[]): Cite
   return { dataset: like.dataset, file: like.file, row_count: rowCount, sample_rows: sampleRows.slice(0, 5) };
 }
 
-export function buildEvidence(brief: Brief, extras: Extras | null): EvidenceSet {
+export function buildEvidence(brief: Brief, extras: Extras | null, essentials: EssentialsInput | null = null): EvidenceSet {
   const r = brief.address.radius_m;
   const items: EvidenceItem[] = [];
   const cites = new Map<string, Cite>();
@@ -160,7 +176,7 @@ export function buildEvidence(brief: Brief, extras: Extras | null): EvidenceSet 
   const refs: EvidenceRefs = {
     address: null, latest: null, previous: null, registration: null, rent: null, permits: [], construction: null,
     nearest_notable: null, dev_counts: null, dev_nearest: null, sr311_nearby: null, sr311_ward: null, crime: null,
-    census: {}, rentsafe_nearby: null,
+    census: {}, rentsafe_nearby: null, subway: null,
   };
 
   function add(topic: Topic, cite: Cite | null | undefined, about: string, facts: { [key: string]: FactInput }) {
@@ -414,6 +430,29 @@ export function buildEvidence(brief: Brief, extras: Extras | null): EvidenceSet 
         scoring_lower_than_this_building: lowerCount,
       });
     if (id) refs.rentsafe_nearby = { id, buildings: sameFile.length, median_score: med, higher, lower: lowerCount };
+  }
+
+  // Essentials (OpenStreetMap): the nearest of each kind, with straight-line distance. Only subway stations are in
+  // the extract, not bus or streetcar stops.
+  if (essentials) {
+    notes.push("Nearest essentials come from an OpenStreetMap extract; distances are straight-line, not walking routes. It has subway stations, not bus or streetcar stops.");
+    for (const kind of ["subway", "grocery", "pharmacy", "hospital"] as const) {
+      const n = essentials.nearest[kind];
+      const within = ESSENTIAL_RADIUS_M[kind];
+      if (n) {
+        const id = add("essentials", { dataset: "openstreetmap", file: essentials.file, row: n.row },
+          `Nearest ${ESSENTIAL_LABELS[kind]} to the address (OpenStreetMap, straight-line distance)`,
+          { name: n.name, straight_line_distance_m: n.distance_m });
+        if (id && kind === "subway") refs.subway = { id, name: n.name, distance_m: n.distance_m, within_m: within };
+      } else if (kind === "subway" && essentials.total.subway > 0) {
+        // No station within reach is a fact too: it can challenge "steps to the subway".
+        const id = add("essentials",
+          { dataset: "openstreetmap", file: essentials.file, row_count: essentials.total.subway, sample_rows: [] },
+          `Subway stations within ${within} m of the address (OpenStreetMap, straight-line distance)`,
+          { searched_within_m: within, stations_found: "none" });
+        if (id) refs.subway = { id, name: null, distance_m: null, within_m: within };
+      }
+    }
   }
 
   return { evidence: { address: address.address, notes, items }, cites, topics, refs };

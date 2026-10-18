@@ -73,6 +73,7 @@ export const DATASET_NAMES: Record<string, { short: string; long: string }> = {
   service_requests_311: { short: "311", long: "311 Service Requests" },
   crime_rates: { short: "TPS", long: "Neighbourhood Crime Rates (Toronto Police Service)" },
   neighbourhood_profiles: { short: "Census", long: "Neighbourhood Profiles, 2021 Census" },
+  openstreetmap: { short: "OSM", long: "OpenStreetMap (essentials extract)" },
 };
 
 export const datasetName = (d: string) => DATASET_NAMES[d] ?? { short: d, long: d };

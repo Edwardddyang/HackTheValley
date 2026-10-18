@@ -2,6 +2,7 @@ import "server-only";
 
 import type { AdCheck } from "@/lib/ai-types";
 import { getBrief, type Brief } from "@/lib/brief";
+import { essentialsNear } from "@/lib/essentials-server";
 import { getExtras, type Extras } from "@/lib/extras";
 
 import {
@@ -65,7 +66,7 @@ async function check(
   key: AdCheckKey,
   k: string,
 ): Promise<{ adCheck: AdCheck; ttl: number }> {
-  const set = buildEvidence(brief, extras);
+  const set = buildEvidence(brief, extras, essentialsNear(brief.address.lat, brief.address.lon));
   const cx = rentComparison(extras?.rent_benchmark ?? null, key.rent, key.beds);
   const ctx = adCheckContext(set, key.rent, key.beds, cx);
   const template = () => ({

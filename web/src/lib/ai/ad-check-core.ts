@@ -250,7 +250,7 @@ export function topicEvidenceIds(topic: ClaimTopic, set: EvidenceSet): string[] 
     case "noise_quiet":
       return ids(refs.construction, refs.nearest_notable?.id, refs.dev_counts?.id);
     case "transit":
-      return ids(refs.census.commute_transit, refs.census.commute_walk);
+      return ids(refs.subway?.id, refs.census.commute_transit, refs.census.commute_walk);
     case "other":
       return [];
   }
@@ -286,8 +286,36 @@ function isPositiveClaim(claim: Claim): boolean {
   return claim.topic === "condition" && BAD_CONDITION_RE.test(claim.quote) ? negated : !negated;
 }
 
-/** Topics no loaded record can confirm or challenge: census commuting isn't proximity, a named manager isn't a rating. */
-const CANT_CHECK_ONLY: ReadonlySet<ClaimTopic> = new Set<ClaimTopic>(["transit", "noise_quiet", "management", "other"]);
+/** Topics no loaded record can confirm or challenge: quiet isn't measured, a named manager isn't a rating. Transit
+ *  has its own rule below (subway claims against the nearest station; bus and streetcar stops aren't in the data). */
+const CANT_CHECK_ONLY: ReadonlySet<ClaimTopic> = new Set<ClaimTopic>(["noise_quiet", "management", "other"]);
+
+/** A straight-line distance to the nearest subway station that supports "steps to / close to the subway"… */
+export const SUBWAY_CLOSE_M = 500;
+/** …and one beyond which the claim is challenged (about a 15-minute walk or more once streets are counted). */
+export const SUBWAY_FAR_M = 1000;
+// The claim is about the subway (not only a bus or streetcar stop), so the nearest station can speak to it.
+const SUBWAY_CLAIM_RE = /\b(?:subway|metro|station|underground|line\s*[1-4]|bloor[- ]danforth|yonge[- ]university)\b/i;
+
+/**
+ * The verdict a transit claim gets from the nearest subway station: confirmed within SUBWAY_CLOSE_M, challenged beyond
+ * SUBWAY_FAR_M or with no station in reach, otherwise cant_check (in between, "close" is a judgement call). Bus,
+ * streetcar and other transit claims stay cant_check. A quote that denies being near the subway flips the verdict.
+ */
+export function transitVerdict(claim: Claim, set: EvidenceSet): { verdict: Verdict; text: string; ids: string[] } | null {
+  const s = set.refs.subway;
+  if (!s || !SUBWAY_CLAIM_RE.test(claim.quote)) return null;
+  const positive = isPositiveClaim(claim);
+  const flip = (v: Verdict): Verdict => (positive || v === "cant_check" ? v : v === "confirmed" ? "challenged" : "confirmed");
+  if (s.distance_m == null) {
+    return { verdict: flip("challenged"), ids: [s.id],
+      text: `No subway station is within ${s.within_m} m of the address in a straight line.` };
+  }
+  const where = `The nearest subway station, ${s.name}, is ${s.distance_m} m from the address in a straight line`;
+  if (s.distance_m <= SUBWAY_CLOSE_M) return { verdict: flip("confirmed"), ids: [s.id], text: `${where}.` };
+  if (s.distance_m > SUBWAY_FAR_M) return { verdict: flip("challenged"), ids: [s.id], text: `${where}.` };
+  return { verdict: "cant_check", ids: [s.id], text: `${where}; whether that is close is a judgement call.` };
+}
 
 const NO_RECORD_TEXT = "None of the loaded City, police or CMHC records speaks to this claim.";
 const NO_REGISTRATION_TEXT =
@@ -436,12 +464,14 @@ function buildFallbackRow(
         [refs.latest]);
     }
     case "transit": {
+      const subway = transitVerdict(claim, set);
+      if (subway) return row(subway.verdict, subway.text, subway.ids);
       const id = refs.census.commute_transit;
       const value = id ? factOf(set, id, "value") : null;
       if (id && typeof value === "number") {
-        return cant(`The records don't map transit stops; in the 2021 Census, ${value}% of commuters in the neighbourhood took public transit.`, id);
+        return cant(`The records don't map bus or streetcar stops; in the 2021 Census, ${value}% of commuters in the neighbourhood took public transit.`, id);
       }
-      return cant("The records don't map transit stops or travel times.");
+      return cant("The records don't map bus or streetcar stops or travel times.");
     }
     case "other":
       return cant(NO_RECORD_TEXT);
@@ -513,6 +543,12 @@ export function validateAdCheckOutput(
     const ids = validIds(entry.evidence_ids ?? entry.ids, ctx);
     const reason = checkLine(text, ids, ctx, MAX_ROW_CHARS);
     if (reason) return replace(reason, text);
+    // Transit has one right verdict for a given distance; the model's must match it.
+    if (claim.topic === "transit") {
+      const expected = transitVerdict(claim, set)?.verdict ?? "cant_check";
+      if (verdict !== expected) return replace(`transit verdict ${verdict} does not match the nearest-station rule (${expected})`, text);
+      if (expected !== "cant_check" && !ids.includes(set.refs.subway!.id)) return replace("transit verdict does not cite the nearest subway station", text);
+    }
     if (verdict !== "cant_check") {
       if (CANT_CHECK_ONLY.has(claim.topic)) {
         return replace(`${verdict} verdict on ${claim.topic}, which no loaded record can confirm or challenge`, text);
@@ -565,6 +601,7 @@ Rules:
 - Rent control is only "likely": say likely covered or likely exempt, and that the renter should confirm with the landlord.
 - For rents, CMHC's "vacant_units" figures are the closest to a new lease; "all_units" averages include long-time tenants.
 - Weigh a claim about the building's condition (well maintained, renovated, clean) against the RentSafeTO evaluation: the score, how it compares with other Toronto buildings, and the lowest-graded items.
+- For a claim about the subway (\"steps to the subway\", \"near a station\"), cite the nearest subway station item: within ${SUBWAY_CLOSE_M} m in a straight line confirms it, more than ${SUBWAY_FAR_M} m (or no station within reach) challenges it, and in between is cant_check. Give the station's name and distance. Bus and streetcar stops aren't in the records: those claims are cant_check.
 - For a price claim, give the CMHC average for the listing's bedroom type and the difference LISTING already computed; a claim that the price is fair, a deal or below market is challenged when the ad asks at least about ${MIN_PRICE_GAP_PCT}% more than the vacant-unit average.
 - Neutral, factual tone. No legal advice, no telling the renter whether to sign or walk away.`;
 }
