@@ -1,41 +1,71 @@
 import type { Brief, Cite } from "./brief";
 
-// Construction & noise score for an address, from the brief alone: major permits nearby (the brief's
-// "notable" list) and 311 noise complaints, each weighted by distance. A rough guide to how much
-// building work and noise is around, not a measurement of sound.
+// Construction & noise score for an address: major permit sites within 500 m (bb_construction_near, attached to
+// the brief by getBrief; without it, the brief's 10 costliest major permits) and 311 noise complaints, each
+// weighted by distance. A rough guide to how much building work and noise is around, not a measurement of sound.
 
 /** Distance weight: 1 / (1 + (d/150)^2). Sound intensity falls with distance squared, so a source
  *  150 m away counts half as much as one next door: 45 m ≈ 0.92, 100 m ≈ 0.69, 250 m ≈ 0.26, 500 m ≈ 0.08. */
 export const DECAY_M = 150;
 export const decay = (distanceM: number) => 1 / (1 + (Math.max(0, distanceM) / DECAY_M) ** 2);
 
-/** New buildings and demolitions are the long, loud jobs; other $1M+ work counts for less. */
-export const permitWeight = (type: string) => (/new building|demolition/i.test(type) ? 3 : 1.5);
+/** New buildings and demolitions are the long, loud jobs (3). Mostly indoor work (small residential projects,
+ *  mechanical, plumbing, drains, fire and security upgrades) counts least (0.5), even at $1M+; other $1M+ work,
+ *  such as additions, alterations and new houses, is in between (1.5). */
+export const permitWeight = (type: string) =>
+  /new building|demolition/i.test(type) ? 3 : /small residential|mechanical|plumbing|drain|fire\/security/i.test(type) ? 0.5 : 1.5;
 export const COMPLAINT_WEIGHT = 0.5;
-/** Complaints together add at most this much, below the High cutoff: 311 snaps complaints to the nearest
- *  intersection, so one loud corner can raise the level but never make it High on its own. */
+/** Complaints together add at most this much: 311 snaps complaints to the nearest intersection, so one loud
+ *  corner can raise the score but not decide it. */
 export const COMPLAINT_CAP = 2;
 
-/** One new building within ~100 m is Moderate (3 × 0.69 = 2.1); two within 150 m (2 × 3 × 0.5 = 3), or one within
- *  50 m plus other major work, is High. Checked against 375 Brunswick Ave, 200 Elm St, 326 Avenue Rd and
- *  2000 Eglinton Ave E (see noise.test.ts). */
-export const NOISE_LEVELS = { moderate: 2, high: 3 } as const;
+/** The raw sum has no natural scale, so the score is where it ranks in Toronto: the raw score of a fixed random
+ *  sample of address points (392 of 400 scored, Oct 2026) at every 5th percentile (0, 5, … 100), from
+ *  scripts/calibrate-noise.mjs.
+ *  A score of 7 / 10 means busier than about 70% of Toronto addresses. */
+export const NOISE_PERCENTILES: readonly number[] = [
+  0, 0, 0.2, 0.4, 0.6, 0.8, 1.2, 1.6, 1.9, 2.1, 2.6, 2.9, 3.4, 4.1, 4.9, 5.8, 6.7, 8.4, 9.7, 12.3, 26.6,
+];
+
+/** Percentile rank (0-100) of a raw score in the sample; ties (many quiet addresses score 0) take the middle. */
+export function noiseRank(raw: number): number {
+  const p = NOISE_PERCENTILES;
+  const step = 100 / (p.length - 1);
+  if (raw > p[p.length - 1]) return 100;
+  const lo = p.findIndex((v) => v >= raw);
+  if (p[lo] === raw) {
+    let hi = lo;
+    while (hi + 1 < p.length && p[hi + 1] === raw) hi++;
+    return ((lo + hi) / 2) * step;
+  }
+  if (lo <= 0) return 0;
+  return (lo - 1 + (raw - p[lo - 1]) / (p[lo] - p[lo - 1])) * step;
+}
+
+/** Levels on the 0-10 score: High is the busiest fifth of Toronto addresses, Low the quieter half. */
+export const NOISE_LEVELS = { moderate: 5, high: 8 } as const;
 export type NoiseLevel = "Low" | "Moderate" | "High";
 
 export const isNoiseComplaint = (type: string) => /noise/i.test(type);
 
 export type ConstructionNoise = {
+  /** 0-10: the raw score's percentile rank among Toronto addresses, divided by 10. */
   score: number;
+  /** The weighted sum the score ranks: permits plus (capped) complaints, each weighted by distance. */
+  rawScore: number;
   level: NoiseLevel;
-  /** Points from permits and from (capped) complaints, which add up to `score`. */
+  /** Points from permits and from (capped) complaints, which add up to `rawScore`. */
   parts: { permits: number; complaints: number };
   /** The nearest major project (a site with several permits is one project, named by its heaviest permit). */
   nearest: { distance_m: number; type: string; address: string | null } | null;
-  /** Major projects (sites), not permits. */
+  /** Major projects (sites), not permits, within 250 m and 500 m of the address (whatever the brief's radius). */
   major_within_250: number;
   major_within_500: number;
-  /** The brief lists only the 10 costliest major permits, so counts (and the score) are a floor when this is true. */
+  /** True only without bb_construction_near: the brief lists just the 10 costliest major permits, so counts (and
+   *  the score) are a floor. */
   major_list_capped: boolean;
+  /** How far major_within_500 reaches: 500 m with bb_construction_near, else the brief's radius if smaller. */
+  major_reach_m: number;
   /** All active permits within the search radius, major or not. */
   active_permits: number;
   noise_complaints_within_250: number;
@@ -69,19 +99,20 @@ export function noiseLevel(score: number): NoiseLevel {
   return score >= NOISE_LEVELS.high ? "High" : score >= NOISE_LEVELS.moderate ? "Moderate" : "Low";
 }
 
-/** Scores are shown out of 10. The raw sum has no ceiling, but 10 is past the busiest downtown blocks we checked
- *  (1 Yonge St scores 7.3), so anything above it displays as 10 / 10. */
 export const NOISE_SCALE = 10;
 export function noiseScoreLabel(score: number) {
   return `${Number(Math.min(NOISE_SCALE, score).toFixed(1))} / ${NOISE_SCALE}`;
 }
-export const NOISE_LEVELS_NOTE = `Low under ${NOISE_LEVELS.moderate}, Moderate ${NOISE_LEVELS.moderate} to ${NOISE_LEVELS.high}, High ${NOISE_LEVELS.high} and up`;
+export const NOISE_LEVELS_NOTE = `Ranked against Toronto addresses: 7 / 10 means busier than about 70% of them. `
+  + `Low under ${NOISE_LEVELS.moderate}, Moderate ${NOISE_LEVELS.moderate} to ${NOISE_LEVELS.high}, High ${NOISE_LEVELS.high} and up`;
 
-type Permit = Brief["construction_nearby"]["notable"][number];
+type Permit = Pick<Brief["construction_nearby"]["notable"][number], "lat" | "lon" | "type" | "address" | "distance_m" | "cite">;
 
 /** One project often has several permits at the same point (a new building plus its drain and site service
- *  permit), so each site counts once, at its heaviest permit's weight. */
+ *  permit), so each site counts once, at its heaviest permit's weight. bb_construction_near already returns
+ *  sites; the fallback groups the brief's own list the same way. */
 export function majorProjects(brief: Brief): Permit[] {
+  if (brief.construction_near) return brief.construction_near.sites;
   const sites: Record<string, Permit> = {};
   for (const p of brief.construction_nearby.notable) {
     const key = Number.isFinite(p.lat) && Number.isFinite(p.lon) ? `${p.lat.toFixed(5)},${p.lon.toFixed(5)}` : `${p.address}|${p.distance_m}`;
@@ -121,16 +152,21 @@ export function constructionNoise(brief: Brief): ConstructionNoise {
   const complaintDistances = noisePoints.map((p) => p.d);
   const complaints = Math.min(COMPLAINT_CAP, complaintDistances.reduce((sum, d) => sum + COMPLAINT_WEIGHT * decay(d), 0));
 
-  const score = Math.round((permits + complaints) * 10) / 10;
-  const nearestPermit = projects.reduce<(typeof notable)[number] | null>((a, p) => (!a || p.distance_m < a.distance_m ? p : a), null);
+  const rawScore = Math.round((permits + complaints) * 10) / 10;
+  const score = Math.round(noiseRank(rawScore)) / 10;
+  const near = brief.construction_near;
+  const nearestPermit = projects.reduce<Permit | null>((a, p) => (!a || p.distance_m < a.distance_m ? p : a), null);
   return {
     score,
+    rawScore,
     level: noiseLevel(score),
     parts: { permits: Math.round(permits * 10) / 10, complaints: Math.round(complaints * 10) / 10 },
     nearest: nearestPermit && { distance_m: nearestPermit.distance_m, type: nearestPermit.type, address: nearestPermit.address },
-    major_within_250: projects.filter((p) => p.distance_m <= 250).length,
-    major_within_500: projects.filter((p) => p.distance_m <= 500).length,
-    major_list_capped: notable.length >= NOTABLE_LIMIT,
+    // bb_construction_near counts every site; the fallback list is the 10 costliest permits, so a floor.
+    major_within_250: near ? near.sites_within_250 : projects.filter((p) => p.distance_m <= 250).length,
+    major_within_500: near ? near.sites_within_500 : projects.filter((p) => p.distance_m <= 500).length,
+    major_list_capped: !near && notable.length >= NOTABLE_LIMIT,
+    major_reach_m: near ? near.within_m : Math.min(500, radius_m),
     active_permits: brief.construction_nearby.active_permit_count,
     noise_complaints_within_250: complaintDistances.filter((d) => d <= 250).length,
     noise_complaints_within_radius: complaintDistances.length,

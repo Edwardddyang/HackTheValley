@@ -98,6 +98,8 @@ export type Brief = {
       previous_year_rate: number | null; cite: Cite;
     }[];
   };
+  /** Added by getBrief from bb_construction_near; null if that call failed, absent in older fixtures. */
+  construction_near?: ConstructionNear | null;
   census: {
     source_note: string;
     values: Record<string, {
@@ -105,6 +107,19 @@ export type Brief = {
       toronto_neighbourhood_median: number | null; compared_as: "percent" | "value"; cite: Cite;
     }> | null;
   };
+};
+
+/** Major construction near the address, by distance (bb_construction_near). */
+export type ConstructionNear = {
+  within_m: number;
+  definition: string;
+  sites_within_250: number;
+  sites_within_500: number;
+  /** Nearest first, at most 60. Each is one site, described by its heaviest permit. */
+  sites: (LatLon & {
+    permit_num: string; type: string; status: string; address: string | null; distance_m: number;
+    est_const_cost: number | null; issued_date: string | null; permits: number; cite: Cite;
+  })[];
 };
 
 export const DEFAULT_RADIUS_M = 500;
@@ -130,7 +145,22 @@ export async function geocode(query: string, maxResults = 5): Promise<AddressMat
 }
 
 export async function getBrief(addressPointId: number, radiusM = DEFAULT_RADIUS_M): Promise<Brief | null> {
-  return rpc<Brief | null>("bb_brief", { p_address_point_id: addressPointId, p_radius_m: radiusM });
+  const [brief, near] = await Promise.all([
+    rpc<Brief | null>("bb_brief", { p_address_point_id: addressPointId, p_radius_m: radiusM }),
+    getConstructionNear(addressPointId),
+  ]);
+  return brief && { ...brief, construction_near: near };
+}
+
+/** Every major project site within 500 m, nearest first (supabase/migrations/0006_construction_near.sql). Optional:
+ *  without it, the construction & noise score falls back to the brief's 10 costliest major permits. */
+async function getConstructionNear(addressPointId: number): Promise<ConstructionNear | null> {
+  try {
+    return await rpc<ConstructionNear | null>("bb_construction_near", { p_address_point_id: addressPointId });
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
 }
 
 export type RentSafeStats = { median_score: number | null; buildings: number; scoring: "2023+"; note: string };

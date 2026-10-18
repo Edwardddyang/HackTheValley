@@ -27,7 +27,7 @@ function NoiseStrip({ brief }: { brief: Brief }) {
       </div>
       <p className="mt-2 text-sm leading-6 text-slate-700">
         {num(n.major_within_250)}{n.major_within_250 ? plus : ""} major project{n.major_within_250 === 1 ? "" : "s"} within 250 m
-        {" · "}{num(n.major_within_500)}{plus} within {metres(Math.min(500, n.radius_m))}
+        {" · "}{num(n.major_within_500)}{plus} within {metres(n.major_reach_m)}
         {n.nearest && <> · nearest {metres(n.nearest.distance_m)} ({n.nearest.type.replace(/ Folder \(DM\)$/, "").toLowerCase()})</>}
         <Cite cite={n.cites.major} />
       </p>
@@ -36,8 +36,9 @@ function NoiseStrip({ brief }: { brief: Brief }) {
         <Cite cite={n.cites.complaints} />
       </p>
       <p className="mt-2 text-xs leading-5 text-slate-500">
-        A rough guide, not a sound measurement: new buildings and demolitions count most, other $1M+ work less, and 311 noise
-        complaints a little, each weighted by distance (half as much at 150 m). Scored out of 10: {NOISE_LEVELS_NOTE}.{n.major_list_capped && " The City data here lists only the 10 costliest major permits, so counts are a minimum."}
+        A rough guide, not a sound measurement: every major permit within 500 m counts, new buildings and demolitions most,
+        other $1M+ work less and mostly indoor work (mechanical, plumbing, small renovations) least, plus 311 noise complaints
+        a little, each weighted by distance (half as much at 150 m). {NOISE_LEVELS_NOTE}.{n.major_list_capped && " The City data here lists only the 10 costliest major permits, so counts are a minimum."}
       </p>
     </div>
   );
@@ -59,7 +60,7 @@ export default function NearbyConstructionPanel({ brief }: { brief: Brief }) {
       {c.by_type.length > 0 && <div className="mt-5"><BarList items={c.by_type.slice(0, 6).map((t) => ({ label: t.type, count: t.count }))} /></div>}
 
       <h3 className="mt-7 text-sm font-semibold text-[#142D4E]">Major projects</h3>
-      <p className="mt-1 text-xs leading-5 text-slate-500">{c.notable_definition}.</p>
+      <p className="mt-1 text-xs leading-5 text-slate-500">{c.notable_definition}. The largest {c.notable.length >= 10 ? "10 " : ""}by estimated cost are listed here.</p>
       {c.notable.length === 0 ? <div className="mt-3"><Unavailable>No major projects in this radius. This does not confirm that no construction is planned.</Unavailable></div> : (
         // Map location ids follow mapData.ts: permit-<number>-<index in the notable list>.
         <div className="mt-4"><ItemList items={c.notable.map((p, i) => (

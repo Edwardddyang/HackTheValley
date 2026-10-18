@@ -399,8 +399,9 @@ function MapExplorer({ brief, typeLabels }: Props) {
             <InfoTip label="About the construction & noise heatmap">
               <span className="block font-semibold text-[#142D4E]">{noise.level} here: {noiseScoreLabel(noise.score)}</span>
               <span className="mb-1 block text-slate-500">{NOISE_LEVELS_NOTE}.</span>
-              Major permits (new building or demolition 3, other $1M+ work 1.5) and 311 noise complaints (0.5 each, at most
-              10 per intersection) within the radius, each spread over about 250 m. The Construction tab has the counts.
+              Major permits within 500 m (new building or demolition 3, other $1M+ work 1.5, mostly indoor work such as
+              mechanical or plumbing 0.5) and 311 noise complaints in the radius (0.5 each, at most 10 per intersection),
+              each spread over about 250 m. The Construction tab has the counts.
             </InfoTip>
           </div>
           <div>
