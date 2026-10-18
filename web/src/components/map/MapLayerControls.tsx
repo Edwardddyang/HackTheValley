@@ -22,6 +22,8 @@ const SWATCH: Partial<Record<LayerId, string>> = {
   development_application: "bg-violet-700",
   sr311: "bg-sky-600",
   amenity: "bg-emerald-800",
+  recreation: "bg-green-600",
+  services: "bg-indigo-700",
 };
 
 /** Notes behind an info button next to a layer's checkbox. */

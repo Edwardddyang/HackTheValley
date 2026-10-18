@@ -1,6 +1,7 @@
 import type { Feature, FeatureCollection, Point, Polygon } from "geojson";
 
 import { type Amenity, AMENITY_LABELS } from "@/lib/amenities";
+import { SERVICE_GROUP, SERVICE_LABELS, SERVICE_SOURCES, type Service, type ServiceCategory } from "@/lib/services";
 import type { Brief } from "@/lib/brief";
 import { compactMoney, metres, titleCase } from "@/lib/format";
 
@@ -16,13 +17,20 @@ export const layerLabels = {
   development_application: "Open development applications",
   sr311: "311 requests at intersections",
   amenity: "Essentials (OpenStreetMap)",
+  recreation: "Parks & recreation",
+  services: "Public services",
 } as const;
 export type LayerId = keyof typeof layerLabels;
 export type LayerVisibility = Record<LayerId, boolean>;
-export const defaultLayers = Object.fromEntries(Object.keys(layerLabels).map((key) => [key, true])) as LayerVisibility;
+/** On at first: what bears most on the decision and reads cleanly together. Off: the busiest or more specialised
+ *  layers (open applications, 311, public services), one click away. */
+export const defaultLayers: LayerVisibility = {
+  building: true, radius: true, rentsafe: true, building_permit: true, amenity: true, recreation: true,
+  development_application: false, sr311: false, services: false,
+};
 
 /** Layers drawn as individual, focusable markers (311 points are a plain map layer instead). */
-export type MarkerLayer = "building" | "rentsafe" | "building_permit" | "development_application" | "amenity";
+export type MarkerLayer = "building" | "rentsafe" | "building_permit" | "development_application" | "amenity" | "recreation" | "services";
 
 export type MapLocation = {
   id: string;
@@ -33,8 +41,8 @@ export type MapLocation = {
   distanceM: number | null;
   label?: string; // short text drawn on the marker
   url?: string | null;
-  /** Essentials only: subway, grocery, pharmacy or hospital. */
-  category?: Amenity["category"];
+  /** Essentials (subway, grocery, pharmacy, hospital) and parks, recreation and public services. */
+  category?: Amenity["category"] | ServiceCategory;
   /** Permits only: the site has a row in the Construction tab's major-projects list (its 10 largest). */
   listed?: boolean;
 };
@@ -184,6 +192,20 @@ export function amenityLocations(items: Amenity[]): MapLocation[] {
   }));
 }
 
+// Parks, recreation and public services (City of Toronto open data, public/services-toronto.json).
+export const SERVICE_MARK: Record<ServiceCategory, string> = {
+  park: "Pk", community: "CC", pool: "Sw", rink: "Ic", library: "Lb", fire: "Fi", police: "Po",
+};
+
+export function serviceLocations(items: Service[]): MapLocation[] {
+  return items.map((s, i) => ({
+    id: `svc-${s.category}-${i}`, name: s.name, layer: SERVICE_GROUP[s.category] === "recreation" ? "recreation" as const : "services" as const,
+    category: s.category, location: { lat: s.lat, lng: s.lon }, distanceM: s.distance_m, label: SERVICE_MARK[s.category], url: s.url,
+    description: [SERVICE_LABELS[s.category], s.detail, s.address && titleCase(s.address), `${metres(s.distance_m)} straight-line`, SERVICE_SOURCES[s.category]]
+      .filter(Boolean).join(" · "),
+  }));
+}
+
 // Location search: plain words match the name, layer and description; these words also find a kind of place
 // whose own text may not say so ("metro" finds subway stations as well as Metro supermarkets).
 const SEARCH_SYNONYMS: Record<string, string[]> = {
@@ -194,6 +216,13 @@ const SEARCH_SYNONYMS: Record<string, string[]> = {
   building_permit: ["permit", "permits", "construction"],
   development_application: ["development", "application", "applications"],
   rentsafe: ["rentsafeto", "rentsafe", "building", "buildings", "apartment", "apartments"],
+  park: ["park", "parks", "green", "playground", "dog", "picnic"],
+  community: ["community", "rec", "recreation", "centre", "center", "gym"],
+  pool: ["pool", "pools", "swim", "swimming"],
+  rink: ["rink", "arena", "skating", "skate", "hockey", "ice"],
+  library: ["library", "libraries", "books", "tpl"],
+  fire: ["fire", "firehall"],
+  police: ["police", "cops", "division"],
 };
 
 /** True when every word of the query matches the location's text or one of its kind's synonyms. */

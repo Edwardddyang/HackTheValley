@@ -10,6 +10,7 @@ import type { MapLayerMouseEvent, MapRef } from "react-map-gl/maplibre";
 import type { FeatureCollection, Point, Polygon } from "geojson";
 
 import { AMENITY_CATEGORIES, AMENITY_LABELS, AMENITY_RADIUS_M, type AmenityResult, fetchAmenities } from "@/lib/amenities";
+import { fetchServices, SERVICE_CATEGORIES, SERVICE_GROUP, SERVICE_LABELS, SERVICE_RADIUS_M, type ServiceResult } from "@/lib/services";
 import type { Brief } from "@/lib/brief";
 import { date, metres, month, num } from "@/lib/format";
 import { constructionNoise, NOISE_LEVELS_NOTE, noiseScoreLabel, noiseSources } from "@/lib/noise";
@@ -21,7 +22,7 @@ import type { HoodsFile, HoodValues, Shade } from "./hoodShades";
 import MapLayerControls from "./MapLayerControls";
 import { SHOW_ON_MAP_EVENT, mapRowId } from "./mapData";
 import type { ShowOnMapDetail } from "./mapData";
-import { AMENITY_MARK, amenityLocations, briefCenter, briefLocations, defaultLayers, isValidLocation, layerLabels, matchesQuery, radiusCircle, sr311Intersections } from "./mapData";
+import { AMENITY_MARK, SERVICE_MARK, amenityLocations, serviceLocations, briefCenter, briefLocations, defaultLayers, isValidLocation, layerLabels, matchesQuery, radiusCircle, sr311Intersections } from "./mapData";
 import type { LayerId, MapLocation } from "./mapData";
 
 // From feature/frontend (Satwik): expandable map with layer controls and an accessible location
@@ -70,6 +71,8 @@ const MARKER_CLASS: Record<MapLocation["layer"], string> = {
   building_permit: "size-8 bg-amber-800 text-xs",
   development_application: "size-8 bg-violet-700 text-xs",
   amenity: "size-7 bg-emerald-800 text-[10px]",
+  recreation: "size-7 bg-green-600 text-[10px]",
+  services: "size-7 bg-indigo-700 text-[10px]",
 };
 /** The brief tab that lists each layer's records (BriefTabs follows the URL hash). */
 const LAYER_TAB: Partial<Record<MapLocation["layer"], { id: string; label: string }>> = {
@@ -78,7 +81,38 @@ const LAYER_TAB: Partial<Record<MapLocation["layer"], { id: string; label: strin
   development_application: { id: "construction", label: "Construction" },
 };
 
-const MARKER_TEXT: Record<MapLocation["layer"], string> = { building: "", rentsafe: "", building_permit: "P", development_application: "D", amenity: "" };
+const MARKER_TEXT: Record<MapLocation["layer"], string> = { building: "", rentsafe: "", building_permit: "P", development_application: "D", amenity: "", recreation: "", services: "" };
+
+/** One "Nearest …" row under the layer checkboxes: the nearest place of each kind, or "none within". */
+type NearestEntry = { key: string; mark: string; label: string; name: string | null; distanceM: number | null; location?: MapLocation; radiusM: number };
+function NearestRow({ title, swatch, entries, note, onShow }: {
+  title: string; swatch: string; entries: NearestEntry[]; note: ReactNode; onShow: (location: MapLocation) => void;
+}) {
+  return (
+    <div className="mt-3 border-t border-slate-200 pt-3">
+      <p className="text-xs font-semibold text-slate-700">{title}</p>
+      <ul className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-slate-700">
+        {entries.map((e) => {
+          const mark = <span aria-hidden className={`inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white ${swatch}`}>{e.mark}</span>;
+          return <li key={e.key}>
+            {e.name && e.location && e.distanceM != null ? (
+              <button type="button" onClick={() => onShow(e.location!)}
+                className="flex min-h-7 items-center gap-2 rounded text-left hover:text-[#142D4E] focus-visible:outline-2 focus-visible:outline-teal-700">
+                {mark}
+                <span>{e.name === e.label ? e.label : <>{e.label} · <span className="font-medium text-[#142D4E]">{e.name}</span></>}</span>
+                <span className="tabular-nums text-slate-500">{metres(e.distanceM)}</span>
+                <span className="sr-only">, show on the map</span>
+              </button>
+            ) : (
+              <span className="flex min-h-7 items-center gap-2 text-slate-500">{mark}{e.label} · none within {metres(e.radiusM)}</span>
+            )}
+          </li>;
+        })}
+      </ul>
+      <p className="mt-1 text-xs text-slate-500">{note}</p>
+    </div>
+  );
+}
 
 // --- From integrate/best-of-both (Ariaz): 3D buildings, ghost towers and neighbourhood shading -----------------
 
@@ -129,15 +163,26 @@ function MapExplorer({ brief, typeLabels }: Props) {
   const center = briefCenter(brief);
   const hasCenter = isValidLocation(center);
   const [amen, setAmen] = useState<AmenityResult | "loading" | "error">("loading");
+  const [svc, setSvc] = useState<ServiceResult | "loading" | "error">("loading");
   const locations = useMemo(() => [
     ...briefLocations(brief, typeLabels),
     ...(typeof amen === "object" ? amenityLocations(amen.items) : []),
-  ], [brief, typeLabels, amen]);
-  // Items are sorted by distance, so the first of each category is its nearest; amenityLocations ids by index.
-  const nearestAmen = typeof amen !== "object" ? [] : AMENITY_CATEGORIES.map((category) => {
+    ...(typeof svc === "object" ? serviceLocations(svc.items) : []),
+  ], [brief, typeLabels, amen, svc]);
+  // Items are sorted by distance, so the first of each category is its nearest; the location ids index the items.
+  const nearestAmen: NearestEntry[] = typeof amen !== "object" ? [] : AMENITY_CATEGORIES.map((category) => {
     const i = amen.items.findIndex((a) => a.category === category);
-    return { category, item: i < 0 ? null : amen.items[i], location: locations.find((l) => l.id === `amenity-${category}-${i}`) };
+    const item = i < 0 ? null : amen.items[i];
+    return { key: category, mark: AMENITY_MARK[category], label: AMENITY_LABELS[category], name: item?.name ?? null,
+      distanceM: item?.distance_m ?? null, location: locations.find((l) => l.id === `amenity-${category}-${i}`), radiusM: AMENITY_RADIUS_M[category] };
   });
+  const nearestSvc = (group: "recreation" | "public"): NearestEntry[] => typeof svc !== "object" ? []
+    : SERVICE_CATEGORIES.filter((c) => SERVICE_GROUP[c] === group).map((category) => {
+      const i = svc.items.findIndex((s) => s.category === category);
+      const item = i < 0 ? null : svc.items[i];
+      return { key: category, mark: SERVICE_MARK[category], label: SERVICE_LABELS[category], name: item?.name ?? null,
+        distanceM: item?.distance_m ?? null, location: locations.find((l) => l.id === `svc-${category}-${i}`), radiusM: SERVICE_RADIUS_M[category] };
+    });
   const ghosts = useMemo(() => ghostTowers(brief.development_applications.open), [brief]);
   const [three, setThree] = useState(false);
   const [heat, setHeat] = useState(false);
@@ -162,6 +207,8 @@ function MapExplorer({ brief, typeLabels }: Props) {
     development_application: plotted.filter((l) => l.layer === "development_application").length,
     sr311: sr311.total,
     amenity: plotted.filter((l) => l.layer === "amenity").length,
+    recreation: plotted.filter((l) => l.layer === "recreation").length,
+    services: plotted.filter((l) => l.layer === "services").length,
   };
   const available = (Object.keys(layerLabels) as LayerId[]).filter((layer) =>
     layer === "radius" ? hasCenter : layer === "sr311" ? sr311.fc.features.length > 0 : plotted.some((location) => location.layer === layer));
@@ -199,6 +246,7 @@ function MapExplorer({ brief, typeLabels }: Props) {
   useEffect(() => {
     let gone = false;
     fetchAmenities(center.lat, center.lng).then((a) => !gone && setAmen(a)).catch(() => !gone && setAmen("error"));
+    fetchServices(center.lat, center.lng).then((a) => !gone && setSvc(a)).catch(() => !gone && setSvc("error"));
     return () => { gone = true; };
   }, [center.lat, center.lng]);
 
@@ -350,30 +398,18 @@ function MapExplorer({ brief, typeLabels }: Props) {
       <MapLayerControls available={available} visible={visible} counts={counts}
         onToggle={(layer) => setVisible((current) => ({ ...current, [layer]: !current[layer] }))}>
         {visible.amenity && nearestAmen.length > 0 && (
-          <div className="mt-3 border-t border-slate-200 pt-3">
-            <p className="text-xs font-semibold text-slate-700">Nearest essentials</p>
-            <ul className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-slate-700">
-              {nearestAmen.map(({ category, item, location }) => {
-                const mark = <span aria-hidden className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-800 text-[9px] font-bold text-white">{AMENITY_MARK[category]}</span>;
-                const label = AMENITY_LABELS[category];
-                return <li key={category}>
-                  {item && location ? (
-                    <button type="button" onClick={() => focusLocation(location)}
-                      className="flex min-h-7 items-center gap-2 rounded text-left hover:text-[#142D4E] focus-visible:outline-2 focus-visible:outline-teal-700">
-                      {mark}
-                      <span>{item.name === label ? label : <>{label} · <span className="font-medium text-[#142D4E]">{item.name}</span></>}</span>
-                      <span className="tabular-nums text-slate-500">{metres(item.distance_m)}</span>
-                      <span className="sr-only">, show on the map</span>
-                    </button>
-                  ) : (
-                    <span className="flex min-h-7 items-center gap-2 text-slate-500">{mark}{label} · none within {metres(AMENITY_RADIUS_M[category])}</span>
-                  )}
-                </li>;
-              })}
-            </ul>
-            {typeof amen === "object" && amen.asof && <p className="mt-1 text-xs text-slate-500">OpenStreetMap extract, {month(amen.asof)}. Distances are straight-line.</p>}
-          </div>
+          <NearestRow title="Nearest essentials" swatch="bg-emerald-800" entries={nearestAmen} onShow={focusLocation}
+            note={<>OpenStreetMap extract{typeof amen === "object" && amen.asof ? `, ${month(amen.asof)}` : ""}. Distances are straight-line.</>} />
         )}
+        {visible.recreation && typeof svc === "object" && (
+          <NearestRow title="Nearest parks & recreation" swatch="bg-green-600" entries={nearestSvc("recreation")} onShow={focusLocation}
+            note="City of Toronto open data: parks and community centres, pools (Heat Relief Network) and indoor ice rinks." />
+        )}
+        {visible.services && typeof svc === "object" && (
+          <NearestRow title="Nearest public services" swatch="bg-indigo-700" entries={nearestSvc("public")} onShow={focusLocation}
+            note="Toronto Public Library branches, City fire stations and Toronto Police facilities." />
+        )}
+        {svc === "error" && <p className="mt-3 text-xs text-slate-500">The parks and public services list didn&apos;t load.</p>}
         <div className="mt-3 flex flex-wrap items-start gap-x-8 gap-y-3 border-t border-slate-200 pt-3 text-sm text-slate-700">
           <div>
             <label className="flex min-h-8 cursor-pointer items-center gap-2">
@@ -572,7 +608,7 @@ function MapExplorer({ brief, typeLabels }: Props) {
                     <p className="mt-1 text-xs">{layerLabels[selected.layer]}</p>
                     <p className="mt-2 line-clamp-4 text-xs leading-5">{selected.description}</p>
                     {distanceLabel(selected) && <p className="mt-1 text-xs">{distanceLabel(selected)}</p>}
-                    {selected.url && <a href={selected.url} target="_blank" rel="noopener noreferrer" className="mt-2 mr-3 inline-block text-xs font-medium text-teal-800 underline">City application page<span className="sr-only"> (opens in a new tab)</span></a>}
+                    {selected.url && <a href={selected.url} target="_blank" rel="noopener noreferrer" className="mt-2 mr-3 inline-block text-xs font-medium text-teal-800 underline">{selected.layer === "development_application" ? "City application page" : "More details"}<span className="sr-only"> (opens in a new tab)</span></a>}
                     {LAYER_TAB[selected.layer] && (selected.layer !== "building_permit" || selected.listed) && <a href={`#${LAYER_TAB[selected.layer]!.id}`}
                       onClick={(event) => { event.preventDefault(); seeInTab(selected, LAYER_TAB[selected.layer]!.id); }}
                       className="mt-2 inline-block text-xs font-medium text-teal-800 underline">See in {LAYER_TAB[selected.layer]!.label}</a>}
