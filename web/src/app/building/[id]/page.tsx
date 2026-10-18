@@ -3,7 +3,8 @@ import { Suspense } from "react";
 
 import { AdCheckPanel } from "@/components/ai/AdCheckPanel";
 import { AskPanel } from "@/components/ai/AskPanel";
-import { ChecklistPanel, SummaryPanel, SummaryProvider } from "@/components/ai/SummaryPanels";
+import { FlagsPanel } from "@/components/ai/FlagsPanel";
+import { ChecklistPanel, SummaryProvider } from "@/components/ai/SummaryPanels";
 import { BriefTabs } from "@/components/BriefTabs";
 import { Cite } from "@/components/Cite";
 import AddressPermitsPanel from "@/components/dashboard/AddressPermitsPanel";
@@ -23,6 +24,7 @@ import AddressSearch from "@/components/search/AddressSearch";
 import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { DEFAULT_RADIUS_M } from "@/lib/brief";
 import { DATASETS } from "@/lib/datasets";
+import { computeFlags } from "@/lib/flags";
 import { suggestedQuestions } from "@/lib/ai/ask-core";
 import { bedroomsLabel, metres, money, num } from "@/lib/format";
 import { buildingHref, hasListing, listingQuery, parseListingHints } from "@/lib/listing-params";
@@ -92,7 +94,7 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
             </Link>
           ))}
         </div>
-        <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">From City of Toronto open data, Toronto Police and CMHC. Pick a tab below; hover a source tag to see the dataset row behind a figure.</p>
+        <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">From City of Toronto open data, Toronto Police and CMHC.</p>
         {hasListing(listing) && (
           <p className="mt-4 inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-teal-200 bg-teal-50 px-4 py-2.5 text-sm text-teal-950">
             <span className="font-semibold">From your listing:</span>
@@ -115,7 +117,7 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
         <BriefTabs tabs={[
           { id: "overview", label: "Overview", content: (
             <Grid>
-              <SummaryPanel />
+              <FlagsPanel flags={computeFlags(brief, extras, stats, listing)} />
               <BuildingSummaryPanel brief={brief} extras={extras} />
               <InspectionPanel brief={brief} stats={stats} />
               <ChecklistPanel address={brief.address.address} />

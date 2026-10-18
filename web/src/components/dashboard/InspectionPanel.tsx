@@ -41,9 +41,8 @@ export default function InspectionPanel({ brief, stats }: { brief: Brief; stats:
         </div>
       )}
       <p className="mt-3 text-xs leading-5 text-slate-600">
-        {comparable ? <>City median: {num(median)} / 100 across {num(stats?.buildings)} buildings (each building&apos;s latest 2023+ evaluation)</> : "City median unavailable for this scoring system"}
-        {e.percent_of_buildings_scoring_lower != null && <> · {e.percent_of_buildings_scoring_lower}% of evaluated buildings score lower</>}
-        . A score describes a recorded inspection; it is not a guarantee of current conditions.
+        {comparable ? <>City median {num(median)} / 100 across {num(stats?.buildings)} buildings</> : "No city median for this scoring system"}
+        {e.percent_of_buildings_scoring_lower != null && <> · {e.percent_of_buildings_scoring_lower}% score lower</>}.
       </p>
 
       <h3 className="mt-6 text-sm font-semibold text-[#142D4E]">Lowest-scoring categories</h3>
@@ -57,9 +56,7 @@ export default function InspectionPanel({ brief, stats }: { brief: Brief; stats:
           ))}
         </ul>
       ) : <div className="mt-3"><Unavailable>Category-level results are unavailable for this evaluation.</Unavailable></div>}
-      <p className="mt-3 text-xs leading-5 text-slate-500">
-        Category scale: 1 is the lowest score; {e.item_scale_max} is the highest{e.item_scale_max === 3 ? " (0 also appears in the data)" : ""}. Overall scores are weighted and cannot be inferred by averaging these items.
-      </p>
+      <p className="mt-3 text-xs leading-5 text-slate-500">Graded 1 (worst) to {e.item_scale_max} (best).</p>
 
       {b.history.length > 1 && (
         <>
