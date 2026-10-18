@@ -1,5 +1,5 @@
 import { Cite } from "@/components/Cite";
-import type { Brief } from "@/lib/brief";
+import type { Brief, Cite as CiteData } from "@/lib/brief";
 import type { Extras } from "@/lib/extras";
 import { num, sentenceCase, titleCase } from "@/lib/format";
 
@@ -38,15 +38,35 @@ export default function BuildingSummaryPanel({ brief, extras }: { brief: Brief; 
       ) : (
         <div className="mt-4"><Unavailable>{b.note}</Unavailable></div>
       )}
-      <div className="mt-6 rounded-xl border border-slate-200 bg-[#F8FAFC] p-4">
-        <h3 className="text-sm font-semibold text-[#142D4E]">Rent-control information</h3>
-        <p className="mt-2 inline-block rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700">Unverified</p>
-        <p className="mt-3 text-sm leading-6 text-slate-600">Ontario&apos;s November 15, 2018 first-occupancy rule matters: new buildings and additions first occupied for residential use after that date can be exempt from the rent-increase guideline. Year built alone cannot establish rent-control status.</p>
-        <p className="mt-2 text-sm leading-6 text-slate-600">First-occupancy evidence is not in the City datasets used here. Confirm the occupancy history with the landlord before relying on rent-increase limits.</p>
-        <a href="https://www.ontario.ca/page/residential-rent-increases" target="_blank" rel="noopener noreferrer" className="mt-3 inline-block rounded text-xs font-medium text-teal-800 underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">Ontario&apos;s rent-increase guidance (opens new tab)</a>
-      </div>
+      <RentControl yearBuilt={b.in_rentsafe ? b.year_built : null} cite={b.in_rentsafe ? b.latest_evaluation.cite : null} />
       <SourceNote cite={brief.address.cite} label="Address" />
     </DashboardPanel>
+  );
+}
+
+/**
+ * Ontario's rent-increase guideline covers units first occupied for residential use on or before November 15, 2018.
+ * The year built settles it for whole buildings either side of 2018; 2018 itself, and no year on record, can't.
+ */
+function RentControl({ yearBuilt, cite }: { yearBuilt: number | null; cite: CiteData | null }) {
+  const covered = yearBuilt != null && yearBuilt <= 2017;
+  const exempt = yearBuilt != null && yearBuilt >= 2019;
+  const badge = covered ? "Rent-controlled" : exempt ? "Not rent-controlled" : "Unknown";
+  const tone = covered ? "border-green-200 bg-green-50 text-green-900" : exempt ? "border-amber-200 bg-amber-50 text-amber-900" : "border-slate-300 bg-white text-slate-700";
+  return (
+    <div className="mt-6 rounded-xl border border-slate-200 bg-[#F8FAFC] p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-[#142D4E]">Rent control{cite && <Cite cite={cite} />}</h3>
+        <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${tone}`}>{badge}</span>
+      </div>
+      <p className="mt-2 text-sm leading-6 text-slate-700">
+        {covered ? <>Built in {yearBuilt}, before Ontario&apos;s November 2018 cutoff, so yearly increases are capped by the provincial guideline.</>
+          : exempt ? <>First occupied after November 15, 2018, so increases aren&apos;t capped by the provincial guideline.</>
+          : yearBuilt === 2018 ? <>Built in 2018: covered only if the unit was first occupied by November 15, 2018.</>
+          : <>No year built on record, so it can&apos;t be told from the data.</>}
+      </p>
+      {covered && <p className="mt-1 text-xs text-slate-500">Units first rented after November 15, 2018, such as new additions, are exempt.</p>}
+    </div>
   );
 }
 

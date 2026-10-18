@@ -94,7 +94,7 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
             </Link>
           ))}
         </div>
-        <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">From City of Toronto open data, Toronto Police and CMHC. Pick a tab below; hover a source tag to see the dataset row behind a figure.</p>
+        <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">From City of Toronto open data, Toronto Police and CMHC.</p>
         {hasListing(listing) && (
           <p className="mt-4 inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-teal-200 bg-teal-50 px-4 py-2.5 text-sm text-teal-950">
             <span className="font-semibold">From your listing:</span>
