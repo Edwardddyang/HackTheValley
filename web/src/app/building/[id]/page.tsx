@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { AdCheckPanel } from "@/components/ai/AdCheckPanel";
-import { AskPanel } from "@/components/ai/AskPanel";
+import { AskDrawer } from "@/components/ai/AskDrawer";
 import { FlagsPanel } from "@/components/ai/FlagsPanel";
 import { ChecklistPanel, SummaryProvider } from "@/components/ai/SummaryPanels";
 import { BriefTabs } from "@/components/BriefTabs";
@@ -123,12 +123,6 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
               <ChecklistPanel address={brief.address.address} />
             </Grid>
           ) },
-          { id: "ask", label: "Ask", content: (
-            <Grid>
-              <AskPanel addressPointId={brief.address.address_point_id} radius={brief.address.radius_m}
-                rent={listing.rent} beds={listing.beds} suggestions={suggestedQuestions(brief, extras)} />
-            </Grid>
-          ) },
           ...(listing.claims.length > 0 ? [{ id: "adcheck", label: "Ad check", badge: num(listing.claims.length), content: (
             <Grid>
               <AdCheckPanel addressPointId={brief.address.address_point_id} radius={brief.address.radius_m}
@@ -187,6 +181,8 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
           ) },
         ]} />
         </SummaryProvider>
+        <AskDrawer addressPointId={brief.address.address_point_id} radius={brief.address.radius_m}
+          rent={listing.rent} beds={listing.beds} suggestions={suggestedQuestions(brief, extras)} />
       </div>
     </main>
   );
