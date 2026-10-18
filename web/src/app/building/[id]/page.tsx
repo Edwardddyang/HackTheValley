@@ -44,7 +44,7 @@ const LIMITATIONS = [
   "CMHC rents are survey averages for a large area, not a valuation of one unit; building registration details are filled in by landlords.",
   "What to flag and the construction & noise score are computed from the records. The \"Ask about this address\" chat and the ad check are written by Google Gemini from the cited records and can misread one, so confirm anything important.",
   "A pasted listing is read by Gemini; the listing site itself is never visited.",
-  "Map essentials come from OpenStreetMap with straight-line distances; Flyover imagery from Google may be years old.",
+  "Map essentials come from OpenStreetMap with straight-line distances.",
 ];
 
 const count = (n: number | null | undefined) => (n ? num(n) : null);
