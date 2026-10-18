@@ -17,7 +17,7 @@ import { constructionNoise, NOISE_LEVELS_NOTE, noiseScoreLabel, noiseSources } f
 
 import { FlyoverButton } from "./Flyover";
 import { InfoTip } from "@/components/InfoTip";
-import { SHADE_ORDER, SHADES, shadeFill, shadeGradient } from "./hoodShades";
+import { SHADE_ORDER, SHADES, shadeFill, shadeGradient, shadeSource } from "./hoodShades";
 import type { HoodsFile, HoodValues, Shade } from "./hoodShades";
 import MapLayerControls from "./MapLayerControls";
 import { SHOW_ON_MAP_EVENT, mapRowId } from "./mapData";
@@ -200,6 +200,8 @@ function MapExplorer({ brief, typeLabels }: Props) {
   const [pick311, setPick311] = useState<{ lng: number; lat: number; i: number } | null>(null);
   const [hovering, setHovering] = useState(false);
   const shadeDomain = shade !== "none" && hoods && hoods !== "error" ? hoods.domains[shade] ?? null : null;
+  const noisePeriod = hoods && hoods !== "error" ? hoods.noise_period : null;
+  const shadeCtx = { noisePeriod: noisePeriod?.from && noisePeriod.to ? `${month(noisePeriod.from)} – ${month(noisePeriod.to)}` : null };
   const plotted = locations.filter((location) => isValidLocation(location.location));
   const counts: Partial<Record<LayerId, number>> = {
     rentsafe: plotted.filter((l) => l.layer === "rentsafe").length,
@@ -435,9 +437,9 @@ function MapExplorer({ brief, typeLabels }: Props) {
             <InfoTip label="About the construction & noise heatmap">
               <span className="block font-semibold text-[#142D4E]">{noise.level} here: {noiseScoreLabel(noise.score)}</span>
               <span className="mb-1 block text-slate-500">{NOISE_LEVELS_NOTE}.</span>
-              Major permits within 500 m (new building or demolition 3, other $1M+ work 1.5, mostly indoor work such as
-              mechanical or plumbing 0.5) and 311 noise complaints in the radius (0.5 each, at most 10 per intersection),
-              each spread over about 250 m. The Construction tab has the counts.
+              Major permits (new building or demolition 3, other $1M+ work 1.5, mostly indoor work such as mechanical or
+              plumbing 0.5) and 311 noise complaints (0.5 each, at most 10 per intersection) around the address, each
+              spread over about 250 m. The score counts both within 500 m; the Construction tab has the counts.
             </InfoTip>
           </div>
           <div>
@@ -462,7 +464,7 @@ function MapExplorer({ brief, typeLabels }: Props) {
                 <span className="tabular-nums">≤ {SHADES[shade].low(shadeDomain[0])}</span>
                 <span aria-hidden className="inline-block h-2 w-16 rounded-sm" style={{ background: shadeGradient(shade) }} />
                 <span className="tabular-nums">≥ {SHADES[shade].high(shadeDomain[1])}</span>
-                <span>· {SHADES[shade].source} · click an area for its figures</span>
+                <span>· {shadeSource(shade, shadeCtx)} · click an area for its figures</span>
               </p>
             )}
             {shade !== "none" && hoods && hoods !== "error" && !shadeDomain && <p className="text-xs text-slate-500">This shading isn&apos;t in the map data yet.</p>}
@@ -633,7 +635,7 @@ function MapExplorer({ brief, typeLabels }: Props) {
                     {/* The shaded figure first, then the rest for comparison. */}
                     <ul className="mt-1 max-h-44 space-y-0.5 overflow-y-auto pr-1 text-xs leading-5">
                       {[...(shade === "none" ? [] : [shade]), ...SHADE_ORDER.filter((m) => m !== shade)].map((m) => (
-                        <li key={m} className={m === shade ? "font-semibold" : undefined}>{SHADES[m].line(hood.values)}</li>
+                        <li key={m} className={m === shade ? "font-semibold" : undefined}>{SHADES[m].line(hood.values, shadeCtx)}</li>
                       ))}
                     </ul>
                     {hood.own && <p className="mt-1 text-xs text-teal-800">This is the address&apos;s neighbourhood; the Crime and Neighbourhood tabs cite its police and Census figures.</p>}

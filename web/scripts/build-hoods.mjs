@@ -6,6 +6,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+// The same permit weights as the address's construction & noise score (src/lib/noise.ts).
+const { permitWeight } = await import(new URL("../src/lib/noise.ts", import.meta.url).href);
+
 const webDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const envFile = fs.readFileSync(path.join(webDir, ".env.local"), "utf8");
 
@@ -108,12 +111,11 @@ async function rowsOf(q) {
 const majorPermits = await allRows("building_permits?select=source_row_id,permit_type,geom&permit_group=eq.active&geom=not.is.null"
   + `&or=(permit_type.in.(${encodeURIComponent('"New Building","Demolition Folder (DM)"')}),est_const_cost.gte.1000000)`,
   await sourceIds("building_permits", /active/i));
-const permitWeight = (type) => (/new building|demolition/i.test(type ?? "") ? 3 : 1.5);
 const sites = {};
 for (const p of majorPermits) {
   const [x, y] = p.geom.coordinates;
   const key = `${y.toFixed(5)},${x.toFixed(5)}`;
-  sites[key] = Math.max(sites[key] ?? 0, permitWeight(p.permit_type));
+  sites[key] = Math.max(sites[key] ?? 0, permitWeight(p.permit_type ?? ""));
 }
 // The (ward_number, request_type) index makes per-ward queries over the exact noise types fast; a text match
 // over the whole table times out.

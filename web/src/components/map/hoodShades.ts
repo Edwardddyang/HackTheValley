@@ -11,7 +11,15 @@ export type ShadeMetric = "rent" | "burden" | "assault" | "bne" | "noise" | "ren
 export type Shade = "none" | ShadeMetric;
 
 export type HoodValues = Partial<Record<ShadeMetric, number | null>> & { rentsafe_n?: number; noise_sites?: number; noise_complaints?: number };
-export type HoodsFile = { domains: Partial<Record<ShadeMetric, [number, number]>>; fc: FeatureCollection };
+export type HoodsFile = {
+  domains: Partial<Record<ShadeMetric, [number, number]>>;
+  fc: FeatureCollection;
+  /** The 311 file's period, for the construction & noise legend (absent in files built before it was added). */
+  noise_period?: { from: string | null; to: string | null } | null;
+};
+
+/** Facts about the loaded file that legends and popup lines mention. */
+export type ShadeContext = { noisePeriod: string | null };
 
 type ShadeSpec = {
   /** The select option, after "by". */
@@ -23,9 +31,9 @@ type ShadeSpec = {
   low: (v: number) => string;
   high: (v: number) => string;
   /** Source and year for the legend. */
-  source: string;
+  source: string | ((ctx: ShadeContext) => string);
   /** Popup line for one neighbourhood. */
-  line: (h: HoodValues) => string;
+  line: (h: HoodValues, ctx: ShadeContext) => string;
 };
 
 const pct = (v: number | null | undefined) => (v == null ? "—" : `${Number(v.toFixed(1))}%`);
@@ -57,9 +65,11 @@ export const SHADES: Record<ShadeMetric, ShadeSpec> = {
   noise: {
     option: "construction & noise per km² (2026)", deep: "#c2410c",
     low: (v) => num(Math.round(v)), high: (v) => `${num(Math.round(v))} per km²`,
-    source: "City permits and 311, Jan–Sep 2026; weighted: new building or demolition 3, other $1M+ work 1.5, noise complaint 0.5 (max 10 per intersection)",
-    line: (h) => `Construction & noise ${h.noise != null ? num(Math.round(h.noise)) : "—"} per km²: ${num(h.noise_sites ?? null)} major permit sites, `
-      + `${num(h.noise_complaints ?? null)} 311 noise complaints (active permits; 311 Jan–Sep 2026)`,
+    source: (ctx) => `Active City permits and 311 noise complaints${ctx.noisePeriod ? ` (${ctx.noisePeriod})` : ""}; weighted as `
+      + "in the construction & noise score: new building or demolition 3, other $1M+ work 1.5, mostly indoor work 0.5, "
+      + "noise complaint 0.5 (max 10 per intersection)",
+    line: (h, ctx) => `Construction & noise ${h.noise != null ? num(Math.round(h.noise)) : "—"} per km²: ${num(h.noise_sites ?? null)} major permit sites, `
+      + `${num(h.noise_complaints ?? null)} 311 noise complaints (active permits${ctx.noisePeriod ? `; 311 ${ctx.noisePeriod}` : ""})`,
   },
   rentsafe: {
     option: "median RentSafeTO score", deep: "#b45309", lowIsDeep: true,
@@ -88,6 +98,11 @@ export function shadeFill(metric: ShadeMetric, [lo, hi]: [number, number]): Expr
     ["interpolate", ["linear"], ["get", metric], lo, loColor, hi, hiColor],
     SHADE_LIGHT,
   ];
+}
+
+export function shadeSource(metric: ShadeMetric, ctx: ShadeContext) {
+  const s = SHADES[metric].source;
+  return typeof s === "function" ? s(ctx) : s;
 }
 
 export function shadeGradient(metric: ShadeMetric) {

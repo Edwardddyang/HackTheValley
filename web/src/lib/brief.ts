@@ -98,7 +98,7 @@ export type Brief = {
       previous_year_rate: number | null; cite: Cite;
     }[];
   };
-  /** Added by getBrief from bb_construction_near; null if that call failed, absent in older fixtures. */
+  /** Added by loadBrief (the page) from bb_construction_near; null if that call failed, absent elsewhere. */
   construction_near?: ConstructionNear | null;
   census: {
     source_note: string;
@@ -109,17 +109,24 @@ export type Brief = {
   };
 };
 
-/** Major construction near the address, by distance (bb_construction_near). */
+/** Major construction and 311 noise complaints near the address (bb_construction_near, migration 0008). */
 export type ConstructionNear = {
+  /** How far `sites` reaches: the brief's radius, but at least 500 m. */
   within_m: number;
   definition: string;
   sites_within_250: number;
   sites_within_500: number;
-  /** Nearest first, at most 60. Each is one site, described by its heaviest permit. */
+  sites_within_radius: number;
+  /** Nearest first, at most 300. Each is one site, described by its heaviest permit. */
   sites: (LatLon & {
     permit_num: string; type: string; status: string; address: string | null; distance_m: number;
     est_const_cost: number | null; issued_date: string | null; permits: number; cite: Cite;
   })[];
+  /** 311 noise complaints within a fixed 500 m, whatever the brief's radius, grouped by intersection. */
+  noise_within_m: number;
+  noise_complaints: number;
+  noise_corners: (LatLon & { distance_m: number; count: number; sample_rows: number[] })[];
+  noise_source: { dataset: string; file: string; from: string | null; to: string | null } | null;
 };
 
 export const DEFAULT_RADIUS_M = 500;
@@ -145,22 +152,21 @@ export async function geocode(query: string, maxResults = 5): Promise<AddressMat
 }
 
 export async function getBrief(addressPointId: number, radiusM = DEFAULT_RADIUS_M): Promise<Brief | null> {
-  const [brief, near] = await Promise.all([
-    rpc<Brief | null>("bb_brief", { p_address_point_id: addressPointId, p_radius_m: radiusM }),
-    getConstructionNear(addressPointId),
-  ]);
-  return brief && { ...brief, construction_near: near };
+  return rpc<Brief | null>("bb_brief", { p_address_point_id: addressPointId, p_radius_m: radiusM });
 }
 
-/** Every major project site within 500 m, nearest first (supabase/migrations/0006_construction_near.sql). Optional:
- *  without it, the construction & noise score falls back to the brief's 10 costliest major permits. */
-async function getConstructionNear(addressPointId: number): Promise<ConstructionNear | null> {
-  try {
-    return await rpc<ConstructionNear | null>("bb_construction_near", { p_address_point_id: addressPointId });
-  } catch (err) {
-    console.error(err);
-    return null;
+/** Major construction sites and noise complaints around an address (supabase/migrations/0008). Only the page needs
+ *  it (loadBrief attaches it to the brief); it's optional there: without it, the construction & noise score falls
+ *  back to the brief's own lists. One retry, since a dropped request would otherwise cost the page its counts. */
+export async function getConstructionNear(addressPointId: number, radiusM = DEFAULT_RADIUS_M): Promise<ConstructionNear | null> {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      return await rpc<ConstructionNear | null>("bb_construction_near", { p_address_point_id: addressPointId, p_radius_m: radiusM });
+    } catch (err) {
+      if (attempt === 2) console.error(err);
+    }
   }
+  return null;
 }
 
 export type RentSafeStats = { median_score: number | null; buildings: number; scoring: "2023+"; note: string };

@@ -2,6 +2,8 @@
 // committed at public/amenities-toronto.json (the public Overpass servers are too flaky to rely
 // on live during a demo). The layer degrades to a notice if the file can't load.
 
+import { distanceM } from "./geo";
+
 export type AmenityCategory = "subway" | "grocery" | "pharmacy" | "hospital";
 
 export type Amenity = {
@@ -42,14 +44,6 @@ export type AmenityResult = {
   asof: string | null;
 };
 
-function haversineM(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const rad = Math.PI / 180;
-  const dLat = (lat2 - lat1) * rad;
-  const dLon = (lon2 - lon1) * rad;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLon / 2) ** 2;
-  return 6_371_000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
 /** Packed rows of public/amenities-toronto.json. */
 type Packed = { c: "s" | "g" | "p" | "h"; n?: string; la: number; lo: number };
 
@@ -76,7 +70,7 @@ async function query(lat: number, lon: number): Promise<AmenityResult> {
   for (const it of json.items ?? []) {
     const category = CAT[it.c];
     if (!category) continue;
-    const d = haversineM(lat, lon, it.la, it.lo);
+    const d = distanceM(lat, lon, it.la, it.lo);
     if (d > AMENITY_RADIUS_M[category]) continue;
     out.push({
       category, lat: it.la, lon: it.lo,

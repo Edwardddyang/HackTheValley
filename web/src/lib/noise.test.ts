@@ -28,15 +28,22 @@ function brief(permits: [distance: number, type: string][], complaints: number[]
   return b;
 }
 
-/** The same, with bb_construction_near's full list of sites attached. */
-function withNear(permits: [distance: number, type: string][], within250: number, within500: number): Brief {
+/** The same, with bb_construction_near attached: its sites and its noise complaints by intersection. */
+function withNear(permits: [distance: number, type: string][], within250: number, within500: number,
+  corners: [distance: number, count: number][] = [], radius = 500): Brief {
   const b = brief([]);
+  b.address.radius_m = radius;
   const near: ConstructionNear = {
-    within_m: 500, definition: "test", sites_within_250: within250, sites_within_500: within500,
+    within_m: Math.max(radius, 500), definition: "test", sites_within_250: within250, sites_within_500: within500,
+    sites_within_radius: permits.length,
     sites: permits.map(([distance_m, type], i) => ({
       permit_num: `N${i}`, type, status: "Issued", address: `${i} Test St`, distance_m, lat: b.address.lat + i * 1e-3, lon: b.address.lon,
       est_const_cost: 2_000_000, issued_date: null, permits: 1, cite: BRIEF.construction_nearby.notable[0].cite,
     })),
+    noise_within_m: 500,
+    noise_complaints: corners.reduce((n, [, c]) => n + c, 0),
+    noise_corners: corners.map(([distance_m, count], i) => ({ lat: b.address.lat, lon: b.address.lon + i * 1e-3, distance_m, count, sample_rows: [i] })),
+    noise_source: { dataset: "service_requests_311", file: "sr2026.zip", from: "2026-01-01", to: "2026-09-30" },
   };
   return { ...b, construction_near: near };
 }
@@ -106,6 +113,25 @@ test("with bb_construction_near, counts are exact and reach 500 m", () => {
   assert.deepEqual(n.nearest && { d: n.nearest.distance_m, t: n.nearest.type }, { d: 60, t: "New Building" });
   const expected = 3 * decay(60) + 0.5 * decay(220) + 3 * decay(480);
   assert.equal(n.parts.permits, Math.round(expected * 10) / 10);
+});
+
+test("the score reaches 500 m whatever the radius; the map's extra sites don't count", () => {
+  const sites: [number, string][] = [[60, "New Building"], [300, "Building Additions/Alterations"], [800, "New Building"]];
+  const at500 = constructionNoise(withNear(sites.slice(0, 2), 1, 2, [[100, 4], [400, 2]], 500));
+  const at1k = constructionNoise(withNear(sites, 1, 2, [[100, 4], [400, 2]], 1000));
+  assert.equal(at1k.rawScore, at500.rawScore);
+  assert.equal(at1k.score, at500.score);
+  assert.equal(at1k.noise_complaints_within_250, 4);
+  assert.equal(at1k.noise_complaints_within_reach, 6);
+  assert.equal(at1k.noise_reach_m, 500);
+  assert.deepEqual(at1k.noise_period, { from: "2026-01-01", to: "2026-09-30" });
+});
+
+test("citations count what the figure beside them counts", () => {
+  const many = Array.from({ length: 70 }, (_, i): [number, string] => [5 * i, "Building Additions/Alterations"]);
+  const n = constructionNoise(withNear(many.slice(0, 60), 30, 79, [[50, 3], [120, 2], [300, 9]]));
+  assert.ok(n.cites.major && "row_count" in n.cites.major && n.cites.major.row_count === 79);
+  assert.ok(n.cites.complaints && "row_count" in n.cites.complaints && n.cites.complaints.row_count === 5);
 });
 
 test("the 375 Brunswick fixture (no bb_construction_near) falls back to the brief's list", () => {

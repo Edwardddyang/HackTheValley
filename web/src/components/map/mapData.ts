@@ -51,8 +51,9 @@ export type MapLocation = {
  *  point to 5 decimals, as bb_construction_near groups them, so several permits at one address are one marker. */
 export const permitSiteId = (lat: number, lon: number) => `permit-${lat.toFixed(5)},${lon.toFixed(5)}`;
 
-/** Every major construction site within the search radius (bb_construction_near reaches 500 m), plus any of the
- *  brief's 10 largest that lie beyond it. A site in the Construction tab's list keeps that row's description. */
+/** Every major construction site within the search radius (bb_construction_near reaches the radius), plus any of
+ *  the brief's 10 largest it doesn't return (when it failed). A site in the Construction tab's list keeps that
+ *  row's description. */
 function permitLocations(brief: Brief): MapLocation[] {
   const listed = new Map<string, Brief["construction_nearby"]["notable"][number]>();
   for (const p of brief.construction_nearby.notable) {

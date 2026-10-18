@@ -1,7 +1,7 @@
 import { cacheLife } from "next/cache";
 
 import {
-  type AddressMatch, type Brief, DEFAULT_RADIUS_M, type RentSafeStats, geocode, getBrief, getRentSafeStats,
+  type AddressMatch, type Brief, DEFAULT_RADIUS_M, type RentSafeStats, geocode, getBrief, getConstructionNear, getRentSafeStats,
 } from "./brief";
 import { type Extras, getExtras } from "./extras";
 
@@ -10,17 +10,19 @@ export type BriefResult =
   | { kind: "not_found"; message: string };
 
 /**
- * The brief for one address point, with the extras (building registration, CMHC rents) fetched alongside it.
- * Cached for an hour: the data only changes when the ETL reloads it.
+ * The brief for one address point, with the extras (building registration, CMHC rents) and nearby construction
+ * fetched alongside it. Cached for an hour, since the data only changes when the ETL reloads it, except when the
+ * optional construction lookup failed: that result is kept only briefly, so the next visit tries again.
  */
 export async function loadBrief(addressPointId: number, radius = DEFAULT_RADIUS_M): Promise<BriefResult> {
   "use cache";
-  cacheLife("hours");
-  const [brief, stats, extras] = await Promise.all([
-    getBrief(addressPointId, radius), getRentSafeStats(), loadExtras(addressPointId),
+  const [brief, stats, extras, near] = await Promise.all([
+    getBrief(addressPointId, radius), getRentSafeStats(), loadExtras(addressPointId), getConstructionNear(addressPointId, radius),
   ]);
+  if (brief && !near) cacheLife("seconds");
+  else cacheLife("hours");
   if (!brief) return { kind: "not_found", message: "There is no Toronto address point with this ID." };
-  return { kind: "ok", brief, stats, extras };
+  return { kind: "ok", brief: { ...brief, construction_near: near }, stats, extras };
 }
 
 /** The extras are optional context: if bb_extras fails, the brief still renders without them. */

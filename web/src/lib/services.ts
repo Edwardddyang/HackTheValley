@@ -2,6 +2,8 @@
 // data committed at public/services-toronto.json (built by scripts/build-services.mjs). Like the essentials, the
 // layers degrade to a notice if the file can't load.
 
+import { distanceM } from "./geo";
+
 export type ServiceCategory = "park" | "community" | "pool" | "rink" | "library" | "fire" | "police";
 export type ServiceGroup = "recreation" | "public";
 
@@ -56,14 +58,6 @@ type Packed = { c: ServiceCategory; n: string; la: number; lo: number; a?: strin
 
 const PARK_PAGE = "https://www.toronto.ca/explore-enjoy/parks-recreation/places-spaces/parks-and-recreation-facilities/location/?id=";
 
-function haversineM(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const rad = Math.PI / 180;
-  const dLat = (lat2 - lat1) * rad;
-  const dLon = (lon2 - lon1) * rad;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLon / 2) ** 2;
-  return 6_371_000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
 let file: Promise<{ asof?: string; items?: Packed[] }> | null = null;
 
 export async function fetchServices(lat: number, lon: number): Promise<ServiceResult> {
@@ -74,7 +68,7 @@ export async function fetchServices(lat: number, lon: number): Promise<ServiceRe
   const out: Service[] = [];
   for (const it of json.items ?? []) {
     if (!SERVICE_LABELS[it.c]) continue;
-    const d = haversineM(lat, lon, it.la, it.lo);
+    const d = distanceM(lat, lon, it.la, it.lo);
     if (d > SERVICE_RADIUS_M[it.c]) continue;
     out.push({
       category: it.c, name: it.n, address: it.a ?? null, detail: it.x ?? null,
