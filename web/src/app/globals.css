@@ -72,8 +72,33 @@ body {
 .maplibregl-popup-content {
   border-radius: 0.75rem !important;
   box-shadow: 0 4px 20px rgba(15, 23, 42, 0.18) !important;
-  padding: 0.75rem 0.875rem !important;
+  /* Extra room on the right keeps the first line clear of the close button. */
+  padding: 0.75rem 2.25rem 0.75rem 0.875rem !important;
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* The map popups' close button: a 24px target inset from the corner, centred on the first line of text. */
+.maplibregl-popup-close-button {
+  top: 0.5rem !important;
+  right: 0.5rem !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 !important;
+  border-radius: 9999px;
+  color: #64748b;
+  font-size: 1.125rem;
+  line-height: 1;
+}
+.maplibregl-popup-close-button:hover {
+  background: #f1f5f9 !important;
+  color: #142d4e;
+}
+.maplibregl-popup-close-button:focus-visible {
+  outline: 2px solid #0f766e;
+  outline-offset: 1px;
 }
 
 /* "Print list" on the viewing questions (from integrate/best-of-both): print only that panel. */

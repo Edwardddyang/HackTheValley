@@ -269,6 +269,11 @@ function MapExplorer({ brief, typeLabels }: Props) {
     mapRef.current?.easeTo({ pitch: three ? 55 : 0, duration: 700 });
   }, [three]);
 
+  /** A marker's click opens its popup; clicking the same marker again closes it. */
+  function toggleSelected(locationId: string) {
+    setSelectedId((current) => (current === locationId ? null : locationId));
+  }
+
   function onMapClick(event: MapLayerMouseEvent) {
     setSelectedId(null);
     setPick311(null);
@@ -276,7 +281,9 @@ function MapExplorer({ brief, typeLabels }: Props) {
     if (f?.layer.id === "sr311-points" && f.geometry.type === "Point") {
       setHood(null);
       const [lng, lat] = f.geometry.coordinates;
-      return setPick311({ lng, lat, i: Number(f.properties?.i) });
+      const i = Number(f.properties?.i);
+      // Clicking the open intersection again closes it, like the markers.
+      return setPick311(pick311?.i === i ? null : { lng, lat, i });
     }
     if (f?.layer.id !== "hoods-fill") return setHood(null);
     const p = f.properties as HoodValues & { id?: number; name?: string };
@@ -585,7 +592,7 @@ function MapExplorer({ brief, typeLabels }: Props) {
                 {/* While a search is active, matches get a ring and sit on top; everything but the address fades back. */}
                 {visiblePoints.filter((location) => location.layer !== "building").map((location) => <Marker key={location.id} latitude={location.location.lat} longitude={location.location.lng} anchor="center"
                   style={searching && matching.has(location.id) ? { zIndex: 2 } : undefined}>
-                  <button type="button" aria-label={`${location.name}: ${layerLabels[location.layer]}`} onClick={(event) => { event.stopPropagation(); setPick311(null); setSelectedId(location.id); }}
+                  <button type="button" aria-label={`${location.name}: ${layerLabels[location.layer]}`} onClick={(event) => { event.stopPropagation(); setPick311(null); toggleSelected(location.id); }}
                     className={`flex items-center justify-center rounded-full border-2 border-white font-bold text-white shadow-md transition-opacity focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#142D4E] ${MARKER_CLASS[location.layer]} ${!searching ? "" : matching.has(location.id) ? "ring-4 ring-amber-400" : location.layer === "building" ? "" : "opacity-25"}`}>
                     <span aria-hidden="true">{location.label ?? MARKER_TEXT[location.layer]}</span>
                   </button>
@@ -595,7 +602,7 @@ function MapExplorer({ brief, typeLabels }: Props) {
                 {visiblePoints.filter((location) => location.layer === "building").map((location) => <Marker key={location.id}
                   latitude={location.location.lat} longitude={location.location.lng} anchor="bottom" style={{ zIndex: 3 }}>
                   <button type="button" aria-label={`${location.name}: ${layerLabels.building}`}
-                    onClick={(event) => { event.stopPropagation(); setPick311(null); setSelectedId(location.id); }}
+                    onClick={(event) => { event.stopPropagation(); setPick311(null); toggleSelected(location.id); }}
                     className="block rounded-full drop-shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#142D4E]">
                     <svg aria-hidden="true" viewBox="0 0 32 42" className="h-[42px] w-8">
                       <path d="M16 41c-1-4.5-4.2-8.4-8.3-12.6A13.5 13.5 0 1 1 24.3 28.4C20.2 32.6 17 36.5 16 41Z" fill="#142D4E" stroke="#fff" strokeWidth="2" />
