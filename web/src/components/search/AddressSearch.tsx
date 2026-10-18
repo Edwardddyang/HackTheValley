@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useRef, useState } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import type { KeyboardEvent } from "react";
 
+import { Spinner } from "@/components/Spinner";
 import { useAddressSearch } from "@/hooks/useAddressSearch";
 import type { AddressMatch } from "@/lib/brief";
 import { buildingHref } from "@/lib/listing-params";
@@ -19,6 +20,8 @@ export default function AddressSearch({ compact = false, initial = "", keep = ""
   const [query, setQuery] = useState(initial);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  // True from picking an address until its brief starts rendering, so the box shows it is opening.
+  const [opening, startOpening] = useTransition();
   const { matches, isLoading, tooShort, error, retry } = useAddressSearch(query);
   const listId = `${id}-results`;
   const active = open && !isLoading ? matches[activeIndex] : undefined;
@@ -27,7 +30,7 @@ export default function AddressSearch({ compact = false, initial = "", keep = ""
     setOpen(false);
     setActiveIndex(-1);
     setQuery(address.address);
-    router.push(buildingHref(address.address_point_id, { listing: keep }));
+    startOpening(() => router.push(buildingHref(address.address_point_id, { listing: keep })));
   }
 
   function moveTo(index: number) {
@@ -94,6 +97,8 @@ export default function AddressSearch({ compact = false, initial = "", keep = ""
           onKeyDown={handleKeyDown}
           className={`min-w-0 flex-1 rounded-md px-3 text-[#142D4E] outline-none placeholder:text-slate-400 ${compact ? "py-2 text-sm" : "py-3 text-base"}`}
         />
+        {(opening || (open && !tooShort && isLoading)) && <Spinner className={compact ? "h-4 w-4" : "h-5 w-5"} />}
+        {opening && <span role="status" className="sr-only">Opening the brief…</span>}
         {query && <button
           type="button"
           aria-label="Clear address search"
@@ -128,7 +133,8 @@ export default function AddressSearch({ compact = false, initial = "", keep = ""
               </li>
             ))}
           </ul>
-          <p role="status" className="px-4 py-3 text-xs leading-5 text-slate-600">
+          <p role="status" className="flex items-center gap-2 px-4 py-3 text-xs leading-5 text-slate-600">
+            {isLoading && <Spinner className="h-3.5 w-3.5" />}
             {isLoading ? "Searching addresses…" : error ? "Address search is unavailable." : matches.length ? `${matches.length} ${matches.length === 1 ? "address" : "addresses"} found.` : "No matching Toronto address. Include the street number, e.g. 100 Queen St W."}
           </p>
           {error && <div className="border-t border-slate-200 px-4 py-3"><p className="text-xs leading-5 text-red-800">{error}</p><button type="button" onClick={() => {

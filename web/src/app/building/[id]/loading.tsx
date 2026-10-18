@@ -1,3 +1,5 @@
+import { Spinner } from "@/components/Spinner";
+
 // Mirrors the loaded brief (address header, map card, tab bar, Overview's two-column panels) so the
 // page doesn't jump when the data arrives. Same container classes as Report in page.tsx.
 const bar = "rounded-full bg-slate-200 motion-safe:animate-pulse";
@@ -8,7 +10,12 @@ export default function Loading() {
     // The full-width background covers route-level loading, which renders without the page's shell.
     <div className="min-h-screen bg-[#F8FAFC]">
     <main aria-busy="true" className="mx-auto max-w-[1600px] px-6 py-10 text-[#142D4E] sm:py-14 lg:px-10">
-      <p role="status" className="sr-only">Loading the brief…</p>
+      {/* A loading circle over the placeholder layout, held in view while the page underneath stays put. */}
+      <div className="pointer-events-none fixed inset-x-0 top-1/3 z-30 flex justify-center">
+        <p role="status" className="flex items-center gap-3 rounded-full border border-slate-200 bg-white/95 px-5 py-3 text-sm font-medium shadow-lg shadow-slate-900/10">
+          <Spinner className="h-6 w-6" />Loading the brief…
+        </p>
+      </div>
       <div aria-hidden="true">
         <div className={`${bar} h-9 w-72 sm:h-10`} />
         <div className={`${bar} mt-4 h-4 w-80`} />
