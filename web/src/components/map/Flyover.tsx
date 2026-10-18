@@ -22,6 +22,10 @@ interface CesiumCamera {
   }): void;
   lookAt(target: Cartesian3, offset: object): void;
   lookAtTransform(transform: object): void;
+  cancelFlight(): void;
+  zoomIn(amount?: number): void;
+  zoomOut(amount?: number): void;
+  positionCartographic: { height: number };
 }
 
 interface CesiumViewer {
@@ -140,6 +144,7 @@ function FlyoverModal({ apiKey, lat, lon, address, onClose }: {
   const containerRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const stopOrbitRef = useRef<(() => void) | null>(null);
+  const viewerRef = useRef<CesiumViewer | null>(null);
   // Backdrop clicks close the modal only when the press also started (and ended) on the backdrop,
   // so a drag on the 3D view released outside the panel doesn't close it.
   const pressOnBackdrop = useRef({ down: false, up: false });
@@ -194,6 +199,7 @@ function FlyoverModal({ apiKey, lat, lon, address, onClose }: {
           sceneModePicker: false, navigationHelpButton: false, timeline: false, animation: false,
           infoBox: false, selectionIndicator: false, fullscreenButton: false,
         });
+        viewerRef.current = viewer;
         Cesium.GoogleMaps.defaultApiKey = apiKey;
         // A tileset that turns up after the timeout (or after closing) never reaches a viewer.
         const tileset = await withTimeout(Cesium.createGooglePhotorealistic3DTileset(), TILESET_TIMEOUT_MS,
@@ -257,12 +263,26 @@ function FlyoverModal({ apiKey, lat, lon, address, onClose }: {
     return () => {
       cancelled = true;
       stopOrbitRef.current = null;
+      viewerRef.current = null;
       if (viewer && !viewer.isDestroyed()) {
         if (orbit) viewer.scene.postUpdate.removeEventListener(orbit);
         viewer.destroy();
       }
     };
   }, [apiKey, lat, lon]);
+
+  /** The +/− buttons: like any other input they end the orbit (and a fly-in still under way), then move the
+   *  camera a share of its height, so each press feels the same from street level or from high up. */
+  function zoom(direction: 1 | -1) {
+    stopOrbitRef.current?.();
+    const viewer = viewerRef.current;
+    if (!viewer || viewer.isDestroyed()) return;
+    const camera = viewer.camera;
+    camera.cancelFlight();
+    const step = Math.max(25, camera.positionCartographic.height * 0.35);
+    if (direction > 0) camera.zoomIn(step);
+    else camera.zoomOut(step);
+  }
 
   // Portalled to <body>: the map region is position:sticky, whose stacking context would
   // otherwise paint the brief's content over this fixed overlay. z-[70] sits above the region's
@@ -303,6 +323,19 @@ function FlyoverModal({ apiKey, lat, lon, address, onClose }: {
         </div>
         <div className="relative min-h-0 flex-1 bg-[#101420]">
           <div ref={containerRef} className="absolute inset-0" />
+          {!loading && !error && (
+            <>
+              <div className="absolute right-3 bottom-10 flex flex-col overflow-hidden rounded-lg border border-white/30 bg-white/90 shadow-md backdrop-blur">
+                <button type="button" onClick={() => zoom(1)} aria-label="Zoom in"
+                  className="size-9 text-lg font-semibold text-[#142D4E] hover:bg-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-teal-700">+</button>
+                <button type="button" onClick={() => zoom(-1)} aria-label="Zoom out"
+                  className="size-9 border-t border-slate-200 text-lg font-semibold text-[#142D4E] hover:bg-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-teal-700">−</button>
+              </div>
+              <p className="pointer-events-none absolute bottom-10 left-3 max-w-[calc(100%-5rem)] rounded-md bg-black/55 px-2.5 py-1 text-xs text-white">
+                Drag to look around · scroll to zoom · Ctrl+drag to tilt
+              </p>
+            </>
+          )}
           {loading && !error && (
             <p className="absolute inset-0 flex items-center justify-center text-sm text-white/80" role="status">
               Loading the 3D city…
