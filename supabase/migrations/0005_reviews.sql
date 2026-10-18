@@ -2,7 +2,7 @@
 --
 -- Additive only. The API roles get no access to the table itself: the app reads and writes through the
 -- three bb_* functions below, which validate input and throttle posting, because the publishable key the
--- app uses is public and could call PostgREST directly.
+-- app uses is public and could call PostgREST directly. Hiding a review is a manual step (set hidden = true).
 
 create table if not exists reviews (
     id               bigint generated always as identity primary key,
@@ -73,12 +73,13 @@ begin
     return jsonb_build_object('id', r.id, 'rating', r.rating, 'body', r.body, 'author', r.author, 'created_at', r.created_at);
 end $$;
 
--- Report a review; three reports hide it until someone looks.
+-- Report a review. Reports are only counted, for a person to look at: the publishable key is public, so
+-- anyone can call this directly, and an automatic hide would let anyone silence any review.
 create or replace function bb_report_review(p_id bigint)
 returns jsonb language sql volatile security definer set search_path = public as $$
-    update reviews set report_count = report_count + 1, hidden = hidden or report_count + 1 >= 3
-     where id = p_id
-    returning jsonb_build_object('id', id, 'hidden', hidden)
+    update reviews set report_count = report_count + 1
+     where id = p_id and not hidden
+    returning jsonb_build_object('id', id)
 $$;
 
 revoke all on function bb_reviews(bigint) from public;
