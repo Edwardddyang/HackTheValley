@@ -1,46 +1,82 @@
 "use client";
 
-// From feature/frontend-ui (ogd-ola). Posting is switched off until reviews have storage and
-// moderation; the form is shown so the feature is visible, and says so plainly.
-export function ReviewForm() {
+import { type FormEvent, useId, useState } from "react";
+
+import { REVIEW_LIMITS, type Review } from "@/lib/reviews-core";
+
+/** Post a review: star rating, comment and an optional name. `website` is a hidden honeypot for bots. */
+export function ReviewForm({ addressPointId, address, onPosted, disabled = false }: {
+  addressPointId: number; address: string; onPosted: (review: Review) => void; disabled?: boolean;
+}) {
+  const ids = useId();
+  const [rating, setRating] = useState(0);
+  const [body, setBody] = useState("");
+  const [author, setAuthor] = useState("");
+  const [website, setWebsite] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ kind: "error" | "done"; text: string } | null>(null);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (busy) return;
+    if (!rating) return setMessage({ kind: "error", text: "Pick a rating." });
+    if (body.trim().length < REVIEW_LIMITS.minBody) return setMessage({ kind: "error", text: `Write at least ${REVIEW_LIMITS.minBody} characters.` });
+    setBusy(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "post", address_point_id: addressPointId, rating, body, author, website }),
+      });
+      const json = await res.json().catch(() => null) as { review?: Review; error?: string } | null;
+      if (!res.ok || !json?.review) {
+        setMessage({ kind: "error", text: json?.error ?? "Couldn't post the review. Try again." });
+        return;
+      }
+      onPosted(json.review);
+      setRating(0); setBody(""); setAuthor("");
+      setMessage({ kind: "done", text: "Posted. Thanks for helping the next renter." });
+    } catch {
+      setMessage({ kind: "error", text: "RentReceipts couldn't be reached. Try again." });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const field = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-teal-700 focus:outline-none focus-visible:outline-2 focus-visible:outline-teal-700";
+
   return (
-    <form
-      aria-describedby="review-coming-soon"
-      onSubmit={(e) => e.preventDefault()}
-      className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4"
-    >
-      <h3 className="text-xs font-bold tracking-wider text-slate-700 uppercase">Submit tenant feedback</h3>
-      <fieldset disabled className="space-y-3 opacity-70">
-        <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
-          <div>
-            <label htmlFor="review-author" className="mb-1 block text-slate-500">Display name (optional)</label>
-            <input id="review-author" type="text" placeholder="e.g. Unit 4B resident"
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-700" />
-          </div>
-          <div>
-            <label htmlFor="review-rating" className="mb-1 block text-slate-500">Rating</label>
-            <select id="review-rating" defaultValue={5} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-700">
-              <option value={5}>5 - Excellent</option>
-              <option value={4}>4 - Good</option>
-              <option value={3}>3 - Average</option>
-              <option value={2}>2 - Poor</option>
-              <option value={1}>1 - Deficient</option>
-            </select>
-          </div>
+    <form onSubmit={submit} aria-label={`Review ${address}`} className="h-fit space-y-3 rounded-xl border border-slate-200 bg-[#F8FAFC] p-4">
+      <h3 className="text-sm font-semibold text-[#142D4E]">Lived here? Leave a review</h3>
+      <fieldset disabled={disabled || busy} className="space-y-3">
+        <div role="radiogroup" aria-label="Rating" className="flex gap-1">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <button key={i} type="button" role="radio" aria-checked={rating === i} aria-label={`${i} star${i === 1 ? "" : "s"}`}
+              onClick={() => setRating(i)}
+              className={`text-2xl leading-none transition focus-visible:outline-2 focus-visible:outline-teal-700 ${i <= rating ? "text-amber-500" : "text-slate-300 hover:text-amber-300"}`}>
+              ★
+            </button>
+          ))}
         </div>
-        <div className="text-xs">
-          <label htmlFor="review-comment" className="mb-1 block text-slate-500">Review comments</label>
-          <textarea id="review-comment" rows={3}
-            placeholder="Share your experience with building maintenance, management response, or utilities..."
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-700" />
+        <div>
+          <label htmlFor={`${ids}-body`} className="sr-only">Your review</label>
+          <textarea id={`${ids}-body`} rows={4} value={body} onChange={(e) => setBody(e.target.value)} maxLength={REVIEW_LIMITS.maxBody}
+            placeholder="Maintenance, management, noise, heat in winter…" className={field} />
+          <p className="mt-0.5 text-right text-[11px] tabular-nums text-slate-500">{body.length} / {REVIEW_LIMITS.maxBody}</p>
         </div>
-      </fieldset>
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-        <span id="review-coming-soon" className="text-[11px] text-slate-500">Coming soon: reviews can&apos;t be posted yet.</span>
-        <button type="submit" disabled className="cursor-not-allowed rounded-lg bg-[#142D4E] px-4 py-2 text-xs font-semibold text-white opacity-50">
-          Post review
+        <div>
+          <label htmlFor={`${ids}-author`} className="mb-1 block text-xs text-slate-500">Name (optional)</label>
+          <input id={`${ids}-author`} type="text" value={author} onChange={(e) => setAuthor(e.target.value)} maxLength={REVIEW_LIMITS.maxAuthor}
+            placeholder="e.g. Unit 4B tenant" className={field} />
+        </div>
+        {/* Honeypot: hidden from people and screen readers; bots that fill it are dropped. */}
+        <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" value={website}
+          onChange={(e) => setWebsite(e.target.value)} className="hidden" />
+        <button type="submit" className="w-full rounded-lg bg-[#142D4E] px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
+          {busy ? "Posting…" : "Post review"}
         </button>
-      </div>
+      </fieldset>
+      {message && <p role={message.kind === "error" ? "alert" : "status"} className={`text-sm ${message.kind === "error" ? "text-red-700" : "text-teal-800"}`}>{message.text}</p>}
     </form>
   );
 }
