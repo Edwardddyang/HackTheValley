@@ -83,7 +83,7 @@ export default function AddressSearch({ compact = false, initial = "", keep = ""
           autoComplete="off"
           spellCheck={false}
           autoFocus={autoFocus}
-          placeholder="e.g. 200 Elm St"
+          placeholder="Street number and name"
           value={query}
           onChange={(event) => {
             setQuery(event.target.value);

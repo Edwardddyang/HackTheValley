@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -6,31 +5,7 @@ import { HomeTools } from "@/components/listing/HomeTools";
 import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { resolveAddress } from "@/lib/load";
 
-// Landing page from feature/frontend (Satwik), with real address search and real examples.
-const EXAMPLES = ["200 Elm St", "326 Avenue Rd", "100 Queen St W", "2000 Eglinton Ave E", "5000 Yonge St"];
-
-async function ExampleChoices() {
-  let rows: { label: string; id: number | null }[];
-  try {
-    rows = await Promise.all(EXAMPLES.map(async (label) => {
-      const [match] = await resolveAddress(label);
-      return { label: match?.address ?? label, id: match?.address_point_id ?? null };
-    }));
-  } catch {
-    return <div role="alert" className="p-6"><p className="text-sm text-slate-600">Examples are unavailable right now. Search for an address above.</p></div>;
-  }
-  return (
-    <ul className="divide-y divide-slate-200">
-      {rows.filter((r) => r.id != null).map((r) => (
-        <li key={r.id}>
-          <Link href={`/building/${r.id}`} className="flex min-h-16 items-center justify-between gap-4 px-6 py-4 transition hover:bg-teal-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-teal-700">
-            <span className="font-medium">{r.label}</span><span aria-hidden="true" className="text-xl text-teal-700">↗</span>
-          </Link>
-        </li>
-      ))}
-    </ul>
-  );
-}
+// Landing page from feature/frontend (Satwik), with real address search.
 
 /** Old links (/?address=… or /?id=…) from the first version of the app still work. */
 async function LegacyRedirect({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
@@ -65,16 +40,13 @@ export default function Home(props: PageProps<"/">) {
             <p className="mt-6 max-w-md text-sm leading-6 text-slate-600">Every figure links back to the dataset row it came from. The AI summary only restates those records, and cites each one.</p>
           </section>
           <section id="search" aria-labelledby="paste-title" className="scroll-mt-6 self-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-200/40">
-            <HomeTools examples={<>
-              <p className="px-6 pt-5 pb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">Try an example</p>
-              <Suspense fallback={<p role="status" className="p-6 text-slate-600">Loading examples…</p>}><ExampleChoices /></Suspense>
-            </>} />
+            <HomeTools />
           </section>
         </div>
         <section id="how-it-works" aria-labelledby="how-title" className="mt-20 border-t border-slate-200 pt-10">
           <h2 id="how-title" className="text-2xl font-semibold tracking-tight">Get to know the building. Then the block.</h2>
           <div className="mt-7 grid gap-7 sm:grid-cols-3">{[
-            ["01", "Start with an address", "Search any Toronto address, or pick an example, to open its brief."],
+            ["01", "Start with an address", "Search any Toronto address, or paste a rental ad, to open its brief."],
             ["02", "See the wider picture", "Inspections, permits, development applications, 311 requests, crime and census figures within walking distance."],
             ["03", "Know the limits", "Each panel says what its dataset can and can't tell you, and cites the rows it used."],
           ].map(([number, title, description]) => <div key={number}><p className="text-sm font-semibold text-teal-700">{number}</p><h3 className="mt-3 font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-600">{description}</p></div>)}</div>
