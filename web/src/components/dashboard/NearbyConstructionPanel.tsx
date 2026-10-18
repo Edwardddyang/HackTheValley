@@ -66,7 +66,7 @@ export default function NearbyConstructionPanel({ brief }: { brief: Brief }) {
       {c.notable.length === 0 ? <div className="mt-3"><Unavailable>No major projects in this radius. This does not confirm that no construction is planned.</Unavailable></div> : (
         // Map markers are one per site (mapData.ts permitSiteId); the first row at a site carries the id popups link to.
         <div className="mt-4"><ItemList items={c.notable.map((p, i) => (
-            <li key={p.permit_num + p.type}
+            <li key={`${p.permit_num}-${p.type}-${i}`}
               id={hasPoint(p) && c.notable.findIndex((q) => hasPoint(q) && permitSiteId(q.lat, q.lon) === permitSiteId(p.lat, p.lon)) === i ? mapRowId(permitSiteId(p.lat, p.lon)) : undefined}
               className="scroll-mt-24 rounded-xl border border-slate-200 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">

@@ -162,6 +162,13 @@ export default function NeighbourhoodMap(props: Props) {
   return <MapExplorer key={`${props.brief.address.address_point_id}-${props.brief.address.radius_m}`} {...props} />;
 }
 
+/** True when a pointer event on the modal dialog lands on its backdrop (outside the dialog's own box). */
+function isOutsideDialog(event: { clientX: number; clientY: number; currentTarget: HTMLElement; target: EventTarget }) {
+  if (event.target !== event.currentTarget) return false;
+  const box = event.currentTarget.getBoundingClientRect();
+  return event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom;
+}
+
 function MapExplorer({ brief, typeLabels }: Props) {
   const id = useId();
   const center = briefCenter(brief);
@@ -236,6 +243,8 @@ function MapExplorer({ brief, typeLabels }: Props) {
   const hasInitialFit = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  // A press that starts on the dimmed backdrop around the expanded map (not one dragged out of the map).
+  const pressedOutside = useRef(false);
   const expandRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const [query, setQuery] = useState("");
@@ -450,7 +459,8 @@ function MapExplorer({ brief, typeLabels }: Props) {
               <span className="mb-1 block text-slate-500">{NOISE_LEVELS_NOTE}.</span>
               Major permits (new building or demolition 3, other $1M+ work 1.5, mostly indoor work such as mechanical or
               plumbing 0.5) and 311 noise complaints (0.5 each, at most 10 per intersection) around the address, each
-              spread over about 250 m. The score counts both within 500 m; the Construction tab has the counts.
+              fading out over about 200 m. A single new building shows amber, a few close together orange, and red only
+              where several overlap. The score counts both within 500 m; the Construction tab has the counts.
             </InfoTip>
           </div>
           <div>
@@ -551,14 +561,18 @@ function MapExplorer({ brief, typeLabels }: Props) {
                   </Source>
                 )}
                 {heat && heatData.features.length > 0 && <Source id="noise-heat" type="geojson" data={heatData}>
-                  {/* Radius doubles with each zoom level so the spread stays about 250 m on the ground (weights halve at 150 m). */}
+                  {/* Each point fades out over about 220 m on the ground: the radius doubles with each zoom level (220 m is
+                      about 2 px at zoom 10 and 510 px at zoom 18 in Toronto). Intensity 1.3 puts one new building at about 0.5
+                      density (amber-orange), so red needs several heavy sources overlapping; checked against six addresses:
+                      Low ones stay faint yellow, Moderate gets some orange, High gets red only over its real clusters. */}
                   <Layer id="noise-heatmap" type="heatmap" beforeId="waterway_line_label"
                     paint={{
                       "heatmap-weight": ["/", ["get", "weight"], 3],
-                      "heatmap-intensity": 2.5,
-                      "heatmap-radius": ["interpolate", ["exponential", 2], ["zoom"], 10, 3.5, 18, 900],
+                      "heatmap-intensity": 1.3,
+                      "heatmap-radius": ["interpolate", ["exponential", 2], ["zoom"], 10, 2, 18, 510],
                       "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"],
-                        0, "rgba(253,224,71,0)", 0.15, "rgba(253,224,71,0.55)", 0.5, "rgba(249,115,22,0.75)", 1, "rgba(185,28,28,0.85)"],
+                        0, "rgba(253,224,71,0)", 0.1, "rgba(253,224,71,0.45)", 0.35, "rgba(251,191,36,0.65)",
+                        0.65, "rgba(249,115,22,0.78)", 1, "rgba(185,28,28,0.85)"],
                       "heatmap-opacity": 0.8,
                     }} />
                 </Source>}
@@ -698,7 +712,13 @@ function MapExplorer({ brief, typeLabels }: Props) {
   return (
     <div className="mt-4 text-[#142D4E]">
       {expanded && <div aria-hidden="true" className="h-96 rounded-xl bg-slate-100 lg:h-[30rem] 2xl:h-[36rem]" />}
-      <dialog ref={dialogRef} open role={expanded ? "dialog" : "region"} aria-modal={expanded || undefined} aria-label={expanded ? undefined : "Neighbourhood map"} aria-labelledby={expanded ? `${id}-dialog-title` : undefined} onCancel={(event) => { event.preventDefault(); setExpanded(false); }} className={expanded ? "fixed inset-0 m-auto max-h-[96dvh] w-[96vw] max-w-7xl overflow-y-auto rounded-2xl border border-slate-200 bg-[#F8FAFC] p-4 text-[#142D4E] shadow-2xl backdrop:bg-slate-950/65 sm:p-6" : "relative m-0 w-full max-w-none overflow-visible border-0 bg-transparent p-0 text-[#142D4E]"}>
+      <dialog ref={dialogRef} open
+        onPointerDown={(event) => { pressedOutside.current = expanded && isOutsideDialog(event); }}
+        onClick={(event) => {
+          // Clicking the backdrop closes the expanded map, when the press also started there.
+          if (expanded && pressedOutside.current && isOutsideDialog(event)) setExpanded(false);
+          pressedOutside.current = false;
+        }} role={expanded ? "dialog" : "region"} aria-modal={expanded || undefined} aria-label={expanded ? undefined : "Neighbourhood map"} aria-labelledby={expanded ? `${id}-dialog-title` : undefined} onCancel={(event) => { event.preventDefault(); setExpanded(false); }} className={expanded ? "fixed inset-0 m-auto max-h-[96dvh] w-[96vw] max-w-7xl overflow-y-auto rounded-2xl border border-slate-200 bg-[#F8FAFC] p-4 text-[#142D4E] shadow-2xl backdrop:bg-slate-950/65 sm:p-6" : "relative m-0 w-full max-w-none overflow-visible border-0 bg-transparent p-0 text-[#142D4E]"}>
         {expanded && <div className="mb-5 flex items-start justify-between gap-4"><div><h2 id={`${id}-dialog-title`} className="text-xl font-semibold">Neighbourhood explorer</h2><p className="mt-1 text-sm text-slate-600">{brief.address.address}</p></div><button ref={closeRef} type="button" onClick={() => setExpanded(false)} className="shrink-0 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-teal-700">Close map</button></div>}
         {content}
       </dialog>

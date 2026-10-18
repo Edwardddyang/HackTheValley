@@ -9,8 +9,8 @@ export default function AddressPermitsPanel({ brief }: { brief: Brief }) {
   if (p.items.length === 0) return null;
   return (
     <DashboardPanel wide id="address-permits" title="Permits at this address" subtitle={p.note}>
-        <ItemList items={p.items.map((i) => (
-            <li key={i.permit_num + i.type + i.status} className="rounded-xl border border-slate-200 p-4 text-sm">
+        <ItemList items={p.items.map((i, n) => (
+            <li key={`${i.permit_num}-${i.type}-${n}`} className="rounded-xl border border-slate-200 p-4 text-sm">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="font-semibold text-[#142D4E]">{i.type}</p>
                 <p className="text-xs text-slate-500">{i.group === "active" ? "Active" : `Completed ${date(i.completed_date)}`}</p>
