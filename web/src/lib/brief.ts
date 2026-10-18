@@ -1,3 +1,4 @@
+import { mergeNearbyDuplicates } from "./geo";
 import { supabase } from "./supabase";
 
 // Shapes returned by the SQL functions in supabase/migrations/0002_brief.sql.
@@ -147,8 +148,11 @@ async function rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
   }
 }
 
+/** Candidate addresses for typed text, best first. Asks for a few extra so that merging the City's duplicate
+ *  points for one address (lot and entrance) still leaves `maxResults` distinct places. */
 export async function geocode(query: string, maxResults = 5): Promise<AddressMatch[]> {
-  return (await rpc<AddressMatch[] | null>("bb_geocode", { q: query, max_results: maxResults })) ?? [];
+  const matches = (await rpc<AddressMatch[] | null>("bb_geocode", { q: query, max_results: maxResults + 3 })) ?? [];
+  return mergeNearbyDuplicates(matches).slice(0, maxResults);
 }
 
 export async function getBrief(addressPointId: number, radiusM = DEFAULT_RADIUS_M): Promise<Brief | null> {
