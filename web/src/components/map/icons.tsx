@@ -1,6 +1,6 @@
 import {
-  FileText, Flame, HardHat, Hospital, House, Library, type LucideIcon, Pill, ShoppingBasket, Siren, Snowflake, TrainFront,
-  Trees, Users, Waves,
+  FileText, Flame, GraduationCap, HardHat, Hospital, House, Library, type LucideIcon, Pill, School, ShoppingBasket, Siren,
+  Snowflake, TrainFront, Trees, Users, Waves,
 } from "lucide-react";
 
 import type { MapLocation } from "./mapData";
@@ -9,7 +9,7 @@ import type { MapLocation } from "./mapData";
 // label somewhere (popup, legend, nearest rows); markers whose number is the information keep the number instead
 // (RentSafeTO scores, 311 counts).
 
-/** Icons for the kinds of place within the essentials, recreation and public-services layers. */
+/** Icons for the kinds of place within the essentials, recreation, public-services and schools layers. */
 export const CATEGORY_ICON: Record<NonNullable<MapLocation["category"]>, LucideIcon> = {
   subway: TrainFront,
   grocery: ShoppingBasket,
@@ -22,6 +22,11 @@ export const CATEGORY_ICON: Record<NonNullable<MapLocation["category"]>, LucideI
   library: Library,
   fire: Flame,
   police: Siren,
+  school_public: School,
+  school_catholic: School,
+  school_french: School,
+  school_private: School,
+  postsecondary: GraduationCap,
 };
 
 /** Icons for layers whose markers are all one kind of thing. */

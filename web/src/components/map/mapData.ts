@@ -19,18 +19,20 @@ export const layerLabels = {
   amenity: "Essentials (OpenStreetMap)",
   recreation: "Parks & recreation",
   services: "Public services",
+  schools: "Schools",
 } as const;
 export type LayerId = keyof typeof layerLabels;
 export type LayerVisibility = Record<LayerId, boolean>;
 /** On at first: what bears most on the decision and reads cleanly together. Off: the busiest or more specialised
- *  layers (open applications, 311, public services), one click away. */
+ *  layers (open applications, 311, public services, schools), one click away. */
 export const defaultLayers: LayerVisibility = {
   building: true, radius: true, rentsafe: true, building_permit: true, amenity: true, recreation: true,
-  development_application: false, sr311: false, services: false,
+  development_application: false, sr311: false, services: false, schools: false,
 };
 
 /** Layers drawn as individual, focusable markers (311 points are a plain map layer instead). */
-export type MarkerLayer = "building" | "rentsafe" | "building_permit" | "development_application" | "amenity" | "recreation" | "services";
+export type MarkerLayer = "building" | "rentsafe" | "building_permit" | "development_application" | "amenity" | "recreation" | "services"
+  | "schools";
 
 export type MapLocation = {
   id: string;
@@ -41,7 +43,7 @@ export type MapLocation = {
   distanceM: number | null;
   label?: string; // short text drawn on the marker
   url?: string | null;
-  /** Essentials (subway, grocery, pharmacy, hospital) and parks, recreation and public services. */
+  /** Essentials (subway, grocery, pharmacy, hospital) and parks, recreation, public services and schools. */
   category?: Amenity["category"] | ServiceCategory;
   /** Permits only: the site has a row in the Construction tab's major-projects list (its 10 largest). */
   listed?: boolean;
@@ -193,14 +195,16 @@ export function amenityLocations(items: Amenity[]): MapLocation[] {
   }));
 }
 
-// Parks, recreation and public services (City of Toronto open data, public/services-toronto.json).
+// Parks, recreation, public services and schools (City of Toronto open data, public/services-toronto.json).
 export const SERVICE_MARK: Record<ServiceCategory, string> = {
   park: "Pk", community: "CC", pool: "Sw", rink: "Ic", library: "Lb", fire: "Fi", police: "Po",
+  school_public: "Sc", school_catholic: "Sc", school_french: "Sc", school_private: "Sc", postsecondary: "U",
 };
+const SERVICE_LAYER = { recreation: "recreation", public: "services", schools: "schools" } as const;
 
 export function serviceLocations(items: Service[]): MapLocation[] {
   return items.map((s, i) => ({
-    id: `svc-${s.category}-${i}`, name: s.name, layer: SERVICE_GROUP[s.category] === "recreation" ? "recreation" as const : "services" as const,
+    id: `svc-${s.category}-${i}`, name: s.name, layer: SERVICE_LAYER[SERVICE_GROUP[s.category]],
     category: s.category, location: { lat: s.lat, lng: s.lon }, distanceM: s.distance_m, label: SERVICE_MARK[s.category], url: s.url,
     description: [SERVICE_LABELS[s.category], s.detail, s.address && titleCase(s.address), `${metres(s.distance_m)} straight-line`, SERVICE_SOURCES[s.category]]
       .filter(Boolean).join(" · "),
@@ -224,6 +228,11 @@ const SEARCH_SYNONYMS: Record<string, string[]> = {
   library: ["library", "libraries", "books", "tpl"],
   fire: ["fire", "firehall"],
   police: ["police", "cops", "division"],
+  school_public: ["school", "schools", "elementary", "secondary", "high", "tdsb", "public"],
+  school_catholic: ["school", "schools", "elementary", "secondary", "high", "tcdsb", "catholic"],
+  school_french: ["school", "schools", "french", "francais", "viamonde"],
+  school_private: ["school", "schools", "private"],
+  postsecondary: ["college", "university", "campus"],
 };
 
 /** True when every word of the query matches the location's text or one of its kind's synonyms. */

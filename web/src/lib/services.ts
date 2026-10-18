@@ -1,17 +1,18 @@
-// Parks, recreation and public services around an address, read from a static extract of City of Toronto open
+// Parks, recreation, public services and schools around an address, read from a static extract of City of Toronto open
 // data committed at public/services-toronto.json (built by scripts/build-services.mjs). Like the essentials, the
 // layers degrade to a notice if the file can't load.
 
 import { distanceM } from "./geo";
 
-export type ServiceCategory = "park" | "community" | "pool" | "rink" | "library" | "fire" | "police";
-export type ServiceGroup = "recreation" | "public";
+export type ServiceCategory = "park" | "community" | "pool" | "rink" | "library" | "fire" | "police"
+  | "school_public" | "school_catholic" | "school_french" | "school_private" | "postsecondary";
+export type ServiceGroup = "recreation" | "public" | "schools";
 
 export type Service = {
   category: ServiceCategory;
   name: string;
   address: string | null;
-  /** Parks: the City's listed amenities ("Playground, Washroom"); pools: indoor or outdoor. */
+  /** Parks: the City's listed amenities ("Playground, Washroom"); pools: indoor or outdoor; schools: the board. */
   detail: string | null;
   url: string | null;
   lat: number;
@@ -22,14 +23,20 @@ export type Service = {
 export const SERVICE_GROUP: Record<ServiceCategory, ServiceGroup> = {
   park: "recreation", community: "recreation", pool: "recreation", rink: "recreation",
   library: "public", fire: "public", police: "public",
+  school_public: "schools", school_catholic: "schools", school_french: "schools", school_private: "schools", postsecondary: "schools",
 };
 
 /** Display order within each group. */
-export const SERVICE_CATEGORIES: readonly ServiceCategory[] = ["park", "community", "pool", "rink", "library", "fire", "police"];
+export const SERVICE_CATEGORIES: readonly ServiceCategory[] = [
+  "park", "community", "pool", "rink", "library", "fire", "police",
+  "school_public", "school_catholic", "school_french", "school_private", "postsecondary",
+];
 
 export const SERVICE_LABELS: Record<ServiceCategory, string> = {
   park: "Park", community: "Community centre", pool: "Pool", rink: "Ice rink",
   library: "Library", fire: "Fire station", police: "Police",
+  school_public: "Public school (TDSB)", school_catholic: "Catholic school (TCDSB)", school_french: "French-language school",
+  school_private: "Private school", postsecondary: "College or university",
 };
 
 /** Dataset each category comes from, for popups. */
@@ -41,15 +48,24 @@ export const SERVICE_SOURCES: Record<ServiceCategory, string> = {
   library: "Toronto Public Library",
   fire: "City of Toronto, Fire Station Locations",
   police: "Toronto Police Service facilities",
+  school_public: "City of Toronto, School Locations",
+  school_catholic: "City of Toronto, School Locations",
+  school_french: "City of Toronto, School Locations",
+  school_private: "City of Toronto, School Locations",
+  postsecondary: "City of Toronto, School Locations",
 };
 
 /** How far each category is searched: parks and the like are walking distance; stations serve a wider area. */
 export const SERVICE_RADIUS_M: Record<ServiceCategory, number> = {
   park: 1000, community: 1500, pool: 1500, rink: 2500, library: 2000, fire: 3000, police: 4000,
+  school_public: 1500, school_catholic: 2000, school_french: 4000, school_private: 1500, postsecondary: 4000,
 };
 
 /** Per-category cap on map markers, nearest first. */
-const PER_CATEGORY: Record<ServiceCategory, number> = { park: 10, community: 4, pool: 4, rink: 2, library: 3, fire: 2, police: 2 };
+const PER_CATEGORY: Record<ServiceCategory, number> = {
+  park: 10, community: 4, pool: 4, rink: 2, library: 3, fire: 2, police: 2,
+  school_public: 4, school_catholic: 3, school_french: 2, school_private: 3, postsecondary: 2,
+};
 
 export type ServiceResult = { items: Service[]; asof: string | null };
 

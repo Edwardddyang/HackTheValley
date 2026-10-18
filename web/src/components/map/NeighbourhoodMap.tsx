@@ -15,7 +15,7 @@ import { AMENITY_CATEGORIES, AMENITY_LABELS, AMENITY_RADIUS_M, type AmenityResul
 import type { Brief } from "@/lib/brief";
 import { date, metres, month, num } from "@/lib/format";
 import { constructionNoise, NOISE_LEVELS_NOTE, noiseScoreLabel, noiseSources } from "@/lib/noise";
-import { fetchServices, SERVICE_CATEGORIES, SERVICE_GROUP, SERVICE_LABELS, SERVICE_RADIUS_M, type ServiceResult } from "@/lib/services";
+import { fetchServices, SERVICE_CATEGORIES, SERVICE_GROUP, SERVICE_LABELS, SERVICE_RADIUS_M, type ServiceGroup, type ServiceResult } from "@/lib/services";
 
 import { FlyoverButton } from "./Flyover";
 import { SHADE_ORDER, SHADES, shadeFill, shadeGradient, shadeSource } from "./hoodShades";
@@ -76,6 +76,7 @@ const MARKER_CLASS: Record<MapLocation["layer"], string> = {
   amenity: "size-7 bg-emerald-800 text-[10px]",
   recreation: "size-7 bg-green-600 text-[10px]",
   services: "size-7 bg-indigo-700 text-[10px]",
+  schools: "size-7 bg-pink-700 text-[10px]",
 };
 /** The brief tab that lists each layer's records (BriefTabs follows the URL hash). */
 const LAYER_TAB: Partial<Record<MapLocation["layer"], { id: string; label: string }>> = {
@@ -84,7 +85,7 @@ const LAYER_TAB: Partial<Record<MapLocation["layer"], { id: string; label: strin
   development_application: { id: "construction", label: "Construction" },
 };
 
-const MARKER_TEXT: Record<MapLocation["layer"], string> = { building: "", rentsafe: "", building_permit: "P", development_application: "D", amenity: "", recreation: "", services: "" };
+const MARKER_TEXT: Record<MapLocation["layer"], string> = { building: "", rentsafe: "", building_permit: "P", development_application: "D", amenity: "", recreation: "", services: "", schools: "" };
 
 /** One "Nearest …" row under the layer checkboxes: the nearest place of each kind, or "none within". */
 type NearestEntry = { key: string; category: keyof typeof CATEGORY_ICON; label: string; name: string | null; distanceM: number | null; location?: MapLocation; radiusM: number };
@@ -187,7 +188,7 @@ function MapExplorer({ brief, typeLabels }: Props) {
     return { key: category, category, label: AMENITY_LABELS[category], name: item?.name ?? null,
       distanceM: item?.distance_m ?? null, location: locations.find((l) => l.id === `amenity-${category}-${i}`), radiusM: AMENITY_RADIUS_M[category] };
   });
-  const nearestSvc = (group: "recreation" | "public"): NearestEntry[] => typeof svc !== "object" ? []
+  const nearestSvc = (group: ServiceGroup): NearestEntry[] => typeof svc !== "object" ? []
     : SERVICE_CATEGORIES.filter((c) => SERVICE_GROUP[c] === group).map((category) => {
       const i = svc.items.findIndex((s) => s.category === category);
       const item = i < 0 ? null : svc.items[i];
@@ -222,6 +223,7 @@ function MapExplorer({ brief, typeLabels }: Props) {
     amenity: plotted.filter((l) => l.layer === "amenity").length,
     recreation: plotted.filter((l) => l.layer === "recreation").length,
     services: plotted.filter((l) => l.layer === "services").length,
+    schools: plotted.filter((l) => l.layer === "schools").length,
   };
   const available = (Object.keys(layerLabels) as LayerId[]).filter((layer) =>
     layer === "radius" ? hasCenter : layer === "sr311" ? sr311.fc.features.length > 0 : plotted.some((location) => location.layer === layer));
@@ -305,6 +307,15 @@ function MapExplorer({ brief, typeLabels }: Props) {
       own: p.id != null && Number(p.id) === brief.area.neighbourhood?.hood_id,
     });
   }
+
+  // Next keeps a visited page alive but hidden (React Activity) and re-runs its effects on the way back. react-map-gl
+  // then destroys and rebuilds its map, and the markers re-attach to the old one: the map came back without them.
+  // Remounting the map when the page is shown again rebuilds everything together.
+  const shownBefore = useRef(false);
+  useEffect(() => {
+    if (shownBefore.current) retryMap();
+    shownBefore.current = true;
+  }, []); // once per showing of the page
 
   function retryMap() {
     activeAttempt.current += 1;
@@ -430,6 +441,10 @@ function MapExplorer({ brief, typeLabels }: Props) {
         {visible.services && typeof svc === "object" && (
           <NearestRow title="Nearest public services" swatch="bg-indigo-700" entries={nearestSvc("public")} onShow={focusLocation}
             note="Toronto Public Library branches, City fire stations and Toronto Police facilities." />
+        )}
+        {visible.schools && typeof svc === "object" && (
+          <NearestRow title="Nearest schools" swatch="bg-pink-700" entries={nearestSvc("schools")} onShow={focusLocation}
+            note="City of Toronto school locations. The nearest school isn't always the one an address is zoned for; the TDSB and TCDSB school locators give that." />
         )}
         {svc === "error" && <p className="mt-3 text-xs text-slate-500">The parks and public services list didn&apos;t load.</p>}
         <div className="mt-3 flex flex-wrap items-start gap-x-8 gap-y-3 border-t border-slate-200 pt-3 text-sm text-slate-700">

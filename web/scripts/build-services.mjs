@@ -8,6 +8,7 @@
 //   Indoor Ice Rinks                          rinks, one per facility (pads at one centre are merged)
 //   Library Branch General Information        Toronto Public Library branches with a physical location
 //   Fire Station Locations, Police Facility Locations
+//   School Locations - All Types               TDSB, TCDSB, French-language, private schools; colleges and universities
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -85,10 +86,24 @@ for (const f of await geojson("police-facility-locations")) {
   add("police", f, clean(p.FACILITY) ?? "Police facility", { a: clean(p.ADDRESS) });
 }
 
+// Schools. The City's names are upper case; PLACE_NAME, when present, is the properly cased name.
+const SCHOOL_CATEGORY = {
+  "English Public": "school_public", "English Separate": "school_catholic", "French Public": "school_french",
+  "French Separate": "school_french", Private: "school_private", College: "postsecondary", University: "postsecondary",
+};
+for (const f of await geojson("school-locations-all-types")) {
+  const p = f.properties;
+  const c = SCHOOL_CATEGORY[p.SCHOOL_TYPE_DESC];
+  if (!c) continue;
+  const board = clean(p.BOARD_NAME);
+  add(c, f, clean(p.PLACE_NAME) ?? title(p.NAME), { a: clean(p.ADDRESS_FULL), x: board ?? clean(p.SCHOOL_TYPE_DESC) });
+}
+
 const out = {
   asof: new Date().toISOString().slice(0, 10),
   source: "City of Toronto Open Data: Parks and Recreation Facilities; Air Conditioned and Cool Spaces (pools); "
-    + "Indoor Ice Rinks; Toronto Public Library branches; Fire Station Locations; Police Facility Locations.",
+    + "Indoor Ice Rinks; Toronto Public Library branches; Fire Station Locations; Police Facility Locations; "
+    + "School Locations - All Types.",
   items,
 };
 const dest = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "public", "services-toronto.json");

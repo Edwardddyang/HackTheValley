@@ -25,6 +25,7 @@ const SWATCH: Partial<Record<LayerId, string>> = {
   amenity: "bg-emerald-800",
   recreation: "bg-green-600",
   services: "bg-indigo-700",
+  schools: "bg-pink-700",
 };
 
 /** Notes behind an info button next to a layer's checkbox. */
@@ -32,6 +33,8 @@ const LAYER_INFO: Partial<Record<LayerId, string>> = {
   sr311: "The City records each 311 request at the nearest street intersection, not at an address, so the circles sit on "
     + "corners and are never pinned to a building. Each circle is one intersection, sized by how many requests landed there. "
     + "Requests reported by postal code have no location and aren't shown.",
+  schools: "Schools near the address, not the one it's zoned for: each board assigns schools by its own boundaries, "
+    + "which aren't in the City's open data. Check the TDSB or TCDSB school locator for this address's designated schools.",
 };
 
 /** A layer's key: its marker's icon in its colour when every marker is one kind of thing, else a colour dot (the
