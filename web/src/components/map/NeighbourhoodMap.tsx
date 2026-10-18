@@ -15,6 +15,7 @@ import { date, metres, month, num } from "@/lib/format";
 import { constructionNoise, noiseSources } from "@/lib/noise";
 
 import { FlyoverButton } from "./Flyover";
+import { InfoTip } from "@/components/InfoTip";
 import { SHADE_ORDER, SHADES, shadeFill, shadeGradient } from "./hoodShades";
 import type { HoodsFile, HoodValues, Shade } from "./hoodShades";
 import MapLayerControls from "./MapLayerControls";
@@ -64,7 +65,7 @@ function distanceLabel(location: MapLocation) {
 }
 
 const MARKER_CLASS: Record<MapLocation["layer"], string> = {
-  building: "size-10 bg-[#142D4E] text-base",
+  building: "", // drawn as a pin instead (see the address Marker)
   rentsafe: "size-8 bg-slate-600 text-[11px]",
   building_permit: "size-8 bg-amber-800 text-xs",
   development_application: "size-8 bg-violet-700 text-xs",
@@ -77,7 +78,7 @@ const LAYER_TAB: Partial<Record<MapLocation["layer"], { id: string; label: strin
   development_application: { id: "construction", label: "Construction" },
 };
 
-const MARKER_TEXT: Record<MapLocation["layer"], string> = { building: "B", rentsafe: "", building_permit: "P", development_application: "D", amenity: "" };
+const MARKER_TEXT: Record<MapLocation["layer"], string> = { building: "", rentsafe: "", building_permit: "P", development_application: "D", amenity: "" };
 
 // --- From integrate/best-of-both (Ariaz): 3D buildings, ghost towers and neighbourhood shading -----------------
 
@@ -388,19 +389,18 @@ function MapExplorer({ brief, typeLabels }: Props) {
               </p>
             )}
           </div>
-          <div>
+          <div className="flex items-center gap-2">
             <label className="flex min-h-8 cursor-pointer items-center gap-2">
               <input type="checkbox" checked={heat} onChange={(e) => setHeat(e.target.checked)}
                 className="size-4 accent-teal-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700" />
               <span aria-hidden className="inline-block h-2.5 w-4 rounded-sm" style={{ background: "linear-gradient(to right, #fde047, #f97316, #b91c1c)" }} />
               Construction &amp; noise heatmap
             </label>
-            {heat && (
-              <p className="ml-6 max-w-xs text-xs leading-5 text-slate-500">
-                {noise.level} here (score {noise.score}). Major permits (new building or demolition 3, other $1M+ work 1.5) and 311
-                noise complaints (0.5 each, at most 10 per intersection) within the radius, each spread over about 250 m.
-              </p>
-            )}
+            <InfoTip label="About the construction & noise heatmap">
+              <span className="block font-semibold text-[#142D4E]">{noise.level} here (score {noise.score})</span>
+              Major permits (new building or demolition 3, other $1M+ work 1.5) and 311 noise complaints (0.5 each, at most
+              10 per intersection) within the radius, each spread over about 250 m. The Construction tab has the counts.
+            </InfoTip>
           </div>
           <div>
             <label className="flex min-h-8 items-center gap-2">
@@ -543,14 +543,28 @@ function MapExplorer({ brief, typeLabels }: Props) {
                     paint={{ "text-color": "#ffffff", "text-opacity": searching ? 0.3 : 1 }} />
                 </Source>}
                 {/* While a search is active, matches get a ring and sit on top; everything but the address fades back. */}
-                {visiblePoints.map((location) => <Marker key={location.id} latitude={location.location.lat} longitude={location.location.lng} anchor="center"
+                {visiblePoints.filter((location) => location.layer !== "building").map((location) => <Marker key={location.id} latitude={location.location.lat} longitude={location.location.lng} anchor="center"
                   style={searching && matching.has(location.id) ? { zIndex: 2 } : undefined}>
                   <button type="button" aria-label={`${location.name}: ${layerLabels[location.layer]}`} onClick={(event) => { event.stopPropagation(); setPick311(null); setSelectedId(location.id); }}
                     className={`flex items-center justify-center rounded-full border-2 border-white font-bold text-white shadow-md transition-opacity focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#142D4E] ${MARKER_CLASS[location.layer]} ${!searching ? "" : matching.has(location.id) ? "ring-4 ring-amber-400" : location.layer === "building" ? "" : "opacity-25"}`}>
                     <span aria-hidden="true">{location.label ?? MARKER_TEXT[location.layer]}</span>
                   </button>
                 </Marker>)}
-                {selected && <Popup latitude={selected.location.lat} longitude={selected.location.lng} onClose={() => setSelectedId(null)} closeOnClick={false} focusAfterOpen={false} offset={20} maxWidth="280px">
+                {/* The address is a pin standing above its point, added last and lifted, so it stays on top of the
+                    other markers; a RentSafeTO score for the same building stays visible at the pin's tip. */}
+                {visiblePoints.filter((location) => location.layer === "building").map((location) => <Marker key={location.id}
+                  latitude={location.location.lat} longitude={location.location.lng} anchor="bottom" style={{ zIndex: 3 }}>
+                  <button type="button" aria-label={`${location.name}: ${layerLabels.building}`}
+                    onClick={(event) => { event.stopPropagation(); setPick311(null); setSelectedId(location.id); }}
+                    className="block rounded-full drop-shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#142D4E]">
+                    <svg aria-hidden="true" viewBox="0 0 32 42" className="h-[42px] w-8">
+                      <path d="M16 41c-1-4.5-4.2-8.4-8.3-12.6A13.5 13.5 0 1 1 24.3 28.4C20.2 32.6 17 36.5 16 41Z" fill="#142D4E" stroke="#fff" strokeWidth="2" />
+                      <path d="M9.5 16.5 16 11l6.5 5.5V23a1 1 0 0 1-1 1h-3.5v-4.5h-4V24h-3.5a1 1 0 0 1-1-1Z" fill="#fff" />
+                    </svg>
+                  </button>
+                </Marker>)}
+                {selected && <Popup latitude={selected.location.lat} longitude={selected.location.lng} onClose={() => setSelectedId(null)} closeOnClick={false} focusAfterOpen={false}
+                  offset={selected.layer === "building" ? 46 : 20} maxWidth="280px">
                   <div className="p-1 text-[#142D4E]">
                     <p className="font-semibold">{selected.name}</p>
                     <p className="mt-1 text-xs">{layerLabels[selected.layer]}</p>
