@@ -9,7 +9,7 @@ import { ListingForm } from "./ListingForm";
 // From integrate/best-of-both (Ariaz): the two ways in, paste a listing or search an address. A listing that
 // can't be matched hands off to the search box with its rent, bedrooms and claims kept. Laid out as sections of
 // main's landing card.
-export function HomeTools({ examples }: { examples: React.ReactNode }) {
+export function HomeTools() {
   const [prefill, setPrefill] = useState<{ address: string; keep: string; nonce: number } | null>(null);
 
   return (
@@ -30,7 +30,6 @@ export function HomeTools({ examples }: { examples: React.ReactNode }) {
         </p>
       </div>
       <AddressSearch key={prefill?.nonce ?? 0} initial={prefill?.address ?? ""} keep={prefill?.keep ?? ""} autoFocus={prefill != null} />
-      {examples}
     </>
   );
 }

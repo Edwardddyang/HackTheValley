@@ -13,10 +13,6 @@ import { buildingHref, listingQuery } from "@/lib/listing-params";
 // address, rent, bedrooms and claims; nothing is fetched from the listing site. Restyled to main's design;
 // the brief opens at /building/<id> with the listing carried in the URL.
 
-const SAMPLE_LISTING = `Bright 1 bedroom in a well-maintained Annex building – $2,350/month
-
-375 Brunswick Ave, Toronto. Heat and water included, hydro extra. Stays cool in summer with A/C. Pets welcome. On-site laundry. Available November 1. Close to Bloor St, shops and the subway. No smoking. Message to book a viewing.`;
-
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const MAX_FILE_BYTES = 12 * 1024 * 1024; // what we accept before downscaling
 const MAX_PAYLOAD_CHARS = 3_000_000; // base64 sent to the server stays under 3 MB
@@ -197,14 +193,6 @@ export function ListingForm({ onSearchInstead }: { onSearchInstead: (address: st
           <button type="submit" disabled={busy}
             className="inline-flex h-11 items-center rounded-lg bg-[#142D4E] px-5 text-base font-semibold text-white hover:opacity-90 disabled:cursor-progress disabled:opacity-75">
             {state.kind === "submitting" ? "Reading the listing…" : "Check this listing"}
-          </button>
-          <button type="button"
-            onClick={() => {
-              setText(SAMPLE_LISTING);
-              setState({ kind: "idle" });
-            }}
-            className="rounded-lg px-2 py-2 text-sm font-semibold text-teal-800 underline underline-offset-2">
-            Try a sample listing
           </button>
         </div>
       </form>
