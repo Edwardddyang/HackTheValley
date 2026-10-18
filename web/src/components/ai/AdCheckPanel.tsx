@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Cite } from "@/components/Cite";
+import { PoweredByGemini } from "@/components/ai/PoweredByGemini";
 import type { AdCheck, AdCheckRequest, ApiError, Claim, Verdict } from "@/lib/ai-types";
 import { date } from "@/lib/format";
 
@@ -120,14 +121,22 @@ export function AdCheckPanel({ addressPointId, radius, rent, beds, claims }: {
 
 /** Says honestly who wrote the verdict lines: Gemini, or the fixed rules used when the AI was unavailable. */
 function Provenance({ adCheck }: { adCheck: AdCheck }) {
-  const template = adCheck.model === "template";
+  const checked = adCheck.generated_at ? ` Checked ${date(adCheck.generated_at)}.` : "";
+  if (adCheck.model === "template") {
+    return (
+      <p className="mt-4 max-w-4xl border-t border-slate-100 pt-3 text-xs leading-5 text-slate-500">
+        Checked with fixed rules because the AI wasn&apos;t available. Each line only restates the records it cites.{checked}
+      </p>
+    );
+  }
   return (
-    <p className="mt-4 max-w-4xl border-t border-slate-100 pt-3 text-xs leading-5 text-slate-500">
-      {template
-        ? "Checked with fixed rules because the AI wasn't available. Each line only restates the records it cites."
-        : `Checked by Google Gemini (${adCheck.model}) against the records on this page; each line cites the records it used. AI can misread a record, so check anything that matters with the landlord or the City.`}
-      {adCheck.generated_at ? ` Checked ${date(adCheck.generated_at)}.` : ""}
-    </p>
+    <div className="mt-4 max-w-4xl border-t border-slate-100 pt-3">
+      <PoweredByGemini above>
+        Google Gemini ({adCheck.model}) checked the ad&apos;s claims against the records on this page; each line cites the
+        records it used, and its numbers are checked against them. AI can misread a record, so check anything that
+        matters with the landlord or the City.{checked}
+      </PoweredByGemini>
+    </div>
   );
 }
 

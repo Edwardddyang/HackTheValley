@@ -7,8 +7,9 @@ const WIDTH = 288; // w-72
 const EDGE = 8;
 
 /** A small "i" button that shows a note on demand. Closes on Escape or a click outside. The note opens centred
- *  under the button, or anchored to its left or right edge when centring would run off the screen. */
-export function InfoTip({ label, children }: { label: string; children: ReactNode }) {
+ *  under the button (over it with `above`, for a button at the bottom of a panel), or anchored to its left or right
+ *  edge when centring would run off the screen. */
+export function InfoTip({ label, children, above = false }: { label: string; children: ReactNode; above?: boolean }) {
   const [open, setOpen] = useState(false);
   const [align, setAlign] = useState<"center" | "left" | "right">("center");
   const id = useId();
@@ -26,9 +27,20 @@ export function InfoTip({ label, children }: { label: string; children: ReactNod
   function toggle() {
     const box = ref.current?.getBoundingClientRect();
     if (!open && box) {
+      // The note must fit inside the window and inside the nearest card that clips its overflow or panel that floats
+      // over the page (the Ask drawer).
+      let left = 0, right = window.innerWidth;
+      for (let el = ref.current?.parentElement; el; el = el.parentElement) {
+        const style = getComputedStyle(el);
+        if (style.overflowX === "visible" && style.position !== "fixed") continue;
+        const r = el.getBoundingClientRect();
+        left = Math.max(left, r.left);
+        right = Math.min(right, r.right);
+        break;
+      }
       const half = Math.min(WIDTH, window.innerWidth * 0.8) / 2;
       const mid = box.left + box.width / 2;
-      setAlign(mid - half < EDGE ? "left" : mid + half > window.innerWidth - EDGE ? "right" : "center");
+      setAlign(mid - half < left + EDGE ? "left" : mid + half > right - EDGE ? "right" : "center");
     }
     setOpen((o) => !o);
   }
@@ -42,7 +54,7 @@ export function InfoTip({ label, children }: { label: string; children: ReactNod
       </button>
       {open && (
         <span id={id} role="note"
-          className={`absolute top-7 z-30 w-72 max-w-[80vw] rounded-lg border border-slate-200 bg-white p-3 text-xs leading-5 font-normal text-slate-600 shadow-lg ${position}`}>
+          className={`absolute ${above ? "bottom-7" : "top-7"} z-30 w-72 max-w-[80vw] rounded-lg border border-slate-200 bg-white p-3 text-xs leading-5 font-normal text-slate-600 shadow-lg ${position}`}>
           {children}
         </span>
       )}

@@ -3,6 +3,7 @@
 import { type FormEvent, useId, useRef, useState } from "react";
 
 import { Cite } from "@/components/Cite";
+import { PoweredByGemini } from "@/components/ai/PoweredByGemini";
 import type { ApiError, AskAnswer, AskRequest } from "@/lib/ai-types";
 
 // From integrate/best-of-both (Ariaz), restyled to main's panels. POST /api/ask answers only from the records the
@@ -64,7 +65,6 @@ export function AskPanel({ addressPointId, radius, rent = null, beds = null, sug
     void ask(draft);
   }
 
-  const answered = turns.some((t) => t.status === "answered");
 
   // Laid out as a chat column for AskDrawer: suggestions and answers scroll, the question box stays at the bottom.
   return (
@@ -121,11 +121,12 @@ export function AskPanel({ addressPointId, radius, rent = null, beds = null, sug
             {busy ? "Reading…" : "Ask"}
           </button>
         </form>
-        {answered && (
-          <p className="mt-2 text-xs leading-5 text-slate-500">
-            Written by Gemini from the cited records. Double-check anything important.
-          </p>
-        )}
+        <div className="mt-2">
+          <PoweredByGemini above>
+            Answers are written by Google Gemini from this address&apos;s records only, with a source on every line, and
+            their numbers are checked against those records. AI can misread a record, so double-check anything important.
+          </PoweredByGemini>
+        </div>
       </div>
     </div>
   );
