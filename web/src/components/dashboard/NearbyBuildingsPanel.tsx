@@ -2,6 +2,9 @@ import { Cite } from "@/components/Cite";
 import type { Brief, RentSafeStats } from "@/lib/brief";
 import { metres, num, titleCase } from "@/lib/format";
 
+import { mapRowId } from "@/components/map/mapData";
+import { ShowOnMap } from "@/components/map/ShowOnMap";
+
 import { DashboardPanel, SCORE_RULE, STATUS_COLOR, StatusLegend, StatusTag, Unavailable, rate } from "./DashboardPanel";
 
 type Building = Brief["rentsafe_nearby"]["buildings"][number];
@@ -36,8 +39,9 @@ function BuildingTable({ buildings, median }: { buildings: Building[]; median: n
             // Pre-2023 scores used a different system, so they aren't rated against the median.
             const status = b.scoring === "2023+" ? rate(b.score, median, SCORE_RULE) : null;
             return (
-            <tr key={b.rsn}>
-              <th scope="row" className="px-4 py-3 font-medium text-slate-700">{titleCase(b.address)}<Cite cite={b.cite} /></th>
+            <tr key={b.rsn} id={mapRowId(`rentsafe-${b.rsn}`)} className="scroll-mt-24">
+              <th scope="row" className="px-4 py-3 font-medium text-slate-700">{titleCase(b.address)}<Cite cite={b.cite} />
+                {Number.isFinite(b.lat) && Number.isFinite(b.lon) && <ShowOnMap id={`rentsafe-${b.rsn}`} label={titleCase(b.address)} />}</th>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-3">
                   <span className="w-8 tabular-nums font-semibold text-[#142D4E]">{num(b.score)}</span>

@@ -1,6 +1,9 @@
 import type { Brief } from "@/lib/brief";
 import { date, metres, num, titleCase } from "@/lib/format";
 
+import { mapRowId } from "@/components/map/mapData";
+import { ShowOnMap } from "@/components/map/ShowOnMap";
+
 import { DashboardPanel, ItemList, SourceNote, Unavailable } from "./DashboardPanel";
 
 // Card layout from feature/frontend's NearbyConstructionPanel; applications from bb_brief
@@ -20,10 +23,11 @@ export default function DevelopmentPanel({ brief }: { brief: Brief }) {
       </div>
       {d.open.length === 0 ? <div className="mt-4"><Unavailable>No open applications in this radius.</Unavailable></div> : (
         <div className="mt-4"><ItemList items={d.open.map((a) => (
-            <li key={a.application_number} className="rounded-xl border border-slate-200 p-4">
+            <li key={a.application_number} id={mapRowId(`devapp-${a.application_number}`)} className="scroll-mt-24 rounded-xl border border-slate-200 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs font-semibold text-teal-800">{d.type_labels[a.type] ?? a.type}</p>
-                <p className="text-xs tabular-nums text-slate-500">{metres(a.distance_m)} away</p>
+                <p className="text-xs tabular-nums text-slate-500">{metres(a.distance_m)} away
+                  {Number.isFinite(a.lat) && Number.isFinite(a.lon) && <ShowOnMap id={`devapp-${a.application_number}`} label={titleCase(a.address)} />}</p>
               </div>
               <h4 className="mt-3 font-semibold text-[#142D4E]">
                 {titleCase(a.address)}

@@ -37,6 +37,13 @@ export type MapLocation = {
   category?: Amenity["category"];
 };
 
+/** "Map" pills on brief rows (ShowOnMap.tsx) dispatch this window event with a map location id. */
+export const SHOW_ON_MAP_EVENT = "rentreceipts:show-on-map";
+export type ShowOnMapDetail = { id: string };
+
+/** The DOM id of a brief row for a map location, so a popup can scroll back to it. */
+export const mapRowId = (locationId: string) => `maprow-${locationId.replace(/\s+/g, "_")}`;
+
 export function isValidLocation(location: LatLng | null | undefined): location is LatLng {
   return !!location && Number.isFinite(location.lat) && Number.isFinite(location.lng)
     && Math.abs(location.lat) <= 90 && Math.abs(location.lng) <= 180;

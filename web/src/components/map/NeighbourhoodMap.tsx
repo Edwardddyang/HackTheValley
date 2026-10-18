@@ -18,6 +18,8 @@ import { FlyoverButton } from "./Flyover";
 import { SHADE_ORDER, SHADES, shadeFill, shadeGradient } from "./hoodShades";
 import type { HoodsFile, HoodValues, Shade } from "./hoodShades";
 import MapLayerControls from "./MapLayerControls";
+import { SHOW_ON_MAP_EVENT, mapRowId } from "./mapData";
+import type { ShowOnMapDetail } from "./mapData";
 import { AMENITY_MARK, amenityLocations, briefCenter, briefLocations, defaultLayers, isValidLocation, layerLabels, matchesQuery, radiusCircle, sr311Intersections } from "./mapData";
 import type { LayerId, MapLocation } from "./mapData";
 
@@ -68,6 +70,13 @@ const MARKER_CLASS: Record<MapLocation["layer"], string> = {
   development_application: "size-8 bg-violet-700 text-xs",
   amenity: "size-7 bg-emerald-800 text-[10px]",
 };
+/** The brief tab that lists each layer's records (BriefTabs follows the URL hash). */
+const LAYER_TAB: Partial<Record<MapLocation["layer"], { id: string; label: string }>> = {
+  rentsafe: { id: "buildings", label: "Nearby buildings" },
+  building_permit: { id: "construction", label: "Construction" },
+  development_application: { id: "construction", label: "Construction" },
+};
+
 const MARKER_TEXT: Record<MapLocation["layer"], string> = { building: "B", rentsafe: "", building_permit: "P", development_application: "D", amenity: "" };
 
 // --- From integrate/best-of-both (Ariaz): 3D buildings, ghost towers and neighbourhood shading -----------------
@@ -295,6 +304,38 @@ function MapExplorer({ brief, typeLabels }: Props) {
     };
   }, [hasCenter, loaded, attempt, mapIssue]);
 
+  // "Map" pills on brief rows (ShowOnMap.tsx): scroll up to the map, fly there and open that record's popup.
+  useEffect(() => {
+    function onShow(event: Event) {
+      const location = locations.find((l) => l.id === (event as CustomEvent<ShowOnMapDetail>).detail.id);
+      if (!location || !isValidLocation(location.location)) return;
+      setPick311(null);
+      setHood(null);
+      setQuery("");
+      focusLocation(location);
+      mapRef.current?.flyTo({ center: [location.location.lng, location.location.lat], zoom: Math.max(viewState.zoom, 16), duration: 900 });
+      if (!expanded) containerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    window.addEventListener(SHOW_ON_MAP_EVENT, onShow);
+    return () => window.removeEventListener(SHOW_ON_MAP_EVENT, onShow);
+  });
+
+  /** Popup link back to the record's row: switch tab through the hash, then scroll to and flash the row. */
+  function seeInTab(location: MapLocation, tab: string) {
+    setExpanded(false);
+    window.location.hash = tab;
+    // The tab panel shows once BriefTabs handles the hash change; wait (up to ~1 s) until the row is laid out.
+    let frames = 60;
+    const reveal = () => {
+      const row = document.getElementById(mapRowId(location.id));
+      if (!row) return;
+      if (!row.getClientRects().length) return void (frames-- > 0 && requestAnimationFrame(reveal));
+      row.scrollIntoView({ behavior: "smooth", block: "center" });
+      row.animate([{ backgroundColor: "#fef3c7" }, { backgroundColor: "transparent" }], { duration: 2400, easing: "ease-out" });
+    };
+    requestAnimationFrame(reveal);
+  }
+
   function focusLocation(location: MapLocation) {
     setSelectedId(location.id);
     setVisible((current) => ({ ...current, [location.layer]: true }));
@@ -515,7 +556,10 @@ function MapExplorer({ brief, typeLabels }: Props) {
                     <p className="mt-1 text-xs">{layerLabels[selected.layer]}</p>
                     <p className="mt-2 line-clamp-4 text-xs leading-5">{selected.description}</p>
                     {distanceLabel(selected) && <p className="mt-1 text-xs">{distanceLabel(selected)}</p>}
-                    {selected.url && <a href={selected.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs font-medium text-teal-800 underline">City application page</a>}
+                    {selected.url && <a href={selected.url} target="_blank" rel="noopener noreferrer" className="mt-2 mr-3 inline-block text-xs font-medium text-teal-800 underline">City application page<span className="sr-only"> (opens in a new tab)</span></a>}
+                    {LAYER_TAB[selected.layer] && <a href={`#${LAYER_TAB[selected.layer]!.id}`}
+                      onClick={(event) => { event.preventDefault(); seeInTab(selected, LAYER_TAB[selected.layer]!.id); }}
+                      className="mt-2 inline-block text-xs font-medium text-teal-800 underline">See in {LAYER_TAB[selected.layer]!.label}</a>}
                   </div>
                 </Popup>}
                 {pick311 && !selected && visible.sr311 && sr311.groups[pick311.i] && (() => {

@@ -2,6 +2,8 @@ import { Cite } from "@/components/Cite";
 import type { Brief } from "@/lib/brief";
 import { compactMoney, date, metres, month, num, titleCase } from "@/lib/format";
 import { constructionNoise, type NoiseLevel } from "@/lib/noise";
+import { mapRowId } from "@/components/map/mapData";
+import { ShowOnMap } from "@/components/map/ShowOnMap";
 
 import { BarList, DashboardPanel, ItemList, SourceNote, Unavailable } from "./DashboardPanel";
 
@@ -58,11 +60,13 @@ export default function NearbyConstructionPanel({ brief }: { brief: Brief }) {
       <h3 className="mt-7 text-sm font-semibold text-[#142D4E]">Major projects</h3>
       <p className="mt-1 text-xs leading-5 text-slate-500">{c.notable_definition}.</p>
       {c.notable.length === 0 ? <div className="mt-3"><Unavailable>No major projects in this radius. This does not confirm that no construction is planned.</Unavailable></div> : (
-        <div className="mt-4"><ItemList items={c.notable.map((p) => (
-            <li key={p.permit_num + p.type} className="rounded-xl border border-slate-200 p-4">
+        // Map location ids follow mapData.ts: permit-<number>-<index in the notable list>.
+        <div className="mt-4"><ItemList items={c.notable.map((p, i) => (
+            <li key={p.permit_num + p.type} id={mapRowId(`permit-${p.permit_num}-${i}`)} className="scroll-mt-24 rounded-xl border border-slate-200 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs font-semibold text-teal-800">Building permit · {p.type}</p>
-                <p className="text-xs tabular-nums text-slate-500">{metres(p.distance_m)} away</p>
+                <p className="text-xs tabular-nums text-slate-500">{metres(p.distance_m)} away
+                  {Number.isFinite(p.lat) && Number.isFinite(p.lon) && <ShowOnMap id={`permit-${p.permit_num}-${i}`} label={titleCase(p.address)} />}</p>
               </div>
               <h4 className="mt-3 font-semibold text-[#142D4E]">{titleCase(p.address)}</h4>
               {p.description && <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{p.description}</p>}
