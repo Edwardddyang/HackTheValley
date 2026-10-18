@@ -4,7 +4,6 @@ import { Suspense } from "react";
 import { AdCheckPanel } from "@/components/ai/AdCheckPanel";
 import { AskDrawer } from "@/components/ai/AskDrawer";
 import { FlagsPanel } from "@/components/ai/FlagsPanel";
-import { ChecklistPanel, SummaryProvider } from "@/components/ai/SummaryPanels";
 import { BriefTabs } from "@/components/BriefTabs";
 import { Cite } from "@/components/Cite";
 import AddressPermitsPanel from "@/components/dashboard/AddressPermitsPanel";
@@ -32,8 +31,8 @@ import { loadBrief } from "@/lib/load";
 
 import Loading from "./loading";
 
-// Report layout from feature/frontend (Satwik): every panel is filled from bb_brief and bb_extras. The Gemini
-// panels (What to flag, viewing questions, ad check) come from integrate/best-of-both (Ariaz).
+// Report layout from feature/frontend (Satwik): every panel is filled from bb_brief and bb_extras. What to flag is
+// computed from the records (lib/flags.ts); the Gemini ad check comes from integrate/best-of-both (Ariaz).
 const RADII = [250, 500, 1000];
 
 const LIMITATIONS = [
@@ -43,7 +42,7 @@ const LIMITATIONS = [
   "Crime and census figures describe the whole neighbourhood; the census is from 2021, and its shelter cost isn't a current asking rent.",
   "Rent control is estimated from the year built: units first occupied after Nov 15, 2018 are exempt, so confirm with the landlord.",
   "CMHC rents are survey averages for a large area, not a valuation of one unit; building registration details are filled in by landlords.",
-  "What to flag and the construction & noise score are computed from the records. The \"Ask about this address\" chat, the viewing questions and the ad check are written by Google Gemini from the cited records and can misread one, so confirm anything important.",
+  "What to flag and the construction & noise score are computed from the records. The \"Ask about this address\" chat and the ad check are written by Google Gemini from the cited records and can misread one, so confirm anything important.",
   "A pasted listing is read by Gemini; the listing site itself is never visited.",
   "Map essentials come from OpenStreetMap with straight-line distances; Flyover imagery from Google may be years old.",
 ];
@@ -110,16 +109,12 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
         <NeighbourhoodMap brief={brief} typeLabels={typeLabels} />
       </section>
       <div className="mt-8">
-        {/* One /api/summary call feeds both What to flag and the viewing questions. */}
-        <SummaryProvider key={`${brief.address.address_point_id}-${radius}-${listing.rent}-${listing.beds}`}
-          addressPointId={brief.address.address_point_id} radius={brief.address.radius_m} rent={listing.rent} beds={listing.beds}>
         <BriefTabs tabs={[
           { id: "overview", label: "Overview", content: (
             <Grid>
               <FlagsPanel flags={computeFlags(brief, extras, stats, listing)} />
               <BuildingSummaryPanel brief={brief} extras={extras} />
               <InspectionPanel brief={brief} stats={stats} />
-              <ChecklistPanel address={brief.address.address} />
             </Grid>
           ) },
           ...(listing.claims.length > 0 ? [{ id: "adcheck", label: "Ad check", badge: num(listing.claims.length), content: (
@@ -179,7 +174,6 @@ async function Report({ params, searchParams }: { params: Promise<{ id: string }
             </div>
           ) },
         ]} />
-        </SummaryProvider>
         <AskDrawer addressPointId={brief.address.address_point_id} radius={brief.address.radius_m}
           rent={listing.rent} beds={listing.beds} suggestions={suggestedQuestions(brief, extras)} />
       </div>
