@@ -1,8 +1,44 @@
 import { Cite } from "@/components/Cite";
 import type { Brief } from "@/lib/brief";
-import { compactMoney, date, metres, num, titleCase } from "@/lib/format";
+import { compactMoney, date, metres, month, num, titleCase } from "@/lib/format";
+import { constructionNoise, type NoiseLevel } from "@/lib/noise";
 
 import { BarList, DashboardPanel, ItemList, SourceNote, Unavailable } from "./DashboardPanel";
+
+const LEVEL_CLASS: Record<NoiseLevel, string> = {
+  Low: "bg-emerald-100 text-emerald-900",
+  Moderate: "bg-amber-100 text-amber-900",
+  High: "bg-red-100 text-red-900",
+};
+
+/** Construction & noise level (lib/noise.ts) with the counts behind it. */
+function NoiseStrip({ brief }: { brief: Brief }) {
+  const n = constructionNoise(brief);
+  const plus = n.major_list_capped ? "+" : "";
+  const period = n.noise_period.from && n.noise_period.to ? `${month(n.noise_period.from)} – ${month(n.noise_period.to)}` : null;
+  return (
+    <div className="mb-6 rounded-xl border border-slate-200 bg-[#F8FAFC] p-4">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <p className="text-sm font-semibold text-[#142D4E]">Construction &amp; noise</p>
+        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${LEVEL_CLASS[n.level]}`}>{n.level}</span>
+      </div>
+      <p className="mt-2 text-sm leading-6 text-slate-700">
+        {num(n.major_within_250)}{n.major_within_250 ? plus : ""} major project{n.major_within_250 === 1 ? "" : "s"} within 250 m
+        {" · "}{num(n.major_within_500)}{plus} within {metres(Math.min(500, n.radius_m))}
+        {n.nearest && <> · nearest {metres(n.nearest.distance_m)} ({n.nearest.type.replace(/ Folder \(DM\)$/, "").toLowerCase()})</>}
+        <Cite cite={n.cites.major} />
+      </p>
+      <p className="text-sm leading-6 text-slate-700">
+        {num(n.noise_complaints_within_250)} 311 noise complaint{n.noise_complaints_within_250 === 1 ? "" : "s"} within 250 m{period && ` (${period})`}
+        <Cite cite={n.cites.complaints} />
+      </p>
+      <p className="mt-2 text-xs leading-5 text-slate-500">
+        A rough guide, not a sound measurement: new buildings and demolitions count most, other $1M+ work less, and 311 noise
+        complaints a little, each weighted by distance (half as much at 150 m).{n.major_list_capped && " The City data here lists only the 10 costliest major permits, so counts are a minimum."}
+      </p>
+    </div>
+  );
+}
 
 // Card layout from feature/frontend's NearbyConstructionPanel; permits from bb_brief.
 export default function NearbyConstructionPanel({ brief }: { brief: Brief }) {
@@ -10,6 +46,7 @@ export default function NearbyConstructionPanel({ brief }: { brief: Brief }) {
   return (
     <DashboardPanel id="construction" title="Nearby construction"
       subtitle={`Active building permits within ${metres(brief.address.radius_m)}, and the major projects among them.`}>
+      <NoiseStrip brief={brief} />
       <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
         <div>
           <p className="text-4xl font-semibold tabular-nums tracking-tight text-[#142D4E]">{num(c.active_permit_count)}<Cite cite={c.cite} /></p>
