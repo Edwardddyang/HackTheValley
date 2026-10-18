@@ -7,11 +7,12 @@ import { Component, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { AttributionControl, Layer, Marker, NavigationControl, Popup, Source } from "react-map-gl/maplibre";
 import type { MapLayerMouseEvent, MapRef } from "react-map-gl/maplibre";
-import type { FeatureCollection, Polygon } from "geojson";
+import type { FeatureCollection, Point, Polygon } from "geojson";
 
 import { AMENITY_CATEGORIES, AMENITY_LABELS, AMENITY_RADIUS_M, type AmenityResult, fetchAmenities } from "@/lib/amenities";
 import type { Brief } from "@/lib/brief";
 import { date, metres, month, num } from "@/lib/format";
+import { constructionNoise, noiseSources } from "@/lib/noise";
 
 import { FlyoverButton } from "./Flyover";
 import { SHADE_ORDER, SHADES, shadeFill, shadeGradient } from "./hoodShades";
@@ -129,6 +130,14 @@ function MapExplorer({ brief, typeLabels }: Props) {
   });
   const ghosts = useMemo(() => ghostTowers(brief.development_applications.open), [brief]);
   const [three, setThree] = useState(false);
+  const [heat, setHeat] = useState(false);
+  const noise = useMemo(() => constructionNoise(brief), [brief]);
+  const heatData = useMemo((): FeatureCollection<Point> => ({
+    type: "FeatureCollection",
+    features: noiseSources(brief).map((n) => ({
+      type: "Feature", geometry: { type: "Point", coordinates: [n.lon, n.lat] }, properties: { weight: n.weight },
+    })),
+  }), [brief]);
   const [shade, setShade] = useState<Shade>("none");
   const [hoods, setHoods] = useState<HoodsFile | "error" | null>(null);
   const [hood, setHood] = useState<HoodPick | null>(null);
@@ -339,6 +348,20 @@ function MapExplorer({ brief, typeLabels }: Props) {
             )}
           </div>
           <div>
+            <label className="flex min-h-8 cursor-pointer items-center gap-2">
+              <input type="checkbox" checked={heat} onChange={(e) => setHeat(e.target.checked)}
+                className="size-4 accent-teal-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700" />
+              <span aria-hidden className="inline-block h-2.5 w-4 rounded-sm" style={{ background: "linear-gradient(to right, #fde047, #f97316, #b91c1c)" }} />
+              Construction &amp; noise heatmap
+            </label>
+            {heat && (
+              <p className="ml-6 max-w-xs text-xs leading-5 text-slate-500">
+                {noise.level} here (score {noise.score}). Major permits (new building or demolition 3, other $1M+ work 1.5) and 311
+                noise complaints (0.5 each, at most 10 per intersection) within the radius, each spread over about 250 m.
+              </p>
+            )}
+          </div>
+          <div>
             <label className="flex min-h-8 items-center gap-2">
               Shade neighbourhoods
               <select value={shade}
@@ -435,6 +458,18 @@ function MapExplorer({ brief, typeLabels }: Props) {
                       paint={{ "line-color": "#142D4E", "line-opacity": 0.25, "line-width": 0.5 }} />
                   </Source>
                 )}
+                {heat && heatData.features.length > 0 && <Source id="noise-heat" type="geojson" data={heatData}>
+                  {/* Radius doubles with each zoom level so the spread stays about 250 m on the ground (weights halve at 150 m). */}
+                  <Layer id="noise-heatmap" type="heatmap" beforeId="waterway_line_label"
+                    paint={{
+                      "heatmap-weight": ["/", ["get", "weight"], 3],
+                      "heatmap-intensity": 2.5,
+                      "heatmap-radius": ["interpolate", ["exponential", 2], ["zoom"], 10, 3.5, 18, 900],
+                      "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"],
+                        0, "rgba(253,224,71,0)", 0.15, "rgba(253,224,71,0.55)", 0.5, "rgba(249,115,22,0.75)", 1, "rgba(185,28,28,0.85)"],
+                      "heatmap-opacity": 0.8,
+                    }} />
+                </Source>}
                 {/* The positron style's own vector source carries OpenMapTiles buildings with heights in metres.
                     Both extrusion layers sit under the first label layer so street names stay readable. */}
                 <Layer id="buildings-3d" type="fill-extrusion" source="openmaptiles" source-layer="building"
@@ -500,7 +535,7 @@ function MapExplorer({ brief, typeLabels }: Props) {
                   <div className="p-1 text-[#142D4E]">
                     <p className="font-semibold">{hood.name}</p>
                     {/* The shaded figure first, then the rest for comparison. */}
-                    <ul className="mt-1 space-y-0.5 text-xs leading-5">
+                    <ul className="mt-1 max-h-44 space-y-0.5 overflow-y-auto pr-1 text-xs leading-5">
                       {[...(shade === "none" ? [] : [shade]), ...SHADE_ORDER.filter((m) => m !== shade)].map((m) => (
                         <li key={m} className={m === shade ? "font-semibold" : undefined}>{SHADES[m].line(hood.values)}</li>
                       ))}

@@ -69,17 +69,42 @@ export function noiseLevel(score: number): NoiseLevel {
   return score >= NOISE_LEVELS.high ? "High" : score >= NOISE_LEVELS.moderate ? "Moderate" : "Low";
 }
 
-export function constructionNoise(brief: Brief): ConstructionNoise {
-  const { lat, lon, radius_m } = brief.address;
-  const notable = brief.construction_nearby.notable;
-  // One project often has several permits at the same point (a new building plus its drain and site
-  // service permit), so each site counts once, at its heaviest permit's weight.
-  const sites: Record<string, (typeof notable)[number]> = {};
-  for (const p of notable) {
+type Permit = Brief["construction_nearby"]["notable"][number];
+
+/** One project often has several permits at the same point (a new building plus its drain and site service
+ *  permit), so each site counts once, at its heaviest permit's weight. */
+export function majorProjects(brief: Brief): Permit[] {
+  const sites: Record<string, Permit> = {};
+  for (const p of brief.construction_nearby.notable) {
     const key = Number.isFinite(p.lat) && Number.isFinite(p.lon) ? `${p.lat.toFixed(5)},${p.lon.toFixed(5)}` : `${p.address}|${p.distance_m}`;
     if (!sites[key] || permitWeight(p.type) > permitWeight(sites[key].type)) sites[key] = p;
   }
-  const projects = Object.values(sites);
+  return Object.values(sites);
+}
+
+/** At most this many complaints count per intersection on the map heatmap (311 snaps them to intersections). */
+export const HEAT_PER_INTERSECTION = 10;
+
+/** Weighted points for a heatmap, using the score's weights without distance (the map shows distance itself). */
+export function noiseSources(brief: Brief): { lat: number; lon: number; weight: number; kind: "permit" | "complaints"; count: number }[] {
+  const corners: Record<string, { lat: number; lon: number; n: number }> = {};
+  for (const p of brief.service_requests_311.nearby.points) {
+    if (!isNoiseComplaint(p.type) || !Number.isFinite(p.lat) || !Number.isFinite(p.lon)) continue;
+    (corners[`${p.lat.toFixed(6)},${p.lon.toFixed(6)}`] ??= { lat: p.lat, lon: p.lon, n: 0 }).n += 1;
+  }
+  return [
+    ...majorProjects(brief).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon))
+      .map((p) => ({ lat: p.lat, lon: p.lon, weight: permitWeight(p.type), kind: "permit" as const, count: 1 })),
+    ...Object.values(corners).map((c) => ({
+      lat: c.lat, lon: c.lon, weight: COMPLAINT_WEIGHT * Math.min(c.n, HEAT_PER_INTERSECTION), kind: "complaints" as const, count: c.n,
+    })),
+  ];
+}
+
+export function constructionNoise(brief: Brief): ConstructionNoise {
+  const { lat, lon, radius_m } = brief.address;
+  const notable = brief.construction_nearby.notable;
+  const projects = majorProjects(brief);
   const permits = projects.reduce((sum, p) => sum + permitWeight(p.type) * decay(p.distance_m), 0);
 
   const noisePoints = brief.service_requests_311.nearby.points
