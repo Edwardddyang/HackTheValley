@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- RentReceipts block mark (SiteChrome.tsx): a city block seen from above, four lots, one of them yours. -->
+  <rect width="32" height="32" rx="7" fill="#142D4E"/>
+  <rect x="7" y="7" width="7.5" height="7.5" rx="1" fill="#ffffff" fill-opacity="0.45"/>
+  <rect x="17.5" y="7" width="7.5" height="7.5" rx="1" fill="#ffffff" fill-opacity="0.45"/>
+  <rect x="7" y="17.5" width="7.5" height="7.5" rx="1" fill="#ffffff" fill-opacity="0.45"/>
+  <rect x="17.5" y="17.5" width="7.5" height="7.5" rx="1" fill="#2dd4bf"/>
+</svg>

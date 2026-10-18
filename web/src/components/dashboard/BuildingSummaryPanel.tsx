@@ -1,3 +1,8 @@
+import {
+  AirVent, ArrowUpDown, Briefcase, Building2, CalendarDays, DoorOpen, Heater, KeyRound, Layers, type LucideIcon, PawPrint,
+  WashingMachine,
+} from "lucide-react";
+
 import { Cite } from "@/components/Cite";
 import type { Brief, Cite as CiteData } from "@/lib/brief";
 import type { Extras } from "@/lib/extras";
@@ -19,12 +24,12 @@ export default function BuildingSummaryPanel({ brief, extras }: { brief: Brief; 
       {b.in_rentsafe ? (
         <div className="mt-5">
           <Facts items={[
-            ["Building type", <>{titleCase(b.property_type)} apartment building<Cite cite={b.latest_evaluation.cite} /></>],
-            ["Year built", b.year_built ?? "Unavailable"],
-            ["Storeys", <span key="s" className="text-2xl font-semibold tabular-nums text-[#142D4E]">{num(b.storeys)}</span>],
-            ["Units", <span key="u" className="text-2xl font-semibold tabular-nums text-[#142D4E]">{num(b.units)}</span>],
+            [<Label key="t" icon={Building2}>Building type</Label>, <>{titleCase(b.property_type)} apartment building<Cite cite={b.latest_evaluation.cite} /></>],
+            [<Label key="y" icon={CalendarDays}>Year built</Label>, b.year_built ?? "Unavailable"],
+            [<Label key="s" icon={Layers}>Storeys</Label>, <span key="s" className="text-2xl font-semibold tabular-nums text-[#142D4E]">{num(b.storeys)}</span>],
+            [<Label key="u" icon={DoorOpen}>Units</Label>, <span key="u" className="text-2xl font-semibold tabular-nums text-[#142D4E]">{num(b.units)}</span>],
           ]} />
-          <div className="mt-5"><Facts items={[["Owner type", ownerType(b.property_type)]]} /></div>
+          <div className="mt-5"><Facts items={[[<Label key="o" icon={KeyRound}>Owner type</Label>, ownerType(b.property_type)]]} /></div>
           <h3 className="mt-6 text-sm font-semibold text-[#142D4E]">From the building&apos;s City registration</h3>
           {reg ? <Registration reg={reg} asOfYear={asOfYear} /> : (
             <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -74,20 +79,20 @@ type Reg = NonNullable<Extras["registration"]>;
 
 function Registration({ reg, asOfYear }: { reg: Reg; asOfYear: number | null }) {
   const noCooling = isNone(reg.air_conditioning_type) && reg.has_cooling_room === false;
-  const rows: [string, React.ReactNode][] = [
-    ["Heating", heatingText(reg, asOfYear)],
-    ["Cooling", coolingText(reg)],
-    ["Pets", yesNo(reg.pets_allowed, "Allowed, per the registration", "Not allowed, per the registration")],
-    ["Property manager", reg.property_manager ? titleCase(reg.property_manager) : "Not listed in the registration"],
-    ["Elevators", reg.elevators == null ? "Not reported" : num(reg.elevators)],
-    ["Laundry room", yesNo(reg.laundry_room, "Yes", "No")],
+  const rows: [string, LucideIcon, React.ReactNode][] = [
+    ["Heating", Heater, heatingText(reg, asOfYear)],
+    ["Cooling", AirVent, coolingText(reg)],
+    ["Pets", PawPrint, yesNo(reg.pets_allowed, "Allowed, per the registration", "Not allowed, per the registration")],
+    ["Property manager", Briefcase, reg.property_manager ? titleCase(reg.property_manager) : "Not listed in the registration"],
+    ["Elevators", ArrowUpDown, reg.elevators == null ? "Not reported" : num(reg.elevators)],
+    ["Laundry room", WashingMachine, yesNo(reg.laundry_room, "Yes", "No")],
   ];
   return (
     <>
       <dl className="mt-3 divide-y divide-slate-100 text-sm">
-        {rows.map(([k, v]) => (
-          <div key={k} className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-3 py-2">
-            <dt className="text-slate-500">{k}</dt>
+        {rows.map(([k, icon, v]) => (
+          <div key={k} className="grid grid-cols-[9.5rem_minmax(0,1fr)] gap-3 py-2">
+            <dt className="text-slate-500"><Label icon={icon}>{k}</Label></dt>
             <dd className="text-slate-800">{v}<Cite cite={reg.cite} /></dd>
           </div>
         ))}
@@ -99,6 +104,11 @@ function Registration({ reg, asOfYear }: { reg: Reg; asOfYear: number | null }) 
       )}
     </>
   );
+}
+
+/** A fact's label with its icon: small, muted, and always beside the words. */
+function Label({ icon: Icon, children }: { icon: LucideIcon; children: React.ReactNode }) {
+  return <span className="inline-flex items-center gap-1.5"><Icon aria-hidden size={14} strokeWidth={2} className="shrink-0 text-slate-400" />{children}</span>;
 }
 
 function ownerType(t: string | null) {

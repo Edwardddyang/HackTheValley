@@ -5,25 +5,28 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import dynamic from "next/dynamic";
 import { Component, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { House } from "lucide-react";
 import { AttributionControl, Layer, Marker, NavigationControl, Popup, Source } from "react-map-gl/maplibre";
 import type { MapLayerMouseEvent, MapRef } from "react-map-gl/maplibre";
 import type { FeatureCollection, Point, Polygon } from "geojson";
 
+import { InfoTip } from "@/components/InfoTip";
 import { AMENITY_CATEGORIES, AMENITY_LABELS, AMENITY_RADIUS_M, type AmenityResult, fetchAmenities } from "@/lib/amenities";
-import { fetchServices, SERVICE_CATEGORIES, SERVICE_GROUP, SERVICE_LABELS, SERVICE_RADIUS_M, type ServiceResult } from "@/lib/services";
 import type { Brief } from "@/lib/brief";
 import { date, metres, month, num } from "@/lib/format";
 import { constructionNoise, NOISE_LEVELS_NOTE, noiseScoreLabel, noiseSources } from "@/lib/noise";
+import { fetchServices, SERVICE_CATEGORIES, SERVICE_GROUP, SERVICE_LABELS, SERVICE_RADIUS_M, type ServiceResult } from "@/lib/services";
 
 import { FlyoverButton } from "./Flyover";
-import { InfoTip } from "@/components/InfoTip";
 import { SHADE_ORDER, SHADES, shadeFill, shadeGradient, shadeSource } from "./hoodShades";
 import type { HoodsFile, HoodValues, Shade } from "./hoodShades";
+import { CATEGORY_ICON, iconFor } from "./icons";
 import MapLayerControls from "./MapLayerControls";
-import { SHOW_ON_MAP_EVENT, mapRowId } from "./mapData";
-import type { ShowOnMapDetail } from "./mapData";
-import { AMENITY_MARK, SERVICE_MARK, amenityLocations, serviceLocations, briefCenter, briefLocations, defaultLayers, isValidLocation, layerLabels, matchesQuery, radiusCircle, sr311Intersections } from "./mapData";
-import type { LayerId, MapLocation } from "./mapData";
+import {
+  amenityLocations, briefCenter, briefLocations, defaultLayers, isValidLocation, layerLabels, mapRowId, matchesQuery,
+  radiusCircle, serviceLocations, SHOW_ON_MAP_EVENT, sr311Intersections,
+} from "./mapData";
+import type { LayerId, MapLocation, ShowOnMapDetail } from "./mapData";
 
 // From feature/frontend (Satwik): expandable map with layer controls and an accessible location
 // list. Changes for real data: OpenFreeMap vector tiles, a radius that follows the search, RentSafeTO
@@ -84,7 +87,7 @@ const LAYER_TAB: Partial<Record<MapLocation["layer"], { id: string; label: strin
 const MARKER_TEXT: Record<MapLocation["layer"], string> = { building: "", rentsafe: "", building_permit: "P", development_application: "D", amenity: "", recreation: "", services: "" };
 
 /** One "Nearest …" row under the layer checkboxes: the nearest place of each kind, or "none within". */
-type NearestEntry = { key: string; mark: string; label: string; name: string | null; distanceM: number | null; location?: MapLocation; radiusM: number };
+type NearestEntry = { key: string; category: keyof typeof CATEGORY_ICON; label: string; name: string | null; distanceM: number | null; location?: MapLocation; radiusM: number };
 function NearestRow({ title, swatch, entries, note, onShow }: {
   title: string; swatch: string; entries: NearestEntry[]; note: ReactNode; onShow: (location: MapLocation) => void;
 }) {
@@ -93,7 +96,8 @@ function NearestRow({ title, swatch, entries, note, onShow }: {
       <p className="text-xs font-semibold text-slate-700">{title}</p>
       <ul className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-slate-700">
         {entries.map((e) => {
-          const mark = <span aria-hidden className={`inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white ${swatch}`}>{e.mark}</span>;
+          const Icon = CATEGORY_ICON[e.category];
+          const mark = <span aria-hidden className={`inline-flex size-5 shrink-0 items-center justify-center rounded-full text-white ${swatch}`}><Icon size={12} strokeWidth={2.25} /></span>;
           return <li key={e.key}>
             {e.name && e.location && e.distanceM != null ? (
               <button type="button" onClick={() => onShow(e.location!)}
@@ -173,14 +177,14 @@ function MapExplorer({ brief, typeLabels }: Props) {
   const nearestAmen: NearestEntry[] = typeof amen !== "object" ? [] : AMENITY_CATEGORIES.map((category) => {
     const i = amen.items.findIndex((a) => a.category === category);
     const item = i < 0 ? null : amen.items[i];
-    return { key: category, mark: AMENITY_MARK[category], label: AMENITY_LABELS[category], name: item?.name ?? null,
+    return { key: category, category, label: AMENITY_LABELS[category], name: item?.name ?? null,
       distanceM: item?.distance_m ?? null, location: locations.find((l) => l.id === `amenity-${category}-${i}`), radiusM: AMENITY_RADIUS_M[category] };
   });
   const nearestSvc = (group: "recreation" | "public"): NearestEntry[] => typeof svc !== "object" ? []
     : SERVICE_CATEGORIES.filter((c) => SERVICE_GROUP[c] === group).map((category) => {
       const i = svc.items.findIndex((s) => s.category === category);
       const item = i < 0 ? null : svc.items[i];
-      return { key: category, mark: SERVICE_MARK[category], label: SERVICE_LABELS[category], name: item?.name ?? null,
+      return { key: category, category, label: SERVICE_LABELS[category], name: item?.name ?? null,
         distanceM: item?.distance_m ?? null, location: locations.find((l) => l.id === `svc-${category}-${i}`), radiusM: SERVICE_RADIUS_M[category] };
     });
   const ghosts = useMemo(() => ghostTowers(brief.development_applications.open), [brief]);
@@ -594,7 +598,12 @@ function MapExplorer({ brief, typeLabels }: Props) {
                   style={searching && matching.has(location.id) ? { zIndex: 2 } : undefined}>
                   <button type="button" aria-label={`${location.name}: ${layerLabels[location.layer]}`} onClick={(event) => { event.stopPropagation(); setPick311(null); toggleSelected(location.id); }}
                     className={`flex items-center justify-center rounded-full border-2 border-white font-bold text-white shadow-md transition-opacity focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#142D4E] ${MARKER_CLASS[location.layer]} ${!searching ? "" : matching.has(location.id) ? "ring-4 ring-amber-400" : location.layer === "building" ? "" : "opacity-25"}`}>
-                    <span aria-hidden="true">{location.label ?? MARKER_TEXT[location.layer]}</span>
+                    {(() => {
+                      // An icon for the kind of place; RentSafeTO markers keep their score, which is the information.
+                      const Icon = location.layer === "rentsafe" ? null : iconFor(location);
+                      return Icon ? <Icon aria-hidden size={location.layer === "amenity" || location.category ? 14 : 16} strokeWidth={2.25} />
+                        : <span aria-hidden="true">{location.label ?? MARKER_TEXT[location.layer]}</span>;
+                    })()}
                   </button>
                 </Marker>)}
                 {/* The address is a pin standing above its point, added last and lifted, so it stays on top of the
@@ -603,11 +612,11 @@ function MapExplorer({ brief, typeLabels }: Props) {
                   latitude={location.location.lat} longitude={location.location.lng} anchor="bottom" style={{ zIndex: 3 }}>
                   <button type="button" aria-label={`${location.name}: ${layerLabels.building}`}
                     onClick={(event) => { event.stopPropagation(); setPick311(null); toggleSelected(location.id); }}
-                    className="block rounded-full drop-shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#142D4E]">
+                    className="relative block rounded-full drop-shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#142D4E]">
                     <svg aria-hidden="true" viewBox="0 0 32 42" className="h-[42px] w-8">
                       <path d="M16 41c-1-4.5-4.2-8.4-8.3-12.6A13.5 13.5 0 1 1 24.3 28.4C20.2 32.6 17 36.5 16 41Z" fill="#142D4E" stroke="#fff" strokeWidth="2" />
-                      <path d="M9.5 16.5 16 11l6.5 5.5V23a1 1 0 0 1-1 1h-3.5v-4.5h-4V24h-3.5a1 1 0 0 1-1-1Z" fill="#fff" />
                     </svg>
+                    <House aria-hidden size={16} strokeWidth={2.5} className="absolute top-[7px] left-2 text-white" />
                   </button>
                 </Marker>)}
                 {selected && <Popup latitude={selected.location.lat} longitude={selected.location.lng} onClose={() => setSelectedId(null)} closeOnClick={false} focusAfterOpen={false}

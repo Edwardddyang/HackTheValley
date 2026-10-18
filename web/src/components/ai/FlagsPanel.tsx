@@ -1,3 +1,7 @@
+import {
+  AirVent, CircleAlert, ClipboardCheck, DollarSign, HardHat, type LucideIcon, ShieldAlert, Wallet, Wrench,
+} from "lucide-react";
+
 import { Cite } from "@/components/Cite";
 import type { Figure, Flag } from "@/lib/flags";
 
@@ -7,6 +11,18 @@ import type { Figure, Flag } from "@/lib/flags";
 const RED = "#d03b3b";
 const GREY = "#94a3b8";
 const NAVY = "#142D4E";
+
+/** One icon per kind of flag (lib/flags.ts keys), the same as elsewhere in the app for the same thing. */
+const FLAG_ICON: Record<string, LucideIcon> = {
+  score: ClipboardCheck,
+  rent: DollarSign,
+  construction: HardHat,
+  crime: ShieldAlert,
+  cooling: AirVent,
+  "census-median_rent_monthly": DollarSign,
+  "census-pct_tenants_30pct_on_shelter": Wallet,
+  "census-dwellings_major_repairs": Wrench,
+};
 
 export function FlagsPanel({ flags }: { flags: Flag[] }) {
   return (
@@ -19,7 +35,13 @@ export function FlagsPanel({ flags }: { flags: Flag[] }) {
         <ul className="mt-4 grid gap-4 lg:grid-cols-3">
           {flags.map((f) => (
             <li key={f.key} className="flex min-w-0 flex-col rounded-xl border border-slate-200 bg-white p-4">
-              <p className="text-[15px] font-semibold leading-snug text-[#142D4E]">{f.headline}</p>
+              <p className="flex items-start gap-2.5 text-[15px] font-semibold leading-snug text-[#142D4E]">
+                {(() => {
+                  const Icon = FLAG_ICON[f.key] ?? CircleAlert;
+                  return <span aria-hidden className="mt-px flex size-7 shrink-0 items-center justify-center rounded-full bg-red-50 text-[#d03b3b]"><Icon size={15} strokeWidth={2.25} /></span>;
+                })()}
+                <span>{f.headline}</span>
+              </p>
               {f.detail && <p className="mt-1 text-sm text-slate-600">{f.detail}</p>}
               <div className="mt-3 flex-1"><FigureView figure={f.figure} /></div>
               <div className="mt-3 flex items-center justify-between gap-3 text-xs">
