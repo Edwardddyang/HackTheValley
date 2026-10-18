@@ -573,7 +573,7 @@ function MapExplorer({ brief, typeLabels }: Props) {
                     <p className="mt-2 line-clamp-4 text-xs leading-5">{selected.description}</p>
                     {distanceLabel(selected) && <p className="mt-1 text-xs">{distanceLabel(selected)}</p>}
                     {selected.url && <a href={selected.url} target="_blank" rel="noopener noreferrer" className="mt-2 mr-3 inline-block text-xs font-medium text-teal-800 underline">City application page<span className="sr-only"> (opens in a new tab)</span></a>}
-                    {LAYER_TAB[selected.layer] && <a href={`#${LAYER_TAB[selected.layer]!.id}`}
+                    {LAYER_TAB[selected.layer] && (selected.layer !== "building_permit" || selected.listed) && <a href={`#${LAYER_TAB[selected.layer]!.id}`}
                       onClick={(event) => { event.preventDefault(); seeInTab(selected, LAYER_TAB[selected.layer]!.id); }}
                       className="mt-2 inline-block text-xs font-medium text-teal-800 underline">See in {LAYER_TAB[selected.layer]!.label}</a>}
                   </div>

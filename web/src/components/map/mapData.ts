@@ -2,7 +2,7 @@ import type { Feature, FeatureCollection, Point, Polygon } from "geojson";
 
 import { type Amenity, AMENITY_LABELS } from "@/lib/amenities";
 import type { Brief } from "@/lib/brief";
-import { metres, titleCase } from "@/lib/format";
+import { compactMoney, metres, titleCase } from "@/lib/format";
 
 // From feature/frontend (Satwik): layers, radius geometry and the location list, fed by bb_brief.
 
@@ -12,7 +12,7 @@ export const layerLabels = {
   building: "This address",
   radius: "Search radius",
   rentsafe: "RentSafeTO buildings (score)",
-  building_permit: "Major construction permits",
+  building_permit: "Major construction sites",
   development_application: "Open development applications",
   sr311: "311 requests at intersections",
   amenity: "Essentials (OpenStreetMap)",
@@ -35,7 +35,45 @@ export type MapLocation = {
   url?: string | null;
   /** Essentials only: subway, grocery, pharmacy or hospital. */
   category?: Amenity["category"];
+  /** Permits only: the site has a row in the Construction tab's major-projects list (its 10 largest). */
+  listed?: boolean;
 };
+
+/** Map location id of a major construction site; brief rows link to it by the same id. Sites are keyed by their
+ *  point to 5 decimals, as bb_construction_near groups them, so several permits at one address are one marker. */
+export const permitSiteId = (lat: number, lon: number) => `permit-${lat.toFixed(5)},${lon.toFixed(5)}`;
+
+/** Every major construction site within the search radius (bb_construction_near reaches 500 m), plus any of the
+ *  brief's 10 largest that lie beyond it. A site in the Construction tab's list keeps that row's description. */
+function permitLocations(brief: Brief): MapLocation[] {
+  const listed = new Map<string, Brief["construction_nearby"]["notable"][number]>();
+  for (const p of brief.construction_nearby.notable) {
+    if (Number.isFinite(p.lat) && Number.isFinite(p.lon) && !listed.has(permitSiteId(p.lat, p.lon))) listed.set(permitSiteId(p.lat, p.lon), p);
+  }
+  const out: MapLocation[] = [];
+  const seen = new Set<string>();
+  for (const site of brief.construction_near?.sites ?? []) {
+    if (site.distance_m > brief.address.radius_m) continue;
+    const id = permitSiteId(site.lat, site.lon);
+    const row = listed.get(id);
+    seen.add(id);
+    out.push({
+      id, name: titleCase(site.address), layer: "building_permit", location: { lat: site.lat, lng: site.lon },
+      distanceM: site.distance_m, listed: !!row,
+      description: row ? [row.type, row.status, row.description].filter(Boolean).join(" · ")
+        : [site.type, site.status, site.est_const_cost ? `est. ${compactMoney(site.est_const_cost)}` : null,
+          site.permits > 1 ? `${site.permits} permits at this address` : null].filter(Boolean).join(" · "),
+    });
+  }
+  for (const [id, p] of listed) {
+    if (seen.has(id)) continue;
+    out.push({
+      id, name: titleCase(p.address), layer: "building_permit", location: { lat: p.lat, lng: p.lon }, distanceM: p.distance_m,
+      listed: true, description: [p.type, p.status, p.description].filter(Boolean).join(" · "),
+    });
+  }
+  return out;
+}
 
 /** "Map" pills on brief rows (ShowOnMap.tsx) dispatch this window event with a map location id. */
 export const SHOW_ON_MAP_EVENT = "rentreceipts:show-on-map";
@@ -81,11 +119,7 @@ export function briefLocations(brief: Brief, typeLabels: Record<string, string>)
       description: `RentSafeTO score ${b.score ?? "unavailable"} / 100${b.scoring === "pre-2023" ? " (pre-2023 scoring)" : ""}`,
       distanceM: b.distance_m,
     })),
-    ...brief.construction_nearby.notable.map((p, i) => ({
-      id: `permit-${p.permit_num}-${i}`, name: titleCase(p.address), layer: "building_permit" as const,
-      location: { lat: p.lat, lng: p.lon }, distanceM: p.distance_m,
-      description: [p.type, p.status, p.description].filter(Boolean).join(" · "),
-    })),
+    ...permitLocations(brief),
     ...brief.development_applications.open.map((a) => ({
       id: `devapp-${a.application_number}`, name: titleCase(a.address), layer: "development_application" as const,
       location: { lat: a.lat, lng: a.lon }, distanceM: a.distance_m, url: a.url,
