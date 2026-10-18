@@ -7,7 +7,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const BBOX = "43.58,-79.64,43.86,-79.11"; // Toronto
+// Toronto plus about 10 km on every side, so an address near the city line finds a closer store or station across it.
+const BBOX = "43.49,-79.77,43.95,-78.99";
 const QUERY = `[out:json][timeout:90];(
 node(${BBOX})[railway=station][station=subway];
 node(${BBOX})[railway=station][subway=yes];

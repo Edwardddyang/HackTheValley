@@ -444,7 +444,7 @@ test("subway claims are judged by the nearest station's straight-line distance",
   assert.equal(verdictAt(1150).verdict, "challenged");
   const none = verdictAt(null);
   assert.equal(none.verdict, "challenged");
-  assert.match(none.text, /No subway station is within 1200 m/);
+  assert.match(none.text, /No subway station is within 16000 m/);
   // Bus and streetcar stops aren't in the data, so those claims stay honest cant_checks.
   assert.equal(verdictAt(351, "Streetcar at the door").verdict, "cant_check");
   // A quote that says the place is far from the subway flips the verdict.

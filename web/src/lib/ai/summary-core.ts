@@ -72,8 +72,8 @@ export type EssentialsInput = {
 const ESSENTIAL_LABELS: Record<AmenityCategory, string> = {
   subway: "subway station", grocery: "grocery store", pharmacy: "pharmacy", hospital: "hospital with an emergency room",
 };
-/** How far each kind is searched (AMENITY_RADIUS_M in lib/amenities.ts; repeated so this file stays type-only). */
-const ESSENTIAL_RADIUS_M: Record<AmenityCategory, number> = { subway: 1200, grocery: 1200, pharmacy: 1200, hospital: 3000 };
+/** How far each kind is searched (NEAREST_MAX_M in lib/amenities.ts; repeated so this file stays type-only). */
+const ESSENTIAL_RADIUS_M: Record<AmenityCategory, number> = { subway: 16_000, grocery: 10_000, pharmacy: 10_000, hospital: 10_000 };
 
 export type EvidenceSet = {
   evidence: Evidence;

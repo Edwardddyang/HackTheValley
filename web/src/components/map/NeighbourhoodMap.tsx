@@ -11,7 +11,7 @@ import type { MapLayerMouseEvent, MapRef } from "react-map-gl/maplibre";
 import type { FeatureCollection, Point, Polygon } from "geojson";
 
 import { InfoTip } from "@/components/InfoTip";
-import { AMENITY_CATEGORIES, AMENITY_LABELS, AMENITY_RADIUS_M, type AmenityResult, fetchAmenities } from "@/lib/amenities";
+import { AMENITY_CATEGORIES, AMENITY_LABELS, type AmenityResult, fetchAmenities, NEAREST_MAX_M } from "@/lib/amenities";
 import type { Brief } from "@/lib/brief";
 import { date, metres, month, num } from "@/lib/format";
 import { constructionNoise, NOISE_LEVELS_NOTE, noiseScoreLabel, noiseSources } from "@/lib/noise";
@@ -186,7 +186,7 @@ function MapExplorer({ brief, typeLabels }: Props) {
     const i = amen.items.findIndex((a) => a.category === category);
     const item = i < 0 ? null : amen.items[i];
     return { key: category, category, label: AMENITY_LABELS[category], name: item?.name ?? null,
-      distanceM: item?.distance_m ?? null, location: locations.find((l) => l.id === `amenity-${category}-${i}`), radiusM: AMENITY_RADIUS_M[category] };
+      distanceM: item?.distance_m ?? null, location: locations.find((l) => l.id === `amenity-${category}-${i}`), radiusM: NEAREST_MAX_M[category] };
   });
   const nearestSvc = (group: ServiceGroup): NearestEntry[] => typeof svc !== "object" ? []
     : SERVICE_CATEGORIES.filter((c) => SERVICE_GROUP[c] === group).map((category) => {

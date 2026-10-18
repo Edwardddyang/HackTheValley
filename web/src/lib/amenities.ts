@@ -1,5 +1,5 @@
-// Everyday essentials around an address, read from a static OpenStreetMap extract for Toronto
-// committed at public/amenities-toronto.json (the public Overpass servers are too flaky to rely
+// Everyday essentials around an address, read from a static OpenStreetMap extract for Toronto and about 10 km around
+// it, committed at public/amenities-toronto.json (the public Overpass servers are too flaky to rely
 // on live during a demo). The layer degrades to a notice if the file can't load.
 
 import { distanceM } from "./geo";
@@ -29,13 +29,20 @@ export const AMENITY_LETTERS: Record<AmenityCategory, string> = {
 const WALKABLE_M = 1200;
 const HOSPITAL_M = 3000; // the nearest hospital is routinely beyond walking distance
 
-/** How far each category is searched, for the legend's "none within …" rows. */
+/** How far around the address the map plots every place of a kind. */
 export const AMENITY_RADIUS_M: Record<AmenityCategory, number> = {
   subway: WALKABLE_M, grocery: WALKABLE_M, pharmacy: WALKABLE_M, hospital: HOSPITAL_M,
 };
 
-/** Per-category cap on map markers. Capped per category, not overall, so a dense downtown block
- *  full of pharmacies can't push the nearest hospital off the list. */
+/** How far the nearest place of each kind is looked for: far enough that every Toronto address has one. Measured
+ *  over all 525,372 City address points with the Oct 2026 extract: groceries, pharmacies and ER hospitals are all
+ *  under 10 km; the farthest subway station is 15.4 km (8505 Steeles Ave E, north-east Scarborough). */
+export const NEAREST_MAX_M: Record<AmenityCategory, number> = {
+  subway: 16_000, grocery: 10_000, pharmacy: 10_000, hospital: 10_000,
+};
+
+/** Per-category cap on map markers within AMENITY_RADIUS_M. Capped per category, not overall, so a dense downtown
+ *  block full of pharmacies can't push the nearest hospital off the list. */
 const PER_CATEGORY = 15;
 
 export type AmenityResult = {
@@ -52,7 +59,7 @@ type Packed = PackedAmenity;
 export type NearestAmenity = { category: AmenityCategory; name: string; distance_m: number; row: number };
 
 /**
- * The nearest place of each kind within its search radius (AMENITY_RADIUS_M), or null for a kind with none, plus how
+ * The nearest place of each kind within NEAREST_MAX_M, or null for a kind with none, plus how
  * many places of each kind the file holds. Pure, so the server (the ad check) and the map agree on "nearest".
  */
 export function nearestAmenities(items: readonly PackedAmenity[], lat: number, lon: number): {
@@ -65,7 +72,7 @@ export function nearestAmenities(items: readonly PackedAmenity[], lat: number, l
     if (!category) return;
     total[category] += 1;
     const d = Math.round(distanceM(lat, lon, it.la, it.lo));
-    if (d > AMENITY_RADIUS_M[category] || (nearest[category] && nearest[category]!.distance_m <= d)) return;
+    if (d > NEAREST_MAX_M[category] || (nearest[category] && nearest[category]!.distance_m <= d)) return;
     nearest[category] = { category, name: it.n ?? AMENITY_LABELS[category], distance_m: d, row: i + 1 };
   });
   return { nearest, total };
@@ -91,16 +98,19 @@ async function query(lat: number, lon: number): Promise<AmenityResult> {
   if (!res.ok) throw new Error(`amenities file responded ${res.status}`);
   const json = (await res.json()) as { asof?: string; items?: Packed[] };
   const out: Amenity[] = [];
+  // The nearest of each kind beyond the plotted radius, so every kind still gets its marker and "Nearest" entry.
+  const far: Partial<Record<AmenityCategory, Amenity>> = {};
   for (const it of json.items ?? []) {
     const category = CAT[it.c];
     if (!category) continue;
     const d = distanceM(lat, lon, it.la, it.lo);
-    if (d > AMENITY_RADIUS_M[category]) continue;
-    out.push({
-      category, lat: it.la, lon: it.lo,
-      name: it.n ?? AMENITY_LABELS[category],
-      distance_m: Math.round(d),
-    });
+    if (d > NEAREST_MAX_M[category]) continue;
+    const amenity = { category, lat: it.la, lon: it.lo, name: it.n ?? AMENITY_LABELS[category], distance_m: Math.round(d) };
+    if (d <= AMENITY_RADIUS_M[category]) out.push(amenity);
+    else if (!far[category] || far[category]!.distance_m > amenity.distance_m) far[category] = amenity;
+  }
+  for (const category of AMENITY_CATEGORIES) {
+    if (far[category] && !out.some((a) => a.category === category)) out.push(far[category]!);
   }
   // Nearest first, then the first PER_CATEGORY of each category; the nearest one always survives.
   const kept: Partial<Record<AmenityCategory, number>> = {};
