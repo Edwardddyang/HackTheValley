@@ -1,6 +1,7 @@
 import type { Brief, Cite, RentSafeStats } from "./brief.ts";
 import type { Extras } from "./extras.ts";
 import { BEDROOM_NOUN, bedroomsKey, OFFENCE_LABELS } from "./format.ts";
+import { constructionNoise } from "./noise.ts";
 
 // What to flag, computed rather than written: each candidate is a standout deviation in the records, with its
 // headline stat worked out here and the numbers its figure draws. No AI is involved, so every number is the
@@ -100,18 +101,21 @@ export function computeFlags(brief: Brief, extras: Extras | null, stats: RentSaf
     }
   }
 
-  // Major construction close by, and how much of it there is.
-  const notable = [...brief.construction_nearby.notable].sort((x, y) => x.distance_m - y.distance_m);
-  const near = notable[0];
-  const within250 = notable.filter((p) => p.distance_m <= 250).length;
-  if (near && (near.distance_m <= 150 || within250 >= 3)) {
-    add(near.distance_m <= 100 ? 14 : 24, {
+  // Construction & noise: flagged whenever the score (lib/noise.ts) reaches High, a fixed cutoff.
+  const noise = constructionNoise(brief);
+  if (noise.level === "High" && noise.nearest) {
+    const n = noise.nearest;
+    const complaints = noise.noise_complaints_within_250;
+    add(14, {
       key: "construction",
-      headline: `Major construction ${Math.round(near.distance_m)} m away${within250 > 1 ? ` · ${within250} major projects within 250 m` : ""}`,
-      detail: `Nearest: ${near.type.toLowerCase()}${near.address ? ` at ${titleCase(near.address)}` : ""}`,
+      headline: `Major construction ${Math.round(n.distance_m)} m away${noise.major_within_250 > 1 ? ` · ${noise.major_within_250} major projects within 250 m` : ""}`,
+      detail: `Nearest: ${n.type.toLowerCase()}${n.address ? ` at ${titleCase(n.address)}` : ""}${complaints ? ` · ${complaints} noise complaint${complaints === 1 ? "" : "s"} within 250 m` : ""}`,
       tab: "construction",
-      figure: { kind: "distance", radius_m: brief.address.radius_m, distances: notable.map((p) => p.distance_m) },
-      cites: [near.cite],
+      figure: {
+        kind: "distance", radius_m: brief.address.radius_m,
+        distances: brief.construction_nearby.notable.map((p) => p.distance_m).sort((x, y) => x - y),
+      },
+      cites: [noise.cites.major, noise.cites.complaints].filter((c): c is Cite => c != null),
     });
   }
 
