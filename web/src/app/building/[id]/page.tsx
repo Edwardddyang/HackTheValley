@@ -37,16 +37,15 @@ import Loading from "./loading";
 const RADII = [250, 500, 1000];
 
 const LIMITATIONS = [
-  "RentSafeTO only covers apartment buildings with 3+ storeys and 10+ units. A missing evaluation does not establish a building's condition.",
-  "311 requests are recorded by postal area, intersection or ward, never by building. Only requests reported at an intersection appear on the map, and the data has no closed dates, so resolution times are unknown.",
-  "Building permits come from the City's active and cleared permit files; cleared permits are limited to those completed since 2025. About 9% of permits have no matching address point and are not on the map.",
-  "Crime figures are Toronto Police Service rates for the whole neighbourhood, not a street or building.",
-  "Census figures are from 2021 and describe the neighbourhood. Shelter cost is not a current asking rent.",
-  "Rent-control status can't be determined from these datasets: it depends on first residential occupancy, which isn't recorded here.",
-  "CMHC rents are October survey averages for purpose-built rental apartments across a large area, not a valuation of one unit. Building registration details are filled in by landlords.",
-  "What to flag, the viewing questions and the ad check are written by Google Gemini from the records on this page, and each line cites the records it used; when the AI is unavailable they fall back to a fixed template. AI can misread a record, so confirm anything important with the landlord or the City.",
+  "RentSafeTO covers only apartment buildings with 3+ storeys and 10+ units; a building without an evaluation isn't necessarily in bad shape.",
+  "311 requests are placed at the nearest intersection, never at a building, and the data has no closed dates.",
+  "Permits are the City's active ones plus those cleared since 2025; about 9% have no location and aren't mapped.",
+  "Crime and census figures describe the whole neighbourhood; the census is from 2021, and its shelter cost isn't a current asking rent.",
+  "Rent control is estimated from the year built: units first occupied after Nov 15, 2018 are exempt, so confirm with the landlord.",
+  "CMHC rents are survey averages for a large area, not a valuation of one unit; building registration details are filled in by landlords.",
+  "What to flag and the construction & noise score are computed from the records. The \"Ask about this address\" chat, the viewing questions and the ad check are written by Google Gemini from the cited records and can misread one, so confirm anything important.",
   "A pasted listing is read by Gemini; the listing site itself is never visited.",
-  "The map's essentials (subway, groceries, pharmacies, hospitals) come from an OpenStreetMap extract (ODbL); distances are straight-line. Neighbourhood shading uses City boundaries with the same Census and Toronto Police figures. The Flyover, when enabled, streams Google Photorealistic 3D Tiles, whose imagery may be years old.",
+  "Map essentials come from OpenStreetMap with straight-line distances; Flyover imagery from Google may be years old.",
 ];
 
 const count = (n: number | null | undefined) => (n ? num(n) : null);
