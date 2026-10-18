@@ -12,7 +12,7 @@ import type { FeatureCollection, Point, Polygon } from "geojson";
 import { AMENITY_CATEGORIES, AMENITY_LABELS, AMENITY_RADIUS_M, type AmenityResult, fetchAmenities } from "@/lib/amenities";
 import type { Brief } from "@/lib/brief";
 import { date, metres, month, num } from "@/lib/format";
-import { constructionNoise, noiseSources } from "@/lib/noise";
+import { constructionNoise, NOISE_LEVELS_NOTE, noiseScoreLabel, noiseSources } from "@/lib/noise";
 
 import { FlyoverButton } from "./Flyover";
 import { InfoTip } from "@/components/InfoTip";
@@ -397,7 +397,8 @@ function MapExplorer({ brief, typeLabels }: Props) {
               Construction &amp; noise heatmap
             </label>
             <InfoTip label="About the construction & noise heatmap">
-              <span className="block font-semibold text-[#142D4E]">{noise.level} here (score {noise.score})</span>
+              <span className="block font-semibold text-[#142D4E]">{noise.level} here: {noiseScoreLabel(noise.score)}</span>
+              <span className="mb-1 block text-slate-500">{NOISE_LEVELS_NOTE}.</span>
               Major permits (new building or demolition 3, other $1M+ work 1.5) and 311 noise complaints (0.5 each, at most
               10 per intersection) within the radius, each spread over about 250 m. The Construction tab has the counts.
             </InfoTip>

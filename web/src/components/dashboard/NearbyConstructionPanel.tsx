@@ -1,7 +1,7 @@
 import { Cite } from "@/components/Cite";
 import type { Brief } from "@/lib/brief";
 import { compactMoney, date, metres, month, num, titleCase } from "@/lib/format";
-import { constructionNoise, type NoiseLevel } from "@/lib/noise";
+import { constructionNoise, NOISE_LEVELS_NOTE, noiseScoreLabel, type NoiseLevel } from "@/lib/noise";
 import { mapRowId } from "@/components/map/mapData";
 import { ShowOnMap } from "@/components/map/ShowOnMap";
 
@@ -23,6 +23,7 @@ function NoiseStrip({ brief }: { brief: Brief }) {
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <p className="text-sm font-semibold text-[#142D4E]">Construction &amp; noise</p>
         <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${LEVEL_CLASS[n.level]}`}>{n.level}</span>
+        <span className="text-xs tabular-nums text-slate-500" title={NOISE_LEVELS_NOTE}>{noiseScoreLabel(n.score)}</span>
       </div>
       <p className="mt-2 text-sm leading-6 text-slate-700">
         {num(n.major_within_250)}{n.major_within_250 ? plus : ""} major project{n.major_within_250 === 1 ? "" : "s"} within 250 m
@@ -36,7 +37,7 @@ function NoiseStrip({ brief }: { brief: Brief }) {
       </p>
       <p className="mt-2 text-xs leading-5 text-slate-500">
         A rough guide, not a sound measurement: new buildings and demolitions count most, other $1M+ work less, and 311 noise
-        complaints a little, each weighted by distance (half as much at 150 m).{n.major_list_capped && " The City data here lists only the 10 costliest major permits, so counts are a minimum."}
+        complaints a little, each weighted by distance (half as much at 150 m). Scored out of 10: {NOISE_LEVELS_NOTE}.{n.major_list_capped && " The City data here lists only the 10 costliest major permits, so counts are a minimum."}
       </p>
     </div>
   );

@@ -69,6 +69,14 @@ export function noiseLevel(score: number): NoiseLevel {
   return score >= NOISE_LEVELS.high ? "High" : score >= NOISE_LEVELS.moderate ? "Moderate" : "Low";
 }
 
+/** Scores are shown out of 10. The raw sum has no ceiling, but 10 is past the busiest downtown blocks we checked
+ *  (1 Yonge St scores 7.3), so anything above it displays as 10 / 10. */
+export const NOISE_SCALE = 10;
+export function noiseScoreLabel(score: number) {
+  return `${Number(Math.min(NOISE_SCALE, score).toFixed(1))} / ${NOISE_SCALE}`;
+}
+export const NOISE_LEVELS_NOTE = `Low under ${NOISE_LEVELS.moderate}, Moderate ${NOISE_LEVELS.moderate} to ${NOISE_LEVELS.high}, High ${NOISE_LEVELS.high} and up`;
+
 type Permit = Brief["construction_nearby"]["notable"][number];
 
 /** One project often has several permits at the same point (a new building plus its drain and site service
