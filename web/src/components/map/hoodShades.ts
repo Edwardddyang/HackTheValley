@@ -7,10 +7,10 @@ import { money, num } from "@/lib/format";
 // scripts/build-hoods.mjs). Each ramp runs from light to deep, and deep always means the reading a
 // renter would worry about more, except transit, where deep simply means more transit commuting.
 
-export type ShadeMetric = "rent" | "burden" | "assault" | "bne" | "rentsafe" | "transit";
+export type ShadeMetric = "rent" | "burden" | "assault" | "bne" | "noise" | "rentsafe" | "transit";
 export type Shade = "none" | ShadeMetric;
 
-export type HoodValues = Partial<Record<ShadeMetric, number | null>> & { rentsafe_n?: number };
+export type HoodValues = Partial<Record<ShadeMetric, number | null>> & { rentsafe_n?: number; noise_sites?: number; noise_complaints?: number };
 export type HoodsFile = { domains: Partial<Record<ShadeMetric, [number, number]>>; fc: FeatureCollection };
 
 type ShadeSpec = {
@@ -54,6 +54,13 @@ export const SHADES: Record<ShadeMetric, ShadeSpec> = {
     low: rate, high: (v) => `${rate(v)} per 100k`, source: "Toronto Police, 2025",
     line: (h) => `Break and enter ${rate(h.bne)} per 100k (Toronto Police, 2025)`,
   },
+  noise: {
+    option: "construction & noise per km² (2026)", deep: "#c2410c",
+    low: (v) => num(Math.round(v)), high: (v) => `${num(Math.round(v))} per km²`,
+    source: "City permits and 311, Jan–Sep 2026; weighted: new building or demolition 3, other $1M+ work 1.5, noise complaint 0.5 (max 10 per intersection)",
+    line: (h) => `Construction & noise ${h.noise != null ? num(Math.round(h.noise)) : "—"} per km²: ${num(h.noise_sites ?? null)} major permit sites, `
+      + `${num(h.noise_complaints ?? null)} 311 noise complaints (active permits; 311 Jan–Sep 2026)`,
+  },
   rentsafe: {
     option: "median RentSafeTO score", deep: "#b45309", lowIsDeep: true,
     low: (v) => `${num(v)} / 100`, high: (v) => `${num(v)} / 100`,
@@ -70,7 +77,7 @@ export const SHADES: Record<ShadeMetric, ShadeSpec> = {
 };
 
 /** Select order: housing cost first, then safety, building condition and getting around. */
-export const SHADE_ORDER: ShadeMetric[] = ["rent", "burden", "assault", "bne", "rentsafe", "transit"];
+export const SHADE_ORDER: ShadeMetric[] = ["rent", "burden", "assault", "bne", "noise", "rentsafe", "transit"];
 
 /** MapLibre fill-color expression; neighbourhoods without a value draw at the light end. */
 export function shadeFill(metric: ShadeMetric, [lo, hi]: [number, number]): ExpressionSpecification {
