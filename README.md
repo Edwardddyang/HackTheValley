@@ -44,7 +44,7 @@ Built at **Hack The Valley 11** (October 2026).
 
 **Team:** [@ariaz123git](https://github.com/ariaz123git),
 [@Edwardddyang](https://github.com/Edwardddyang), [@ogd-ola](https://github.com/ogd-ola) and
-Satwik Nethi.
+[@Satwik934](https://github.com/Satwik934).
 
 ---
 
